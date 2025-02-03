@@ -1,0 +1,9 @@
+pandas
+matplotlib
+sqlite3
+sqlalchemy
+pytest
+pytest-cov
+pydantic
+pickle
+dash
