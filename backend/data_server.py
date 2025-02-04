@@ -2,7 +2,7 @@ from frames import Frames, Tables, DatabaseManager
 from typing import Optional, Any
 import sqlite3
 
-def query_db(query: str, db_path: str) -> Optional[list[tuple[Any, ...]]]:
+def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
     Executes a query against the main database.
 
@@ -12,7 +12,10 @@ def query_db(query: str, db_path: str) -> Optional[list[tuple[Any, ...]]]:
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         try:
-            cursor.execute(query)
+            if param is not None:
+                cursor.execute(query, param)
+            else:
+                cursor.execute(query)
             if query.strip().upper().startswith("SELECT"):
                 results = cursor.fetchall()
                 print("SELECT query executed successfully.")
@@ -41,7 +44,25 @@ class DataServer:
                 """
         return query_db(query, self._db)
 
+    def serve_restr_distr(self, end_date):
+        query = f"""
+                SELECT restriction_id, SUM(in_place) AS total_restrictions
+                FROM DailyRestriction
+                WHERE date_id <= (SELECT date_id FROM Date WHERE date = ?)
+                GROUP BY restriction_id;
+                """
+        return query_db(query, self._db, (end_date,))
+
+    def serve_timeline(self):
+        query = """
+            SELECT DISTINCT d.date AS date_value, s.name AS source_name
+            FROM SummaryRestriction sr
+            JOIN Date d ON sr.date_id = d.date_id
+            JOIN Source s ON sr.source_id = s.source_id;
+            """
+        return query_db(query, self._db)
+
 
 if __name__ == "__main__":
     server = DataServer("backend/covid.db")
-    print(server.serve_time_series())
+    print(server.serve_restr_distr('2020-05-05'))
