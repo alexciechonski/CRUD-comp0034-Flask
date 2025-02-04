@@ -1,39 +1,17 @@
-from frames import Frames, Tables, DatabaseManager
 from typing import Optional, Any
 import sqlite3
-
-def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
-    """
-    Executes a query against the main database.
-
-    Returns:
-        list[tuple[Any, ...]]: Results of the query if it is a SELECT query.
-    """
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
-        try:
-            if param is not None:
-                cursor.execute(query, param)
-            else:
-                cursor.execute(query)
-            if query.strip().upper().startswith("SELECT"):
-                results = cursor.fetchall()
-                print("SELECT query executed successfully.")
-                return results
-            else:
-                conn.commit()
-                print("Query executed successfully")
-        except sqlite3.IntegrityError as int_err:
-            raise sqlite3.IntegrityError("Database query failed") from int_err
-        except sqlite3.DatabaseError as db_err:
-            raise sqlite3.DatabaseError("Database query failed") from db_err
+from backend.utils import query_db
+from html_parser import Parser
+from backend.erd_manager import ERDVisualizer
 
 class DataServer:
-    def __init__(self, db_path) -> None:
+    def __init__(self, db_path, graph_path) -> None:
         self._db = db_path
+        self._graph = graph_path
 
     def serve_erd(self):        
-        pass
+        erd = ERDVisualizer(self._graph)
+        return erd.get_adj_list()
 
     def serve_time_series(self):
         query = """
@@ -62,7 +40,6 @@ class DataServer:
             """
         return query_db(query, self._db)
 
-
 if __name__ == "__main__":
-    server = DataServer("backend/covid.db")
+    server = DataServer("backend/covid.db", "backend/graph.db")
     print(server.serve_restr_distr('2020-05-05'))
