@@ -178,9 +178,7 @@ class DatabaseManager:
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
                 tables = cursor.fetchall()
                 if tables:
-                    print("Tables in the database:")
-                    for table in tables:
-                        print(f"- {table[0]}")
+                    return [t[0] for t in tables]
                 else:
                     print("No tables found in the database.")
             except sqlite3.Error as err:
