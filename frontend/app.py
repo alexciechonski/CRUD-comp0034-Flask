@@ -132,6 +132,7 @@ TODO:
 - make graphs look nicer and give better labels
 - make utils work
 - raise db err ???
+- foreign keys db creation
 
 - add erd database
 - graph erd

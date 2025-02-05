@@ -27,10 +27,53 @@ def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple
         except sqlite3.DatabaseError as db_err:
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
-def fit_slider(db_path):
-    data = query_db("SELECT date FROM Date;", db_path)
-    first, last = data[0][0], data[-1][0]
-    return first, last
+def create_table(db_path: str, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
+    """
+    Creates a table in the database with specified columns.
+
+    Parameters:
+        table_name (str): Name of the table to create.
+        cols_dict (dict): Column names as keys and data types as values.
+    """
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA foreign_keys = ON;")
+        cols_str = f"({', '.join([f'{col_name} {constraint.upper()}' for col_name, constraint in cols_dict.items()])})"
+        if foreign_keys:
+            fk_str = ", " + ", ".join(foreign_keys)
+        else:
+            fk_str = ""
+        query = f"CREATE TABLE {table_name} {cols_str}{fk_str}"
+        try:
+            cursor.execute(query)
+            print(f"Table '{table_name}' created successfully.")
+        except sqlite3.Error as err:
+            print(f"An error occurred: {err}")
+        finally:
+            conn.commit()
+
+def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> None:
+    """
+    Inserts data into an SQLite table.
+
+    Parameters:
+    - table_name (str): Name of the table to insert data into.
+    - data (list of tuples): List of tuples, each tuple represents a row of data.
+                            Example: [(1, '2023-01-01'), (2, '2023-01-02')]
+    """
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        placeholders = ', '.join(['?' for _ in data[0]])
+        insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+
+        try:
+            for row in data:
+                cursor.execute(insert_sql, row)
+            print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
+        except sqlite3.Error as e:
+            print(f"An error occurred: {e}")
+        finally:
+            conn.commit()
 
 if __name__ == "__main__":
-    print(fit_slider("backend/covid.db"))
+    pass
