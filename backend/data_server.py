@@ -2,7 +2,7 @@ from typing import Optional, Any
 import sqlite3
 from backend.utils import query_db
 from html_parser import Parser
-from backend.erd_manager import ERDVisualizer
+from backend.erd_manager import Visualizer
 
 class DataServer:
     def __init__(self, db_path, graph_path) -> None:
@@ -10,7 +10,7 @@ class DataServer:
         self._graph = graph_path
 
     def serve_erd(self):        
-        erd = ERDVisualizer(self._graph)
+        erd = Visualizer(self._graph)
         return erd.get_adj_list()
 
     def serve_time_series(self):

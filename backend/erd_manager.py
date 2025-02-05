@@ -1,8 +1,9 @@
 import sqlite3
 import pandas as pd
 from backend.utils import *
+from collections import defaultdict
 
-class ERDVisualizer:
+class Visualizer:
     def __init__(self, graph_db_path) -> None:
         self._db = graph_db_path
 
@@ -16,7 +17,22 @@ class ERDVisualizer:
     #     pass
 
     def get_adj_list(self):
-        pass
+        sql = """
+            SELECT 
+                n1.node_name AS from_node_name,
+                n2.node_name AS to_node_name,
+                et.type_name AS connection_type_name
+            FROM Edges e
+            JOIN Nodes n1 ON e.from_node = n1.node_id
+            JOIN Nodes n2 ON e.to_node = n2.node_id
+            JOIN EdgeTypes et ON e.type_id = et.type_id;
+            """
+        res = query_db(sql, self._db)
+        adj = defaultdict(list)
+        for u, v, typ in res:
+            adj[u].append((v, typ))
+            adj[v].append((u, typ))
+        return adj        
 
 class CRUD:
     def __init__(self, db_path) -> None:
@@ -98,23 +114,13 @@ def create_graph_db():
         create_table(db_path, "Edges", cols)
         insert_data(db_path, "Edges", edges_data)
 
-    # create_nodes()
-    # create_edge_types()
-    # create_edges()
+    create_nodes()
+    create_edge_types()
+    create_edges()
 
 if __name__ == "__main__":
-    # create_graph_db()
-
-    # with sqlite3.connect("backend/graph.db") as conn:
-    #     cursor = conn.cursor()
-    #     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    #     res = cursor.fetchall()
-    #     print(res)
-
-    # print(query_db("SELECT * FROM Edges", "backend/graph.db"))
-
-    pass
-
+    vis = Visualizer("backend/graph.db")
+    print(vis.get_adj_list())
 
 
 
