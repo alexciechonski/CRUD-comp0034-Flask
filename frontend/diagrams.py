@@ -41,7 +41,7 @@ class Diagrams:
 
     def timeline(self):
         sql = self.server.serve_timeline()
-        date, event = zip(*sql)
+        date, event, url = zip(*sql)
 
         pattern = list(range(1, 10, 2)) + list(range(5, -10, -2))
         level = [pattern[i % len(pattern)] for i in range(len(sql))]
@@ -61,6 +61,7 @@ class Diagrams:
                     color="black",
                     size=12
                 ),
+                customdata=url, 
                 name="Events"
             )
         )
@@ -98,7 +99,27 @@ class Diagrams:
             margin=dict(l=40, r=40, t=40, b=40)
         )
 
-        # # Show the plot
+        # # Generate a click handler using Plotly's events
+        # fig.update_layout(
+        #     clickmode='event+select',
+        # )
+
+        # # Use JavaScript to handle clicks (you can include this part in your front-end code)
+        # fig.add_html(
+        #     """
+        #     <script>
+        #         document.addEventListener('plotly_click', function(event) {
+        #             var point = event.points[0];
+        #             var url = point.customdata;
+
+        #             if (url) {
+        #                 window.open(url, '_blank');
+        #             }
+        #         });
+        #     </script>
+        #     """
+        # )
+
         # fig.show()
         return fig
 

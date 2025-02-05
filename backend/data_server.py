@@ -43,13 +43,24 @@ class DataServer:
 
     def serve_timeline(self):
         query = """
-            SELECT DISTINCT d.date AS date_value, s.name AS source_name
-            FROM SummaryRestriction sr
-            JOIN Date d ON sr.date_id = d.date_id
-            JOIN Source s ON sr.source_id = s.source_id;
-            """
+                SELECT DISTINCT 
+                    d.date AS date_value, 
+                    s.name AS source_name, 
+                    s.source AS source_url
+                FROM SummaryRestriction sr
+                JOIN Date d ON sr.date_id = d.date_id
+                JOIN Source s ON sr.source_id = s.source_id;
+                """
         return query_db(query, self._db)
 
 if __name__ == "__main__":
     server = DataServer("backend/covid.db", "backend/graph.db")
-    print(server.serve_restr_distr('2020-05-05'))
+    print(server.serve_timeline())
+
+    # with sqlite3.connect("backend/covid.db") as conn:
+    #     cursor = conn.cursor()
+    #     cursor.execute("PRAGMA table_info('Source');")
+    #     res = cursor.fetchall()
+    #     print(res)
+
+    # print(query_db("SELECT source FROM Source", "backend/covid.db"))

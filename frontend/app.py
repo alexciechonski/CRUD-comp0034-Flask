@@ -5,7 +5,8 @@ from backend.data_server import DataServer
 import dash_daq as daq
 from datetime import date
 from sqlite3 import DatabaseError
-
+from dash_extensions.javascript import assign, Namespace
+import dash
 
 dgms = Diagrams(
     "backend/covid.db",
@@ -87,7 +88,8 @@ app.layout = [
                 className="section",
                 children=[
                     html.H1("TIMELINE"),
-                    dcc.Graph(figure=dgms.timeline())
+                    dcc.Location(id='url', refresh=True),
+                    dcc.Graph(id="timeline-graph", figure=dgms.timeline()),
                 ]
             )
         ]
@@ -109,15 +111,27 @@ def query_date(day, month, year):
     else:
         raise DatabaseError
 
+@app.callback(
+    Output('url', 'href'),
+    Input('timeline-graph', 'clickData')
+)
+def redirect_on_click(clickData):
+    if clickData is None:
+        raise dash.exceptions.PreventUpdate
+    else:
+        clicked_point = clickData['points'][0]
+        redirect_url = clicked_point['customdata']
+
+        return redirect_url 
 
 if __name__ == '__main__':
     app.run(debug=True)
 
 """
 TODO:
-- callbacks for timeline
 - make graphs look nicer and give better labels
 - make utils work
+- raise db err ???
 
 - add erd database
 - graph erd
