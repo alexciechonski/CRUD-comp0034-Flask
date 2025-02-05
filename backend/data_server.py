@@ -22,14 +22,24 @@ class DataServer:
                 """
         return query_db(query, self._db)
 
-    def serve_restr_distr(self, end_date):
-        query = f"""
-                SELECT restriction_id, SUM(in_place) AS total_restrictions
-                FROM DailyRestriction
-                WHERE date_id <= (SELECT date_id FROM Date WHERE date = ?)
-                GROUP BY restriction_id;
-                """
-        return query_db(query, self._db, (end_date,))
+    def serve_restr_distr(self, end_date = None):
+        if end_date is not None:
+            query = """
+                    SELECT Restriction.restriction AS restriction, SUM(DailyRestriction.in_place) AS total_restrictions
+                    FROM DailyRestriction
+                    JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
+                    WHERE date_id <= (SELECT date_id FROM Date WHERE date = ?)
+                    GROUP BY Restriction.restriction;
+                    """
+            return query_db(query, self._db, (end_date,))
+        else:
+            query = """
+                    SELECT Restriction.restriction AS restriction, SUM(DailyRestriction.in_place) AS total_restrictions
+                    FROM DailyRestriction
+                    JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
+                    GROUP BY Restriction.restriction;
+                    """
+            return query_db(query, self._db)
 
     def serve_timeline(self):
         query = """
