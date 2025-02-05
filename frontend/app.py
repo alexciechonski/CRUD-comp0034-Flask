@@ -28,7 +28,7 @@ app.layout = [
                 className="section",
                 children=[
                     html.H1("DATASET"),
-                    dcc.Graph()
+                    dcc.Graph(figure=dgms.erd())
                 ]
             ),
 
@@ -133,6 +133,8 @@ TODO:
 - make utils work
 - raise db err ???
 - foreign keys db creation
+- too long functions
+- bug in bar chart input
 
 - add erd database
 - graph erd

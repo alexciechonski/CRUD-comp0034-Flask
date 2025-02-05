@@ -2,10 +2,73 @@ import pandas as pd
 from backend.data_server import DataServer
 import plotly.graph_objs as go
 import plotly.express as px
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Diagrams:
     def __init__(self, db_path, graph_path) -> None:
         self.server = DataServer(db_path, graph_path)
+
+    def erd(self):
+        adj = self.server.serve_erd()
+        G = nx.Graph()
+        visited_edges = set()  # To keep track of visited edges
+
+        for node, neighbors in adj.items():
+            for neighbor, _ in neighbors:
+                # Ensure each edge is only added once (account for both directions)
+                if (node, neighbor) not in visited_edges and (neighbor, node) not in visited_edges:
+                    G.add_edge(node, neighbor)
+                    visited_edges.add((node, neighbor))
+
+        # Step 2: Use NetworkX to generate node positions
+        positions = nx.spring_layout(G)
+
+        # Step 3: Extract node and edge coordinates for Plotly visualization
+        node_x = [positions[node][0] for node in G.nodes()]
+        node_y = [positions[node][1] for node in G.nodes()]
+
+        edge_x = []
+        edge_y = []
+        for edge in G.edges():
+            x0, y0 = positions[edge[0]]
+            x1, y1 = positions[edge[1]]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+
+        # Step 4: Create traces for the graph visualization
+        edge_trace = go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=1, color='#888'),
+            hoverinfo='none',
+            mode='lines'
+        )
+
+        node_trace = go.Scatter(
+            x=node_x, y=node_y,
+            mode='markers+text',
+            text=[node for node in G.nodes()],
+            hoverinfo='text',
+            marker=dict(
+                color='lightblue',
+                size=20,
+                line_width=2
+            )
+        )
+
+        # Step 5: Create the Plotly figure
+        fig = go.Figure(
+            data=[edge_trace, node_trace],
+            layout=go.Layout(
+                title='Graph Visualization from Bidirectional Adjacency List',
+                showlegend=False,
+                margin=dict(b=0, l=0, r=0, t=0),
+                xaxis=dict(showgrid=False, zeroline=False),
+                yaxis=dict(showgrid=False, zeroline=False)
+            )
+        )
+
+        fig.show()
 
     def time_series(self):
         sql = self.server.serve_time_series()
@@ -99,29 +162,8 @@ class Diagrams:
             margin=dict(l=40, r=40, t=40, b=40)
         )
 
-        # # Generate a click handler using Plotly's events
-        # fig.update_layout(
-        #     clickmode='event+select',
-        # )
-
-        # # Use JavaScript to handle clicks (you can include this part in your front-end code)
-        # fig.add_html(
-        #     """
-        #     <script>
-        #         document.addEventListener('plotly_click', function(event) {
-        #             var point = event.points[0];
-        #             var url = point.customdata;
-
-        #             if (url) {
-        #                 window.open(url, '_blank');
-        #             }
-        #         });
-        #     </script>
-        #     """
-        # )
-
-        # fig.show()
         return fig
+        # fig.show()
 
 
 if __name__ == "__main__":
@@ -130,4 +172,4 @@ if __name__ == "__main__":
     "backend/graph.db"
     )
 
-    dgms.restr_distr()
+    dgms.erd()
