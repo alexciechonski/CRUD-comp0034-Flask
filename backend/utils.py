@@ -1,5 +1,6 @@
 import sqlite3
 from typing import Optional, Any
+import math
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -74,6 +75,34 @@ def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> N
             print(f"An error occurred: {e}")
         finally:
             conn.commit()
+
+def calculate_edge_point(x0, y0, x1, y1, node_size):
+    """Calculate where the edge should end on the node's boundary."""
+    dx, dy = x1 - x0, y1 - y0
+    distance = math.sqrt(dx**2 + dy**2)
+    
+    # Scale the vector to stop at the node's edge
+    scale = (distance - node_size / 2) / distance
+    return x0 + dx * scale, y0 + dy * scale
+
+def calculate_perpendicular(mid_x, mid_y, x0, y0, x1, y1, length=20):
+    """Calculate points for a perpendicular T-style decorator."""
+    dx, dy = x1 - x0, y1 - y0
+    # Normalize to get perpendicular direction
+    distance = math.sqrt(dx ** 2 + dy ** 2)
+    if distance == 0:
+        return mid_x, mid_y, mid_x, mid_y
+
+    # Perpendicular direction vector
+    perp_dx, perp_dy = -dy / distance, dx / distance
+
+    # Points for the T-line (perpendicular to the edge)
+    t_x1 = mid_x + perp_dx * length
+    t_y1 = mid_y + perp_dy * length
+    t_x2 = mid_x - perp_dx * length
+    t_y2 = mid_y - perp_dy * length
+
+    return t_x1, t_y1, t_x2, t_y2
 
 if __name__ == "__main__":
     pass

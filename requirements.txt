@@ -8,3 +8,4 @@ dash
 dash-daq
 dash-extensions
 networkx
+pydot

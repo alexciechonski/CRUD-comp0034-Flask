@@ -135,6 +135,7 @@ TODO:
 - foreign keys db creation
 - too long functions
 - bug in bar chart input
+- graphviz warning
 
 - add erd database
 - graph erd

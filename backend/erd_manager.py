@@ -29,10 +29,9 @@ class Visualizer:
             """
         res = query_db(sql, self._db)
         adj = defaultdict(list)
-        for u, v, typ in res:
-            adj[u].append((v, typ))
-            adj[v].append((u, typ))
-        return adj        
+        for start, end, typ in res:
+            adj[start].append([end, typ])
+        return adj     
 
 class CRUD:
     def __init__(self, db_path) -> None:
@@ -71,22 +70,20 @@ def create_graph_db():
 
     edges_data = [
         (1, 1, 5, 4), # date - daily restriction
-        (2, 5, 1, 4),
+        # (2, 5, 1, 4),
         (3, 1, 7, 4), # date - summary restriction
-        (4, 7, 1, 4),
-        (5, 5, 3, 4), # daily restriction - restriction
+        # (4, 7, 1, 4),
+        # (5, 5, 3, 4), # daily restriction - restriction
         (6, 3, 5, 4), 
-        (7, 7, 3, 4), # summary restriction - restriction
+        # (7, 7, 3, 4), # summary restriction - restriction
         (8, 3, 7, 4),
-        (9, 7, 4, 4), # summary restriction - source
+        # (9, 7, 4, 4), # summary restriction - source
         (10, 4, 7, 4),
         (11, 3, 6, 4), # restriction - weekly restriction
-        (12, 6, 3, 4),
-        (13, 6, 2, 4), # weekly restriction - week
+        # (12, 6, 3, 4),
+        # (13, 6, 2, 4), # weekly restriction - week
         (14, 2, 6, 4)
     ]
-
-    edge = pd.DataFrame(edges_data)
 
     def create_nodes():
         cols = {
@@ -114,13 +111,33 @@ def create_graph_db():
         create_table(db_path, "Edges", cols)
         insert_data(db_path, "Edges", edges_data)
 
-    create_nodes()
-    create_edge_types()
+    # create_nodes()
+    # create_edge_types()
     create_edges()
 
 if __name__ == "__main__":
     vis = Visualizer("backend/graph.db")
     print(vis.get_adj_list())
+
+    # def delete_table(table_name: str) -> None:
+    #     """
+    #     Deletes a specified table from the database.
+
+    #     Parameters:
+    #         table_name (str): The name of the table to delete.
+    #     """
+    #     with sqlite3.connect("backend/graph.db") as conn:
+    #         cursor = conn.cursor()
+    #         try:
+    #             cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
+    #             conn.commit()
+    #             print(f"Table '{table_name}' has been deleted from the database.")
+    #         except sqlite3.DatabaseError as db_err:
+    #             print(f"Database error occurred: {db_err}")
+
+    # delete_table("Edges")
+    
+    # create_graph_db()
 
 
 
