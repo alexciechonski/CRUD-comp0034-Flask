@@ -33,7 +33,18 @@ app.layout = [
                         id='erd-chart', 
                         figure=dgms.erd(),
                         ),
-                    html.Div(id='back-button')
+                    html.Div(
+                        id='back-button',
+                        children=[
+                            html.Button(
+                                "Back",
+                                id='back-btn',
+                                n_clicks=0,
+                                className='back-button',
+                                style=dict(display='none')
+                            )
+                        ]
+                    )
                 ]
             ),
 
@@ -143,28 +154,38 @@ def redirect_on_click(clickData):
 
 @app.callback(
     Output('erd-chart', 'figure'),
-    Input('erd-chart', 'clickData')
+    Input('erd-chart', 'clickData'),
+    Input('back-btn', 'n_clicks')
 )
-def display_table_info(clickData):
+def display_table_info(clickData, n_clicks):
     if not clickData:
         return dgms.erd()
     else:
-        return dgms.get_table("Date")
+        if n_clicks > 0:
+            return dgms.erd()
+        else:
+            return dgms.get_table("Date")
 
 @app.callback(
-    Output('back-button', 'children'),
-    Input('erd-chart', 'clickData')
+    Output('back-btn', 'style', allow_duplicate=True),
+    Input('erd-chart', 'clickData'),
+    prevent_initial_call=True
 )
 def display_back_button(clickData):
     if not clickData:
-        return None
+        return dict(display='none')
     else:
-        return html.Button(
-            "Back",
-            id='back-btn',
-            n_clicks=0,
-            className='back-button'
-        )
+        return dict()
+
+@app.callback(
+    Output('back-btn', 'style'),
+    Input('back-btn', 'n_clicks')
+)
+def hide_button(n_clicks):
+    if n_clicks and n_clicks > 0:
+        return dict(display='none')
+    else:
+        return dict()
 
 if __name__ == '__main__':
     app.run(debug=True)
