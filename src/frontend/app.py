@@ -7,6 +7,7 @@ from datetime import date
 from sqlite3 import DatabaseError
 from dash_extensions.javascript import assign, Namespace
 import dash
+import plotly.graph_objects as go
 
 dgms = Diagrams(
     "src/backend/covid.db",
@@ -105,11 +106,24 @@ app.layout = [
     ]
 )
 def query_date(day, month, year):
-    final_date = date(year, month, day)
-    if final_date < date(2024, 1, 15):
-        return dgms.restr_distr(final_date)
-    else:
-        raise DatabaseError
+    try:
+        final_date = date(year, month, day)
+        if final_date < date(2024, 1, 15):
+            return dgms.restr_distr(final_date)
+        else:
+            return go.Figure()
+    except ValueError as val_err:
+        pass
+    except DatabaseError as db_err:
+        pass
+    return go.Figure(
+        data=[],
+        layout=go.Layout(
+            title='Error: Could not generate the graph',
+            xaxis=dict(title='Date'),
+            yaxis=dict(title='Distribution')
+        )
+    )
 
 @app.callback(
     Output('url', 'href'),
