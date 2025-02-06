@@ -6,7 +6,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import scipy
 from networkx.drawing.nx_pydot import graphviz_layout
-from backend.utils import calculate_perpendicular
+from src.utils import calculate_perpendicular
 import plotly.tools as tls
 # import pygraphviz as pgv
 from networkx.drawing.nx_agraph import to_agraph
@@ -150,8 +150,11 @@ class Diagrams:
                         xaxis=dict(showgrid=False, zeroline=False),
                         yaxis=dict(showgrid=False, zeroline=False)
                     ))
-        # return fig
-        fig.show()
+        return fig
+        # fig.show()
+
+    def get_table(self, table_name):
+        pass
 
     def time_series(self):
         sql = self.server.serve_time_series()
@@ -251,8 +254,8 @@ class Diagrams:
 
 if __name__ == "__main__":
     dgms = Diagrams(
-    "backend/covid.db",
-    "backend/graph.db"
+    "src/backend/covid.db",
+    "src/backend/graph.db"
     )
 
     dgms.erd()

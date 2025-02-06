@@ -9,12 +9,12 @@ from dash_extensions.javascript import assign, Namespace
 import dash
 
 dgms = Diagrams(
-    "backend/covid.db",
-    "backend/graph.db"
+    "src/backend/covid.db",
+    "src/backend/graph.db"
 )
 server = DataServer(
-    "backend/covid.db",
-    "backend/graph.db"
+    "src/backend/covid.db",
+    "src/backend/graph.db"
 )
 
 app = Dash(__name__)
@@ -28,7 +28,7 @@ app.layout = [
                 className="section",
                 children=[
                     html.H1("DATASET"),
-                    dcc.Graph(figure=dgms.erd())
+                    dcc.Graph(id='erd-chart', figure=dgms.erd())
                 ]
             ),
 
@@ -124,13 +124,19 @@ def redirect_on_click(clickData):
 
         return redirect_url 
 
+# @callback(
+#     Output('datatset-page', 'children'),
+#     Input('erd-chart', 'clickData')
+# )
+# def show_table():
+#     pass
+
 if __name__ == '__main__':
     app.run(debug=True)
 
 """
 TODO:
 - make graphs look nicer and give better labels
-- make utils work
 - raise db err ???
 - foreign keys db creation
 - too long functions

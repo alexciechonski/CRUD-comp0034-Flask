@@ -1,6 +1,6 @@
 import sqlite3
 import pandas as pd
-from backend.utils import *
+from src.utils import *
 from collections import defaultdict
 
 class Visualizer:
