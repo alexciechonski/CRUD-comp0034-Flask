@@ -1,5 +1,5 @@
 import pandas as pd
-from dash import Dash, html, dcc, callback, Output, Input, State
+from dash import Dash, html, dcc, callback, Output, Input, State, no_update
 from frontend.diagrams import Diagrams
 from backend.data_server import DataServer
 import dash_daq as daq
@@ -153,39 +153,20 @@ def redirect_on_click(clickData):
         return redirect_url 
 
 @app.callback(
-    Output('erd-chart', 'figure'),
-    Input('erd-chart', 'clickData'),
-    Input('back-btn', 'n_clicks')
+    [Output('erd-chart', 'figure'),
+    Output('back-btn', 'style'),
+    Output('back-btn', 'n_clicks')],
+    [Input('erd-chart', 'clickData'),
+    Input('back-btn', 'n_clicks')]
 )
 def display_table_info(clickData, n_clicks):
     if not clickData:
-        return dgms.erd()
+        return dgms.erd(), dict(display='none'), 0
     else:
         if n_clicks > 0:
-            return dgms.erd()
+            return dgms.erd(), dict(display='none'), 0
         else:
-            return dgms.get_table("Date")
-
-@app.callback(
-    Output('back-btn', 'style', allow_duplicate=True),
-    Input('erd-chart', 'clickData'),
-    prevent_initial_call=True
-)
-def display_back_button(clickData):
-    if not clickData:
-        return dict(display='none')
-    else:
-        return dict()
-
-@app.callback(
-    Output('back-btn', 'style'),
-    Input('back-btn', 'n_clicks')
-)
-def hide_button(n_clicks):
-    if n_clicks and n_clicks > 0:
-        return dict(display='none')
-    else:
-        return dict()
+            return dgms.get_table("Date"), dict(), no_update
 
 if __name__ == '__main__':
     app.run(debug=True)
