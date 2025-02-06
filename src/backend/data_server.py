@@ -1,6 +1,6 @@
 from typing import Optional, Any
 import sqlite3
-from src.utils import query_db
+from src.utils import query_db, get_table_info
 from html_parser import Parser
 from src.backend.erd_manager import Visualizer
 
@@ -13,8 +13,8 @@ class DataServer:
         erd = Visualizer(self._graph)
         return erd.get_adj_list()
 
-    def serve_table(self):
-        pass
+    def serve_table(self, table):
+        return get_table_info(table, self._db)
 
     def serve_time_series(self):
         query = """

@@ -6,7 +6,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import scipy
 from networkx.drawing.nx_pydot import graphviz_layout
-from src.utils import calculate_perpendicular
 import plotly.tools as tls
 # import pygraphviz as pgv
 from networkx.drawing.nx_agraph import to_agraph
@@ -110,12 +109,17 @@ class Diagrams:
             arrow_traces.append(arrow_trace)
 
         # Step 6: Extract node positions
+        node_metadata = {node: f"Table: {node}" for node in adj}  # Example metadata
         node_x = []
         node_y = []
+        node_text = []
+        custom_data = []
         for node in G.nodes():
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
+            node_text.append(node_metadata.get(node, f"Node: {node}"))
+            custom_data.append(node)
 
         # Step 7: Create node trace
         node_trace = go.Scatter(
@@ -128,7 +132,9 @@ class Diagrams:
             ),
             text=[str(node) for node in G.nodes()],
             textposition='top center',
-            hoverinfo='text'
+            hoverinfo='text+name',
+            customdata=custom_data,
+            hovertext=node_text
         )
         # Step 8: Create the Plotly figure
         fig = go.Figure(data=edge_traces + arrow_traces + [node_trace],
@@ -154,7 +160,27 @@ class Diagrams:
         # fig.show()
 
     def get_table(self, table_name):
-        pass
+        data = self.server.serve_table(table_name)
+        erd_table = pd.DataFrame(data, columns = ['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
+        fig = go.Figure(
+        data=[
+            go.Table(
+                header=dict(
+                    values=list(erd_table.columns),
+                    fill_color='paleturquoise',
+                    align='left'
+                ),
+                cells=dict(
+                    values=[erd_table[col] for col in erd_table.columns],
+                    fill_color='lavender',
+                    align='left'
+                )
+            )
+            ]
+        )
+        return fig
+        # fig.show()
+
 
     def time_series(self):
         sql = self.server.serve_time_series()
@@ -258,4 +284,4 @@ if __name__ == "__main__":
     "src/backend/graph.db"
     )
 
-    dgms.erd()
+    dgms.get_table("Date")

@@ -29,7 +29,11 @@ app.layout = [
                 className="section",
                 children=[
                     html.H1("DATASET"),
-                    dcc.Graph(id='erd-chart', figure=dgms.erd())
+                    dcc.Graph(
+                        id='erd-chart', 
+                        figure=dgms.erd(),
+                        ), 
+                    html.Div(id='table-info', className='table-section')
                 ]
             ),
 
@@ -138,12 +142,15 @@ def redirect_on_click(clickData):
 
         return redirect_url 
 
-# @callback(
-#     Output('datatset-page', 'children'),
-#     Input('erd-chart', 'clickData')
-# )
-# def show_table():
-#     pass
+@app.callback(
+    Output('erd-chart', 'figure'),
+    Input('erd-chart', 'clickData')
+)
+def display_table_info(clickData):
+    if not clickData:
+        return dgms.erd()
+    else:
+        return dgms.get_table("Date")
 
 if __name__ == '__main__':
     app.run(debug=True)
