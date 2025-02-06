@@ -1,5 +1,5 @@
 import pandas as pd
-from dash import Dash, html, dcc, callback, Output, Input
+from dash import Dash, html, dcc, callback, Output, Input, State
 from frontend.diagrams import Diagrams
 from backend.data_server import DataServer
 import dash_daq as daq
@@ -32,8 +32,8 @@ app.layout = [
                     dcc.Graph(
                         id='erd-chart', 
                         figure=dgms.erd(),
-                        ), 
-                    html.Div(id='table-info', className='table-section')
+                        ),
+                    html.Div(id='back-button')
                 ]
             ),
 
@@ -139,7 +139,6 @@ def redirect_on_click(clickData):
     else:
         clicked_point = clickData['points'][0]
         redirect_url = clicked_point['customdata']
-
         return redirect_url 
 
 @app.callback(
@@ -151,6 +150,21 @@ def display_table_info(clickData):
         return dgms.erd()
     else:
         return dgms.get_table("Date")
+
+@app.callback(
+    Output('back-button', 'children'),
+    Input('erd-chart', 'clickData')
+)
+def display_back_button(clickData):
+    if not clickData:
+        return None
+    else:
+        return html.Button(
+            "Back",
+            id='back-btn',
+            n_clicks=0,
+            className='back-button'
+        )
 
 if __name__ == '__main__':
     app.run(debug=True)
