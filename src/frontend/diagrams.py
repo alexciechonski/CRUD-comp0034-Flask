@@ -182,8 +182,8 @@ class Diagrams:
         # fig.show()
 
 
-    def time_series(self):
-        sql = self.server.serve_time_series()
+    def time_series(self, restrs):
+        sql = self.server.serve_time_series(restrs)
         x, y = zip(*sql)
         return {
                 "data": [
@@ -284,4 +284,6 @@ if __name__ == "__main__":
     "src/backend/graph.db"
     )
 
-    dgms.get_table("Date")
+    # dgms.time_series(restrs=[value])
+    # value = 'wfh'
+    # print(dgms.time_series(restrs=[value]))

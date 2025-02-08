@@ -88,5 +88,8 @@ def get_table_info(table, db_path):
         except sqlite3.DatabaseError as db_err:
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
+def process_multiselect(selections):
+    return [sel.replace(" ", "_").lower() for sel in selections]
+
 if __name__ == "__main__":
-    print(get_table_info("Date", "src/backend/covid.db"))
+    print(process_multiselect(['Pubs Closed']))

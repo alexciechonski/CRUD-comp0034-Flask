@@ -16,14 +16,30 @@ class DataServer:
     def serve_table(self, table):
         return get_table_info(table, self._db)
 
-    def serve_time_series(self):
-        query = """
+    def serve_time_series(self, restrs = []):
+        if not restrs:
+            query = """
+                    SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
+                    FROM DailyRestriction
+                    JOIN Date ON DailyRestriction.date_id = Date.date_id
+                    GROUP BY Date.date;
+                    """
+            return query_db(query, self._db, restrs)
+        else:
+            placeholders = ', '.join(['?'] * len(restrs))
+            query = f"""
                 SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
                 FROM DailyRestriction
                 JOIN Date ON DailyRestriction.date_id = Date.date_id
+                JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
+                WHERE Restriction.restriction IN ({placeholders})
                 GROUP BY Date.date;
-                """
-        return query_db(query, self._db)
+            """
+            with sqlite3.connect(self._db) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, restrs)
+                return cursor.fetchall()
+        # return query_db(query, self._db, restrs)
 
     def serve_restr_distr(self, end_date = None):
         if end_date is not None:
@@ -57,13 +73,11 @@ class DataServer:
         return query_db(query, self._db)
 
 if __name__ == "__main__":
-    server = DataServer("backend/covid.db", "backend/graph.db")
-    print(server.serve_timeline())
+    server = DataServer("src/backend/covid.db", "src/backend/graph.db")
+    print(server.serve_time_series(['wfh']))
 
-    # with sqlite3.connect("backend/covid.db") as conn:
+    # with sqlite3.connect('src/backend/covid.db') as conn:
     #     cursor = conn.cursor()
-    #     cursor.execute("PRAGMA table_info('Source');")
+    #     cursor.execute("PRAGMA table_info('Restriction');")
     #     res = cursor.fetchall()
-    #     print(res)
-
-    # print(query_db("SELECT source FROM Source", "backend/covid.db"))
+    # print(res)

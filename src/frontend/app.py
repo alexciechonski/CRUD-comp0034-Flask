@@ -5,9 +5,9 @@ from backend.data_server import DataServer
 import dash_daq as daq
 from datetime import date
 from sqlite3 import DatabaseError
-from dash_extensions.javascript import assign, Namespace
 import dash
 import plotly.graph_objects as go
+from src.utils import process_multiselect
 
 dgms = Diagrams(
     "src/backend/covid.db",
@@ -54,7 +54,22 @@ app.layout = [
                 children=[
                     html.H1("TIME SERIES"),
                     dcc.Graph(
-                        figure=dgms.time_series()
+                        id='time-series-chart',
+                        figure=dgms.time_series([])
+                    ),
+                    html.Div(
+                        id = 'restr_multiselect',
+                        children = [
+                            dcc.Dropdown(
+                            ["Curfew", 'Eat Out to Help Out', "Eating Places Closed", "Household Mixing Indoors Banned",  "Pubs Closed", "Rule of 6 Indoors", "Shools Closed", "Shops Closed", "Stay at Home", "WFH"],
+                            multi=True,
+                            placeholder = "All",
+                            id = 'dropdown'
+                            ),
+                            html.Div(
+                                id='show-res'
+                            )
+                        ]
                     )
                 ]
             ),
@@ -139,6 +154,20 @@ def query_date(day, month, year):
             yaxis=dict(title='Distribution')
         )
     )
+
+@app.callback(
+    Output('time-series-chart', 'figure'),
+    Input('dropdown', 'value')
+)
+def update_time_series(value):
+    if not value:
+        return dgms.time_series(restrs=[])
+    elif isinstance(value, str): 
+        value = process_multiselect(value)
+        return dgms.time_series(restrs=[value])
+    else:  
+        value = process_multiselect(value)
+        return dgms.time_series(restrs=value)
 
 @app.callback(
     Output('url', 'href'),
