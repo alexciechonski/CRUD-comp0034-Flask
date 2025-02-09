@@ -9,3 +9,4 @@ dash-daq
 dash-extensions
 networkx
 pydot
+scikit-learn
