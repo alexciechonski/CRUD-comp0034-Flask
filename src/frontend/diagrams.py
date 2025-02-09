@@ -13,6 +13,7 @@ import matplotlib.image as mpimg
 import io
 import base64
 from src.utils import convert_to_date
+from src.prediction.pred import Model
 
 
 class Diagrams:
@@ -235,6 +236,29 @@ class Diagrams:
             }
         }
 
+    def overlayed_series(self, restrs: list):
+        model = Model(restrs)
+        df = model.train_linear()
+        return {
+            "data": [
+                {
+                    "x": df['restr_value'],
+                    "y": df['predicted_mental'],
+                    "type": "line",
+                    "name": "Time Series",
+                    "yaxis": "y"
+                }
+            ],
+            "layout": {
+                "title": "Time Series Plot",
+                "yaxis": {
+                    "title": "Mental Health"
+                },
+                "xaxis": {
+                    "title": "Restrictions"
+                }
+            }
+        }
 
     def restr_distr(self, final_date = None):
         sql = self.server.serve_restr_distr(final_date)
@@ -322,4 +346,4 @@ if __name__ == "__main__":
     "src/backend/data/mental_health.db"
     )
 
-    print(dgms.time_series(restrs=[]))
+    print(dgms.overlayed_series([]))

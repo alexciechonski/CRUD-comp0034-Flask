@@ -1,7 +1,6 @@
 from typing import Optional, Any
 import sqlite3
 from src.utils import query_db, get_table_info, convert_to_date
-from html_parser import Parser
 from src.backend.erd_manager import Visualizer
 
 class DataServer:

@@ -60,7 +60,7 @@ app.layout = [
                         figure=dgms.time_series([])
                     ),
                     html.Div(
-                        id = 'restr_multiselect',
+                        id ='restr_multiselect',
                         children = [
                             dcc.Dropdown(
                             ["Curfew", 'Eat Out to Help Out', "Eating Places Closed", "Household Mixing Indoors Banned",  "Pubs Closed", "Rule of 6 Indoors", "Shools Closed", "Shops Closed", "Stay at Home", "WFH"],
@@ -68,8 +68,22 @@ app.layout = [
                             placeholder = "All",
                             id = 'dropdown'
                             ),
+                        ]
+                    ),
+                    html.Div(
+                        id='correlation',
+                        children = [
                             html.Div(
-                                id='show-res'
+                                id='corr-res'
+                            ),
+                            html.Div(
+                                id='corr-graph',
+                                children = [
+                                    dcc.Graph(
+                                        id='corr-chart',
+                                        figure=dgms.overlayed_series([])
+                                    )
+                                ]
                             )
                         ]
                     )
