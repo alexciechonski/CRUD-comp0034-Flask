@@ -10,12 +10,12 @@ import plotly.graph_objects as go
 from src.utils import process_multiselect
 
 dgms = Diagrams(
-    "src/backend/covid.db",
-    "src/backend/graph.db"
+    "src/backend/data/covid.db",
+    "src/backend/data/graph.db"
 )
 server = DataServer(
-    "src/backend/covid.db",
-    "src/backend/graph.db"
+    "src/backend/data/covid.db",
+    "src/backend/data/graph.db"
 )
 
 app = Dash(__name__)
@@ -206,8 +206,6 @@ TODO:
 - raise db err ???
 - foreign keys db creation
 - too long functions
-- bug in bar chart input
-- graphviz warning
 
 - add erd database
 - graph erd

@@ -1,57 +1,4 @@
-import sqlite3
-import pandas as pd
 from src.utils import *
-from collections import defaultdict
-
-class Visualizer:
-    def __init__(self, graph_db_path) -> None:
-        self._db = graph_db_path
-
-    # def add_table(self, table):
-    #     pass
-
-    # def delete_table(self, table):
-    #     pass
-
-    # def update_properties(self, table):
-    #     pass
-
-    def get_adj_list(self):
-        sql = """
-            SELECT 
-                n1.node_name AS from_node_name,
-                n2.node_name AS to_node_name,
-                et.type_name AS connection_type_name
-            FROM Edges e
-            JOIN Nodes n1 ON e.from_node = n1.node_id
-            JOIN Nodes n2 ON e.to_node = n2.node_id
-            JOIN EdgeTypes et ON e.type_id = et.type_id;
-            """
-        res = query_db(sql, self._db)
-        adj = defaultdict(list)
-        for start, end, typ in res:
-            adj[start].append([end, typ])
-        return adj     
-
-class CRUD:
-    def __init__(self, db_path) -> None:
-        self._db = db_path
-
-#     def create_table(self, table):
-#         pass
-
-#     def delete_table(self, table):
-#         pass
-
-#     def create_record(self, data):
-#         pass
-
-#     def update_record(self, table, data):
-#         pass
-
-#     def delete_record(self, table, data):
-#         pass
-
 def create_graph_db():
     db_path = "src/backend/data/graph.db"
     nodes_data = [
@@ -111,15 +58,42 @@ def create_graph_db():
         create_table(db_path, "Edges", cols)
         insert_data(db_path, "Edges", edges_data)
 
-    # create_nodes()
-    # create_edge_types()
+    create_nodes()
+    create_edge_types()
     create_edges()
 
+def create_mental_db():
+    db_path = "src/backend/data/mental_health.db"
+    data = [
+        (1, "3/2020", 1139242),
+        (2, "4/2020", 1145537),
+        (3, "5/2020", 1142144),
+        (4, "6/2020", 1148158),
+        (5, "7/2020", 1119842),
+        (6, "8/2020", 1148703),
+        (7, "9/2020", 1180163),
+        (8, "10/2020", 1140157),
+        (9, "11/2020", 1085628),
+        (10, "12/2020", 1114316),
+        (11, "1/2021", 1142849),
+        (12, "2/2021", 1124193),
+        (13, "3/2021", 1115858),
+        (14, "4/2021", 1107582),
+        (15, "5/2021", 1096063),
+        (16, "6/2021", 1122513),
+        (17, "7/2021", 1082603),
+        (18, "8/2021", 1148874),
+        (19, "9/2021", 1124816),
+        (20, "10/2021", 1121761)
+    ]
+    cols = {
+        "id": "INTEGER PRIMARY KEY",
+        "reporting_period": "INTEGER NOT NULL",
+        "measured_value": "INTEGER NOT NULL"
+    }
+    create_table(db_path, "MHCareCluster", cols)
+    insert_data(db_path, "MHCareCluster", data)
+
+
 if __name__ == "__main__":
-    vis = Visualizer("src/backend/data/graph.db")
-    print(vis.get_adj_list())
-
-
-
-
-
+    create_mental_db()

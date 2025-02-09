@@ -73,11 +73,5 @@ class DataServer:
         return query_db(query, self._db)
 
 if __name__ == "__main__":
-    server = DataServer("src/backend/covid.db", "src/backend/graph.db")
+    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db")
     print(server.serve_time_series(['wfh']))
-
-    # with sqlite3.connect('src/backend/covid.db') as conn:
-    #     cursor = conn.cursor()
-    #     cursor.execute("PRAGMA table_info('Restriction');")
-    #     res = cursor.fetchall()
-    # print(res)
