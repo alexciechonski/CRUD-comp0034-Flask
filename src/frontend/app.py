@@ -8,6 +8,7 @@ from sqlite3 import DatabaseError
 import dash
 import plotly.graph_objects as go
 from src.utils import process_multiselect
+from src.prediction.pred import Model
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -74,9 +75,6 @@ app.layout = [
                         id='correlation',
                         children = [
                             html.Div(
-                                id='corr-res'
-                            ),
-                            html.Div(
                                 id='corr-graph',
                                 children = [
                                     dcc.Graph(
@@ -84,7 +82,11 @@ app.layout = [
                                         figure=dgms.overlayed_series([])
                                     )
                                 ]
-                            )
+                            ),
+                            # html.Div(
+                            #     id='corr-res',
+                            #     children = [Model.get_correlation(dgms.overlayed_series([])['restr_value'], dgms.overlayed_series([])['predicted_mental'])]
+                            # ),
                         ]
                     )
                 ]
@@ -184,6 +186,20 @@ def update_time_series(value):
     else:  
         value = process_multiselect(value)
         return dgms.time_series(restrs=value)
+
+@app.callback(
+    Output('corr-chart', 'figure'),
+    Input('dropdown', 'value')
+)
+def update_correlation(value):
+    if not value:
+        return dgms.overlayed_series(restrs = [])
+    elif isinstance(value, str):
+        value = process_multiselect(value)
+        return dgms.overlayed_series(restrs=[value])
+    else:  
+        value = process_multiselect(value)
+        return dgms.overlayed_series(restrs=value)
 
 @app.callback(
     Output('url', 'href'),
