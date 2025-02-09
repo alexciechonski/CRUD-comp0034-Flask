@@ -12,11 +12,12 @@ from networkx.drawing.nx_agraph import to_agraph
 import matplotlib.image as mpimg
 import io
 import base64
+from src.utils import convert_to_date
 
 
 class Diagrams:
-    def __init__(self, db_path, graph_path) -> None:
-        self.server = DataServer(db_path, graph_path)
+    def __init__(self, db_path, graph_path, mental_path) -> None:
+        self.server = DataServer(db_path, graph_path, mental_path)
 
     @staticmethod
     def create_legend_base64(legend):
@@ -182,22 +183,58 @@ class Diagrams:
         # fig.show()
 
 
-    def time_series(self, restrs):
+    def time_series(self, restrs, mental=True):
         sql = self.server.serve_time_series(restrs)
-        x, y = zip(*sql)
+        x_line, y_line = zip(*sql)
+
+        if mental:
+            mental_data = self.server.serve_mental_series()
+            x_scatter, y_scatter = zip(*mental_data)
+        else:
+            x_scatter, y_scatter = [], []
+
         return {
-                "data": [
-                    {
-                        "x": x,                # Dates as the x-axis
-                        "y": y,                # Values as the y-axis
-                        "type": "line",        # You can change this to "bar", "scatter", etc.
-                        "name": "Time Series"  # Optional trace name
-                    }
-                ],
-                "layout": {
-                    "title": "Time Series Plot"
+            "data": [
+                {
+                    "x": x_line,
+                    "y": y_line,
+                    "type": "line",
+                    "name": "Time Series",
+                    "yaxis": "y"  # Link to primary y-axis (left)
+                },
+                {
+                    "x": x_scatter,
+                    "y": y_scatter,
+                    "type": "scatter",
+                    "mode": "lines+markers",  # Connected scatter plot
+                    "name": "Mental Series",
+                    "yaxis": "y2"  # Link to secondary y-axis (right)
+                }
+            ],
+            "layout": {
+                "title": "Time Series Plot",
+                "yaxis": {
+                    "title": "Time Series Value",
+                    "side": "left"  # Ensure this is explicitly on the left side
+                },
+                "yaxis2": {
+                    "title": "Mental Series Value",
+                    "overlaying": "y",   # Share the same x-axis but separate scale
+                    "side": "right",     # Place the secondary axis on the right
+                    "showgrid": False    # Optional: Hide the gridlines for y2
+                },
+                "xaxis": {
+                    "title": "Time"
+                },
+                "legend": {
+                    "x": 1.05,         # Position legend slightly outside the right of the plot area
+                    "y": 1,            # Top of the plot area
+                    "xanchor": "left",  # Anchor the legend's left side to the x position
+                    "yanchor": "top"    # Anchor the legend's top to the y position
                 }
             }
+        }
+
 
     def restr_distr(self, final_date = None):
         sql = self.server.serve_restr_distr(final_date)
@@ -280,10 +317,9 @@ class Diagrams:
 
 if __name__ == "__main__":
     dgms = Diagrams(
-    "src/backend/covid.db",
-    "src/backend/graph.db"
+    "src/backend/data/covid.db",
+    "src/backend/data/graph.db",
+    "src/backend/data/mental_health.db"
     )
 
-    # dgms.time_series(restrs=[value])
-    # value = 'wfh'
-    # print(dgms.time_series(restrs=[value]))
+    print(dgms.time_series(restrs=[]))

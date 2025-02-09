@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional, Any
 import math
+from datetime import datetime
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -90,6 +91,9 @@ def get_table_info(table, db_path):
 
 def process_multiselect(selections):
     return [sel.replace(" ", "_").lower() for sel in selections]
+
+def convert_to_date(date_str):
+    return datetime.strptime(date_str, '%m/%Y').strftime('%Y-%m-%d')
 
 if __name__ == "__main__":
     print(process_multiselect(['Pubs Closed']))

@@ -1,13 +1,14 @@
 from typing import Optional, Any
 import sqlite3
-from src.utils import query_db, get_table_info
+from src.utils import query_db, get_table_info, convert_to_date
 from html_parser import Parser
 from src.backend.erd_manager import Visualizer
 
 class DataServer:
-    def __init__(self, db_path, graph_path) -> None:
+    def __init__(self, db_path, graph_path, mental_path) -> None:
         self._db = db_path
         self._graph = graph_path
+        self._mental = mental_path
 
     def serve_erd(self):        
         erd = Visualizer(self._graph)
@@ -72,6 +73,12 @@ class DataServer:
                 """
         return query_db(query, self._db)
 
+    def serve_mental_series(self):
+        query = "SELECT reporting_period, measured_value FROM MHCareCluster"
+        raw_data = query_db(query, self._mental)
+        processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
+        return processed_data
+
 if __name__ == "__main__":
-    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db")
-    print(server.serve_time_series(['wfh']))
+    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
+    print(server.serve_mental_series())

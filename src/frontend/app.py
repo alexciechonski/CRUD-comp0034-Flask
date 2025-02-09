@@ -11,11 +11,13 @@ from src.utils import process_multiselect
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
-    "src/backend/data/graph.db"
+    "src/backend/data/graph.db",
+    "src/backend/data/mental_health.db"
 )
 server = DataServer(
     "src/backend/data/covid.db",
-    "src/backend/data/graph.db"
+    "src/backend/data/graph.db",
+    "src/backend/data/mental_health.db"
 )
 
 app = Dash(__name__)
@@ -206,6 +208,7 @@ TODO:
 - raise db err ???
 - foreign keys db creation
 - too long functions
+- bug with redirection?
 
 - add erd database
 - graph erd
