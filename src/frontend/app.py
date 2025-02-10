@@ -10,3 +10,14 @@ server = app.server
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+"""
+TODO:
+- make graphs look nicer and give better labels
+- raise db err ???
+- foreign keys db creation
+- too long functions
+- bug with redirection?
+- rename html vars
+"""

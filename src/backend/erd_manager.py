@@ -7,15 +7,6 @@ class Visualizer:
     def __init__(self, graph_db_path) -> None:
         self._db = graph_db_path
 
-    # def add_table(self, table):
-    #     pass
-
-    # def delete_table(self, table):
-    #     pass
-
-    # def update_properties(self, table):
-    #     pass
-
     def get_adj_list(self):
         sql = """
             SELECT 
@@ -37,20 +28,17 @@ class CRUD:
     def __init__(self, db_path) -> None:
         self._db = db_path
 
-#     def create_table(self, table):
-#         pass
+    def create_table(self, table):
+        pass
 
-#     def delete_table(self, table):
-#         pass
+    def delete_table(self, table):
+        pass
 
-#     def create_record(self, data):
-#         pass
+    def import_data_from_csv(self, table):
+        pass
 
-#     def update_record(self, table, data):
-#         pass
-
-#     def delete_record(self, table, data):
-#         pass
+    def export_to_csv(self, table):
+        pass
 
 def create_graph_db():
     db_path = "src/backend/data/graph.db"
