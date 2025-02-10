@@ -1,6 +1,6 @@
 from dash import Dash
 import dash
-import frontend.index  # Import layout from the frontend directory
+import frontend.index 
 
 app = Dash(__name__, use_pages=True, suppress_callback_exceptions=True)
 
