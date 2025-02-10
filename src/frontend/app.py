@@ -239,7 +239,4 @@ TODO:
 - foreign keys db creation
 - too long functions
 - bug with redirection?
-
-- add erd database
-- graph erd
 """
