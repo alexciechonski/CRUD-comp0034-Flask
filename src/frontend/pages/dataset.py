@@ -3,6 +3,7 @@ from src.frontend.diagrams import Diagrams
 from src.utils import get_databases
 from src.backend.erd_manager import CRUD
 import os
+import json
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -116,8 +117,10 @@ layout = [
                             html.Button(
                                 "SUBMIT",
                                 id='submit-create-button',
-                                style=dict(display='none') # made invisible
-                            )
+                                style=dict(display='none'),
+                                n_clicks = 0
+                            ),
+                            dcc.Store(id='dummy')
                         ]
                     ),
                     html.Div(
@@ -222,6 +225,25 @@ def create_form(n_clicks):
         return dict(), dict(), dict()
     else:
         return dict(display='none'), dict(display='none'), dict(display='none')
+
+@callback(
+    Output('dummy', 'data'),
+    [Input('select_db', 'value'),
+    Input('table-name-input', 'value'),
+    Input('columns-input', 'value'),
+    Input('submit-create-button','n_clicks')],
+    prevent_initial_call=True
+)
+def update_db(select_db, table_name, cols, n_clicks):
+    if n_clicks > 0:
+        crud = CRUD(select_db)
+        print(table_name)
+        crud.create_table(table_name, json.loads(cols))
+    return no_update
+
+"""
+{"new":"INTEGER PRIMARY KEY"}
+"""
 
 # ---------- delete table callbacks ----------
 

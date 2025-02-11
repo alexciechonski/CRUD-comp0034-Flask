@@ -61,10 +61,12 @@ class CRUD:
             table_name (str): Name of the table to create.
             cols_dict (dict): Column names as keys and data types as values.
         """
-        if table_name == "added_by_user":
-            raise ValueError
-        if table_name in self.table_map[self.db_name]:
-            raise ValueError
+        # if table_name == "added_by_user":
+        #     raise ValueError
+        #     return 
+        # if table_name in self.table_map[os.path.basename(self.db_name)]:
+        #     raise ValueError
+        #     return
         with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
             cursor.execute("PRAGMA foreign_keys = ON;")
@@ -81,11 +83,11 @@ class CRUD:
                 print(f"An error occurred: {err}")
             finally:
                 conn.commit()
-                if not self.table_map['added_by_user'][self._db]:
-                    self.table_map['added_by_user'][self._db] = list(cols_dict.keys())
-                else:
-                    self.table_map['added_by_user'][self._db] + list(cols_dict.keys())
-                save_to_json(self.tables_path, self.table_map)
+                # if not self.table_map['added_by_user'][os.path.basename(self.db_name)]:
+                #     self.table_map['added_by_user'][os.path.basename(self.db_name)] = list(cols_dict.keys())
+                # else:
+                #     self.table_map['added_by_user'][os.path.basename(self.db_name)] + list(cols_dict.keys())
+                # save_to_json(self.tables_path, self.table_map)
 
 
     def insert_data(self, table_name: str, data: list[tuple[Any, ...]]) -> None:
@@ -178,11 +180,8 @@ class DataValidator:
         return True
 
 if __name__ == "__main__":
-    # vis = Visualizer("src/backend/data/graph.db")
-    # print(vis.get_adj_list(1))
     with sqlite3.connect("src/backend/data/graph.db") as conn:
         cursor = conn.cursor()
-        # cursor.execute("DELETE FROM Graphs WHERE graph_id = 4;")
-        cursor.execute("SELECT * FROM Graphs")
+        cursor.execute("")
         res = cursor.fetchall()
         print(res)
