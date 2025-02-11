@@ -62,7 +62,7 @@ layout = [
                         children=[
                             html.Button(
                                 "Create Databse",
-                                id='create-db',
+                                id='create-new-db',
                                 n_clicks = 0
                             ),
                             html.Button(
@@ -182,13 +182,35 @@ def update_erd_chart(select_db, clickData, n_clicks):
         Output('new-db', 'style'),
         Output('submit-new-db', 'style')
     ],
-    Input('create-db', 'n_clicks')
+    Input('create-new-db', 'n_clicks')
 )
 def new_db_menu(n_clicks):
     if n_clicks > 0:
         return dict(), dict()
     else:
         return dict(display='none'), dict(display='none')
+
+@callback(
+    Output('select_db', 'options'),
+    [
+        Input('submit-new-db', 'n_clicks')
+    ],
+    [
+        State('new-db', 'value'),
+    ]
+)
+def create_new_db(n_clicks, value):
+    if n_clicks > 0 and value:
+        # Ensure the directory exists
+        directory = "src/backend/data"
+        os.makedirs(directory, exist_ok=True)
+
+        # Create the new database file
+        path = os.path.join(directory, value)
+        with open(path, 'w') as file:
+            pass  # Creates an empty file
+        # options.append(value)
+    return get_databases()
 
 @callback(
     [
