@@ -26,7 +26,6 @@ class GraphVisualizer:
                 if connection_type in connection_types:
                     G.add_edge(node, neighbor, connection_type=connection_type)
 
-
     @staticmethod
     def create_edge_traces(G, pos, legend):
         edge_traces, arrow_traces = [], []
@@ -53,20 +52,20 @@ class GraphVisualizer:
             text=[],
             mode='markers+text',
             textposition='top center',
-            marker=dict(size=10, color='lightblue')
+            marker=dict(size=10, color='lightblue'),
+            customdata=[]
         )
 
-        # Add all nodes in the graph
         for node in G.nodes:
             x, y = pos[node]
             node_trace.x += (x,)
             node_trace.y += (y,)
             node_trace.text += (labels[node],)
+            node_trace.customdata += (labels[node], )
 
-        # Ensure disconnected nodes are visualized
         for node in labels:
             if node not in G.nodes:
-                node_trace.x += (0,)  # Default position for disconnected nodes
+                node_trace.x += (0,)  
                 node_trace.y += (0,)
                 node_trace.text += (labels[node],)
 
@@ -98,11 +97,10 @@ class Diagrams:
         G = nx.DiGraph()
         GraphVisualizer.add_edges(G, adj, legend.keys())
 
-        # Generate positions even if the graph has no edges
         pos = nx.spring_layout(G) if G.nodes else {node: (0, 0) for node in adj}
 
         edge_traces, arrow_traces = GraphVisualizer.create_edge_traces(G, pos, legend)
-        node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"Table: {node}" for node in adj})
+        node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"{node}" for node in adj})
 
         fig = go.Figure(
             data=edge_traces + arrow_traces + [node_trace],
@@ -119,8 +117,8 @@ class Diagrams:
         # fig.show()
         return fig
 
-    def get_table(self, table_name):
-        data = self.server.serve_table(table_name)
+    def get_table(self, db_name, table_name):
+        data = self.server.serve_table(db_name, table_name)
         df = pd.DataFrame(data, columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
         return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='lavender', align='left'))])
 

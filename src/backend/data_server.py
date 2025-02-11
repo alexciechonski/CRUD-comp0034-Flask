@@ -13,8 +13,9 @@ class DataServer:
         erd = Visualizer(self._graph)
         return erd.get_adj_list(graph_id)
 
-    def serve_table(self, table):
-        return get_table_info(table, self._db)
+    def serve_table(self, db_name, table):
+        db_path = f"src/backend/data/{db_name}"
+        return get_table_info(table, db_path)
 
     def serve_time_series(self, restrs = []):
         if not restrs:
@@ -80,4 +81,5 @@ class DataServer:
 
 if __name__ == "__main__":
     server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
-    print(server.serve_erd(2))
+    print(server.serve_table('mental_health.db','MHCareCluster'))
+

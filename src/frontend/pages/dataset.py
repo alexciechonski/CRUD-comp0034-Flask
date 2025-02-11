@@ -74,18 +74,16 @@ def get_erd_graph(value):
     ]
 )
 def update_erd_chart(select_db, clickData, n_clicks):
-    # Handle reset on back button click
     if n_clicks > 0:
         return dgms.erd(1), dict(display='none'), 0
-
-    # Handle user clicking on the chart to display table info
     if clickData:
-        return dgms.get_table(clickData['points'][0]['customdata']), dict(), no_update
-
-    # Handle select_db input to update the ERD graph
+        table_name = clickData['points'][0]['text']
+        if not select_db:
+            db_name = 'covid.db'
+        else:
+            db_name = select_db
+        return dgms.get_table(db_name, table_name), dict(), no_update
     if select_db and select_db != 'covid.db':
         return dgms.erd(name_to_id[select_db]), dict(display='none'), no_update
-
-    # Default case when no other input applies
     return dgms.erd(1), dict(display='none'), no_update
 
