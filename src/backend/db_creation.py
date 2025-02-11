@@ -1,14 +1,15 @@
 from src.utils import *
 def create_graph_db():
-    db_path = "src/backend/data/graph.db"
+    db_path = "src/backend/data/graph2.db"
     nodes_data = [
-        (1, "Date"), 
-        (2, "Week"), 
-        (3, "Restriction"), 
-        (4, "Source"), 
-        (5, "DailyRestriction"), 
-        (6, "WeeklyRestriction"),
-        (7, "SummaryRestriction") 
+        (1, "Date", 1), 
+        (2, "Week", 1), 
+        (3, "Restriction", 1), 
+        (4, "Source", 1), 
+        (5, "DailyRestriction", 1), 
+        (6, "WeeklyRestriction", 1),
+        (7, "SummaryRestriction", 1),
+        (8, "MHCareCluster", 2) 
     ]
 
     edge_types_data = [
@@ -16,26 +17,39 @@ def create_graph_db():
     ]
 
     edges_data = [
-        (1, 1, 5, 4), # date - daily restriction
+        (1, 1, 5, 4, 1), # date - daily restriction
         # (2, 5, 1, 4),
-        (3, 1, 7, 4), # date - summary restriction
+        (3, 1, 7, 4, 1), # date - summary restriction
         # (4, 7, 1, 4),
         # (5, 5, 3, 4), # daily restriction - restriction
-        (6, 3, 5, 4), 
+        (6, 3, 5, 4, 1), 
         # (7, 7, 3, 4), # summary restriction - restriction
-        (8, 3, 7, 4),
+        (8, 3, 7, 4, 1),
         # (9, 7, 4, 4), # summary restriction - source
-        (10, 4, 7, 4),
-        (11, 3, 6, 4), # restriction - weekly restriction
+        (10, 4, 7, 4, 1),
+        (11, 3, 6, 4, 1), # restriction - weekly restriction
         # (12, 6, 3, 4),
         # (13, 6, 2, 4), # weekly restriction - week
-        (14, 2, 6, 4)
+        (14, 2, 6, 4, 1)
     ]
+
+    graphs_data = [
+        (1, "covid.db"),
+        (2, "mental_health.db")
+    ]
+
+    def create_graphs():
+        cols = {
+            'graph_id': "INTEGER PRIMARY KEY",
+            "graph_name": "TEXT NOT NULL"
+        }
+        create_table(db_path, 'Graphs', cols)
 
     def create_nodes():
         cols = {
             "node_id": "INTEGER PRIMARY KEY",
-            "node_name": "TEXT NOT NULL"
+            "node_name": "TEXT NOT NULL",
+            "graph_id": "INTEGER NOT NULL"
         }
         create_table(db_path, "Nodes", cols)
         insert_data(db_path, "Nodes", nodes_data)
@@ -53,11 +67,13 @@ def create_graph_db():
             "edge_id": "INTEGER PRIMARY KEY",
             "from_node": "INTEGER NOT NULL",
             "to_node": "INTEGER NOT NULL",
-            "type_id": "INTEGER NOT NULL",
+            "type_id": "INTEGER NOT NULL",            
+            "graph_id": "INTEGER NOT NULL"
         }
         create_table(db_path, "Edges", cols)
         insert_data(db_path, "Edges", edges_data)
 
+    create_graphs()
     create_nodes()
     create_edge_types()
     create_edges()
@@ -96,4 +112,4 @@ def create_mental_db():
 
 
 if __name__ == "__main__":
-    create_mental_db()
+    create_graph_db()

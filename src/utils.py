@@ -2,6 +2,8 @@ import sqlite3
 from typing import Optional, Any
 import math
 from datetime import datetime
+import os
+import json
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -89,11 +91,40 @@ def get_table_info(table, db_path):
         except sqlite3.DatabaseError as db_err:
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
+def show_tables(self) -> None:
+        """
+        Connects to an SQLite database and prints all table names.
+        """
+        with sqlite3.connect(self._db) as conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+                if tables:
+                    print("Tables in the database:")
+                    for table in tables:
+                        print(f"- {table[0]}")
+                else:
+                    print("No tables found in the database.")
+            except sqlite3.Error as err:
+                print(f"An error occurred: {err}")
+
 def process_multiselect(selections):
     return [sel.replace(" ", "_").lower() for sel in selections]
 
 def convert_to_date(date_str):
     return datetime.strptime(date_str, '%m/%Y').strftime('%Y-%m-%d')
 
+def get_databases():
+    data_folder = 'src/backend/data'
+    files = [file for file in os.listdir(data_folder) if os.path.isfile(os.path.join(data_folder, file))]
+    files.remove("graph.db")
+    return files
+
+def save_to_json(path, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
 if __name__ == "__main__":
-    print(process_multiselect(['Pubs Closed']))
+    # print(process_multiselect(['Pubs Closed']))
+    print(get_databases())

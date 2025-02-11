@@ -4,6 +4,7 @@ from src.utils import *
 from collections import defaultdict
 import io
 import base64
+import json
 
 class Visualizer:
     def __init__(self, graph_db_path) -> None:
@@ -27,11 +28,14 @@ class Visualizer:
         return adj     
 
 class CRUD:
-    def __init__(self, db_path) -> None:
-        self._db = db_path
+    def __init__(self, db_name) -> None:
+        self.db_name = db_name
+        self._db = f"src/backend/data/{self.db_name}"
+        self.tables_path = 'src/backend/tables.json'
+        with open(self.tables_path, 'r') as file:
+            self.table_map = json.load(file)
 
-    @staticmethod
-    def create_table(db_name: str, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
+    def create_table(self, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
         """
         Creates a table in the database with specified columns.
 
@@ -39,7 +43,11 @@ class CRUD:
             table_name (str): Name of the table to create.
             cols_dict (dict): Column names as keys and data types as values.
         """
-        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+        if table_name == "added_by_user":
+            raise ValueError
+        if table_name in self.table_map[self.db_name]:
+            raise ValueError
+        with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
             cursor.execute("PRAGMA foreign_keys = ON;")
             cols_str = f"({', '.join([f'{col_name} {constraint.upper()}' for col_name, constraint in cols_dict.items()])})"
@@ -55,9 +63,14 @@ class CRUD:
                 print(f"An error occurred: {err}")
             finally:
                 conn.commit()
+                if not self.table_map['added_by_user'][self._db]:
+                    self.table_map['added_by_user'][self._db] = list(cols_dict.keys())
+                else:
+                    self.table_map['added_by_user'][self._db] + list(cols_dict.keys())
+                save_to_json(self.tables_path, self.table_map)
 
-    @staticmethod
-    def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> None:
+
+    def insert_data(self, table_name: str, data: list[tuple[Any, ...]]) -> None:
         """
         Inserts data into an SQLite table.
 
@@ -66,11 +79,10 @@ class CRUD:
         - data (list of tuples): List of tuples, each tuple represents a row of data.
                                 Example: [(1, '2023-01-01'), (2, '2023-01-02')]
         """
-        with sqlite3.connect(db_path) as conn:
+        with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
             placeholders = ', '.join(['?' for _ in data[0]])
             insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
-
             try:
                 for row in data:
                     cursor.execute(insert_sql, row)
@@ -80,7 +92,6 @@ class CRUD:
             finally:
                 conn.commit()
 
-    @staticmethod
     def delete_table(self, db_name, table_name: str) -> None:
         """
         Deletes a specified table from the database.
@@ -88,25 +99,27 @@ class CRUD:
         Parameters:
             table_name (str): The name of the table to delete.
         """
-        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+        if table_name in self.table_map[table_name]:
+            raise ValueError
+        with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
             try:
                 cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
                 conn.commit()
                 print(f"Table '{table_name}' has been deleted from the database '{self._db}'.")
+                self.table_map['added_by_user'][db_name].remove(table_name)
             except sqlite3.DatabaseError as db_err:
                 print(f"Database error occurred: {db_err}")
 
-    def import_data_from_csv(self, db_name, table, data):
+    def import_data_from_csv(self, table, data):
         if data is None:
             return None
         _, content_string = data.split(',')
         decoded = base64.b64decode(content_string)
         try:
             df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-            if DataValidator.validate_df(df, db_name, table):
-                db_path = f"src/backend/data/{db_name}"
-                self.insert_data(db_path, table, list(df.itertuples(index=False, name=None)))
+            if DataValidator.validate_df(df, self.db_name, table):
+                CRUD.insert_data(self._db, table, list(df.itertuples(index=False, name=None)))
         except Exception as e:
             return f"Error processing file: {str(e)}"
 
@@ -136,15 +149,7 @@ class DataValidator:
                 return False
         return True
 
-
 if __name__ == "__main__":
-    data = [
-        (1, 'date_id'),
-        (2, 'date'),
-    ]
-    df = pd.DataFrame(data, columns=['date_id', 'date'])
-    print(DataValidator.validate_df(df, "covid.db", "Date"))
-
-
+    pass
 
 

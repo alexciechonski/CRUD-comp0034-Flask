@@ -1,5 +1,6 @@
 from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
 from src.frontend.diagrams import Diagrams
+from src.utils import get_databases
 
 
 dgms = Diagrams(
@@ -19,6 +20,9 @@ layout = [
                 className="section",
                 children=[
                     html.H1("DATASET"),
+                    dcc.Dropdown(
+                        options=get_databases()
+                    ),
                     dcc.Graph(
                         id='erd-chart', 
                         figure=dgms.erd(),
@@ -56,3 +60,4 @@ def display_table_info(clickData, n_clicks):
             return dgms.erd(), dict(display='none'), 0
         else:
             return dgms.get_table(clickData['points'][0]['customdata']), dict(), no_update
+

@@ -1,0 +1,15 @@
+{
+    "covid.db":[
+        "Date",
+        "Week",
+        "Restriction",
+        "Source",
+        "DailyRestriction",
+        "WeeklyRestriction",
+        "SummaryRestriction"
+    ],
+    "mental_health.db":[
+        "MHCareCluster"
+    ],
+    "added_by_user": {}
+}
