@@ -75,7 +75,7 @@ class Diagrams:
         buffer.close()
         return f"data:image/png;base64,{base64_image}"
 
-    def erd(self, database):
+    def erd(self):
         adj = self.server.serve_erd()
         legend = {"one-n": "salmon", "zero-one": "black", "zero-n": "darkblue", "one-only": "lime"}
         legend_image_base64 = self.create_legend_base64(legend)
