@@ -2,6 +2,8 @@ import sqlite3
 import pandas as pd
 from src.utils import *
 from collections import defaultdict
+import io
+import base64
 
 class Visualizer:
     def __init__(self, graph_db_path) -> None:
@@ -28,85 +30,120 @@ class CRUD:
     def __init__(self, db_path) -> None:
         self._db = db_path
 
-    def create_table(self, table):
-        pass
+    @staticmethod
+    def create_table(db_name: str, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
+        """
+        Creates a table in the database with specified columns.
 
-    def delete_table(self, table):
-        pass
+        Parameters:
+            table_name (str): Name of the table to create.
+            cols_dict (dict): Column names as keys and data types as values.
+        """
+        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON;")
+            cols_str = f"({', '.join([f'{col_name} {constraint.upper()}' for col_name, constraint in cols_dict.items()])})"
+            if foreign_keys:
+                fk_str = ", " + ", ".join(foreign_keys)
+            else:
+                fk_str = ""
+            query = f"CREATE TABLE {table_name} {cols_str}{fk_str}"
+            try:
+                cursor.execute(query)
+                print(f"Table '{table_name}' created successfully.")
+            except sqlite3.Error as err:
+                print(f"An error occurred: {err}")
+            finally:
+                conn.commit()
 
-    def import_data_from_csv(self, table):
-        pass
+    @staticmethod
+    def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> None:
+        """
+        Inserts data into an SQLite table.
+
+        Parameters:
+        - table_name (str): Name of the table to insert data into.
+        - data (list of tuples): List of tuples, each tuple represents a row of data.
+                                Example: [(1, '2023-01-01'), (2, '2023-01-02')]
+        """
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            placeholders = ', '.join(['?' for _ in data[0]])
+            insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+
+            try:
+                for row in data:
+                    cursor.execute(insert_sql, row)
+                print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
+            except sqlite3.Error as e:
+                print(f"An error occurred: {e}")
+            finally:
+                conn.commit()
+
+    @staticmethod
+    def delete_table(self, db_name, table_name: str) -> None:
+        """
+        Deletes a specified table from the database.
+
+        Parameters:
+            table_name (str): The name of the table to delete.
+        """
+        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
+                conn.commit()
+                print(f"Table '{table_name}' has been deleted from the database '{self._db}'.")
+            except sqlite3.DatabaseError as db_err:
+                print(f"Database error occurred: {db_err}")
+
+    def import_data_from_csv(self, db_name, table, data):
+        if data is None:
+            return None
+        _, content_string = data.split(',')
+        decoded = base64.b64decode(content_string)
+        try:
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+            if DataValidator.validate_df(df, db_name, table):
+                db_path = f"src/backend/data/{db_name}"
+                self.insert_data(db_path, table, list(df.itertuples(index=False, name=None)))
+        except Exception as e:
+            return f"Error processing file: {str(e)}"
 
     def export_to_csv(self, table):
         pass
 
-def create_graph_db():
-    db_path = "src/backend/data/graph.db"
-    nodes_data = [
-        (1, "Date"), 
-        (2, "Week"), 
-        (3, "Restriction"), 
-        (4, "Source"), 
-        (5, "DailyRestriction"), 
-        (6, "WeeklyRestriction"),
-        (7, "SummaryRestriction") 
-    ]
 
-    edge_types_data = [
-        (1, "zero-one"), (2, "zero-n"), (3, "one-only"), (4, "one-n")
-    ]
+class DataValidator:
 
-    edges_data = [
-        (1, 1, 5, 4), # date - daily restriction
-        # (2, 5, 1, 4),
-        (3, 1, 7, 4), # date - summary restriction
-        # (4, 7, 1, 4),
-        # (5, 5, 3, 4), # daily restriction - restriction
-        (6, 3, 5, 4), 
-        # (7, 7, 3, 4), # summary restriction - restriction
-        (8, 3, 7, 4),
-        # (9, 7, 4, 4), # summary restriction - source
-        (10, 4, 7, 4),
-        (11, 3, 6, 4), # restriction - weekly restriction
-        # (12, 6, 3, 4),
-        # (13, 6, 2, 4), # weekly restriction - week
-        (14, 2, 6, 4)
-    ]
+    @staticmethod
+    def get_table_fields(db_name, table):
+        db_path = f"src/backend/data/{db_name}"
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info('{table}');")
+            res = cursor.fetchall()
+            return res
 
-    def create_nodes():
-        cols = {
-            "node_id": "INTEGER PRIMARY KEY",
-            "node_name": "TEXT NOT NULL"
-        }
-        create_table(db_path, "Nodes", cols)
-        insert_data(db_path, "Nodes", nodes_data)
-    
-    def create_edge_types():
-        cols = {
-            "type_id": "INTEGER PRIMARY KEY",
-            "type_name": "TEXT NOT NULL"
-        }
-        create_table(db_path, "EdgeTypes", cols)
-        insert_data(db_path, "EdgeTypes", edge_types_data)
+    @staticmethod
+    def validate_df(df, db_name, table):
+        table_fields = DataValidator.get_table_fields(db_name, table)
+        if len(table_fields) != len(df.columns):
+            return False
+        field_names = [field[1] for field in table_fields]
+        for col in df.columns:
+            if col not in field_names:
+                return False
+        return True
 
-    def create_edges():
-        cols = {
-            "edge_id": "INTEGER PRIMARY KEY",
-            "from_node": "INTEGER NOT NULL",
-            "to_node": "INTEGER NOT NULL",
-            "type_id": "INTEGER NOT NULL",
-        }
-        create_table(db_path, "Edges", cols)
-        insert_data(db_path, "Edges", edges_data)
-
-    # create_nodes()
-    # create_edge_types()
-    create_edges()
 
 if __name__ == "__main__":
-    vis = Visualizer("src/backend/data/graph.db")
-    print(vis.get_adj_list())
-
+    data = [
+        (1, 'date_id'),
+        (2, 'date'),
+    ]
+    df = pd.DataFrame(data, columns=['date_id', 'date'])
+    print(DataValidator.validate_df(df, "covid.db", "Date"))
 
 
 
