@@ -237,8 +237,7 @@ def create_form(n_clicks):
 def update_db(select_db, table_name, cols, n_clicks):
     if n_clicks > 0:
         crud = CRUD(select_db)
-        print(table_name)
-        crud.create_table(table_name, json.loads(cols))
+        crud.add_table(table_name, json.loads(cols), name_to_id[select_db])
     return no_update
 
 """

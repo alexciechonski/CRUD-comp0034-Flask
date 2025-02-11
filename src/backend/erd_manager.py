@@ -52,43 +52,18 @@ class CRUD:
         self.tables_path = 'src/backend/tables.json'
         with open(self.tables_path, 'r') as file:
             self.table_map = json.load(file)
+        self._graph = "src/backend/data/graph.db"
+        self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
+        # self.last_graph_id = len(get_databases())
 
-    def create_table(self, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
-        """
-        Creates a table in the database with specified columns.
-
-        Parameters:
-            table_name (str): Name of the table to create.
-            cols_dict (dict): Column names as keys and data types as values.
-        """
-        # if table_name == "added_by_user":
-        #     raise ValueError
-        #     return 
-        # if table_name in self.table_map[os.path.basename(self.db_name)]:
-        #     raise ValueError
-        #     return
-        with sqlite3.connect(self._db) as conn:
+    def add_table(self, table_name: str, cols_dict: dict[str, str], graph_id) -> None:
+        create_table(self._db, table_name, cols_dict)
+        # add node to graph db
+        self.last_node_id += 1
+        with sqlite3.connect(self._graph) as conn:
             cursor = conn.cursor()
-            cursor.execute("PRAGMA foreign_keys = ON;")
-            cols_str = f"({', '.join([f'{col_name} {constraint.upper()}' for col_name, constraint in cols_dict.items()])})"
-            if foreign_keys:
-                fk_str = ", " + ", ".join(foreign_keys)
-            else:
-                fk_str = ""
-            query = f"CREATE TABLE {table_name} {cols_str}{fk_str}"
-            try:
-                cursor.execute(query)
-                print(f"Table '{table_name}' created successfully.")
-            except sqlite3.Error as err:
-                print(f"An error occurred: {err}")
-            finally:
-                conn.commit()
-                # if not self.table_map['added_by_user'][os.path.basename(self.db_name)]:
-                #     self.table_map['added_by_user'][os.path.basename(self.db_name)] = list(cols_dict.keys())
-                # else:
-                #     self.table_map['added_by_user'][os.path.basename(self.db_name)] + list(cols_dict.keys())
-                # save_to_json(self.tables_path, self.table_map)
-
+            cursor.execute("INSERT INTO Nodes (node_id, node_name, graph_id) VALUES (?, ?, ?)", (self.last_node_id, table_name, graph_id))
+            conn.commit()
 
     def insert_data(self, table_name: str, data: list[tuple[Any, ...]]) -> None:
         """
@@ -180,8 +155,7 @@ class DataValidator:
         return True
 
 if __name__ == "__main__":
-    with sqlite3.connect("src/backend/data/graph.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("")
-        res = cursor.fetchall()
-        print(res)
+    # vis = Visualizer("src/backend/data/graph.db")
+    # print(vis.get_adj_list(2))
+    crud = CRUD("covid.db")
+    print(crud.last_node_id)

@@ -11,6 +11,9 @@ from src.prediction.pred import Model
 class GraphVisualizer:
     @staticmethod
     def generate_pos(graph):
+        # Set Graphviz attributes directly in graph
+        graph.graph['overlap'] = 'false'  # Prevents node overlap
+        graph.graph['mode'] = 'KK'        # Kamada-Kawai layout
         return nx.nx_pydot.graphviz_layout(graph, prog='neato')
 
     @staticmethod
@@ -97,7 +100,7 @@ class Diagrams:
         G = nx.DiGraph()
         GraphVisualizer.add_edges(G, adj, legend.keys())
 
-        pos = nx.spring_layout(G) if G.nodes else {node: (0, 0) for node in adj}
+        pos = GraphVisualizer.generate_pos(G)
 
         edge_traces, arrow_traces = GraphVisualizer.create_edge_traces(G, pos, legend)
         node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"{node}" for node in adj})

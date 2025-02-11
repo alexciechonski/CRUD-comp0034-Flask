@@ -81,5 +81,5 @@ class DataServer:
 
 if __name__ == "__main__":
     server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
-    print(server.serve_table('mental_health.db','MHCareCluster'))
+    print(server.serve_erd(1))
 
