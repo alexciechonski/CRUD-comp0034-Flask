@@ -62,11 +62,13 @@ layout = [
                         children=[
                            html.Button(
                             "Add Table",
-                            id='create'
+                            id='create-button',
+                            n_clicks=0
                            ),
                            html.Button(
                             "Delete Table",
-                            id='delete'
+                            id='delete-button',
+                            n_clicks=0
                            ) 
                         ]
                     ),
@@ -75,7 +77,8 @@ layout = [
                         children=[
                             dcc.Input(
                                 id='table-name-input',
-                                placeholder="Enter the Table Name"
+                                placeholder="Enter the Table Name",
+                                style=dict(display='none') # made invisible
                             ),
                             dcc.Textarea(
                                 id='columns-input',
@@ -85,14 +88,32 @@ layout = [
                                                 "id": "INTEGER PRIMARY KEY",
                                                     "name": "INTEGER NOT NULL"
                                             }
-                                            """
+                                            """,
+                                style=dict(display='none') # made invisible
                             ),
                             html.Button(
                                 "SUBMIT",
-                                id='submit-button'
+                                id='submit-create-button',
+                                style=dict(display='none') # made invisible
+                            )
+                        ]
+                    ),
+                    html.Div(
+                        id='delete-form',
+                        children=[
+                            dcc.Dropdown(
+                                id='delete-input',
+                                options=get_databases(),
+                                style=dict(display='none')
+                            ),
+                            html.Button(
+                                "SUBMIT",
+                                id='submit-delete-button',
+                                style=dict(display='none')
                             )
                         ]
                     )
+
                 ]
             ),
         ]
@@ -135,9 +156,40 @@ def update_erd_chart(select_db, clickData, n_clicks):
         print(dgms.get_table(select_db, table_name))
         return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
 
+@callback(
+    [
+        Output('table-name-input', 'style'),
+        Output('columns-input', 'style'),
+        Output('submit-create-button','style')
+    ],
+    Input('create-button', 'n_clicks')
+)
+def create_form(n_clicks):
+    if n_clicks > 0:
+        return dict(), dict(), dict()
+    else:
+        return dict(display='none'), dict(display='none'), dict(display='none')
+
+@callback(
+    [
+        Output('delete-input', 'style'),
+        Output('submit-delete-button', 'style')
+    ],
+    Input('delete-button', 'n_clicks')
+)
+def delete_form(n_clicks):
+    if n_clicks > 0:
+        return dict(), dict()
+    else:
+        return dict(display='none'), dict(display='none'),
+
+
 # @callback(
-#     Output('erd-chart', 'figure'),
-#     Input()
+#     [
+#         Output('erd-chart', 'figure'),
+#         Output('table-name-input', 'style'),
+#         Output('columns-input', 'style'),
+#         Output('submit-create-button','style')
+#     ],
+#     Input('submit-create-button')
 # )
-# def add_table():
-#     pass
