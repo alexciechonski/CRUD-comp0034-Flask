@@ -44,6 +44,7 @@ def create_graph_db():
             "graph_name": "TEXT NOT NULL"
         }
         create_table(db_path, 'Graphs', cols)
+        insert_data(db_path, "Graphs", graphs_data)
 
     def create_nodes():
         cols = {
