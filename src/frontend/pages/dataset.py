@@ -27,7 +27,8 @@ layout = [
                     html.H1("DATASET"),
                     dcc.Dropdown(
                         id='select_db',
-                        options=get_databases()
+                        options=get_databases(),
+                        value="covid.db"
                     ),
                     dcc.Graph(
                         id='erd-chart', 
@@ -65,7 +66,8 @@ def get_erd_graph(value):
     [
         Output('erd-chart', 'figure'),
         Output('back-btn', 'style'),
-        Output('back-btn', 'n_clicks')
+        Output('back-btn', 'n_clicks'),
+        Output('erd-chart', 'clickData')
     ],
     [
         Input('select_db', 'value'),
@@ -75,15 +77,11 @@ def get_erd_graph(value):
 )
 def update_erd_chart(select_db, clickData, n_clicks):
     if n_clicks > 0:
-        return dgms.erd(1), dict(display='none'), 0
-    if clickData:
-        table_name = clickData['points'][0]['text']
-        if not select_db:
-            db_name = 'covid.db'
-        else:
-            db_name = select_db
-        return dgms.get_table(db_name, table_name), dict(), no_update
-    if select_db and select_db != 'covid.db':
-        return dgms.erd(name_to_id[select_db]), dict(display='none'), no_update
-    return dgms.erd(1), dict(display='none'), no_update
+        return dgms.erd(1), dict(display='none'), 0, None
 
+    if not clickData:
+        return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update 
+    else: 
+        table_name = clickData['points'][0].get('text')
+        print(dgms.get_table(select_db, table_name))
+        return dgms.get_table(select_db, table_name), dict(), no_update, no_update 
