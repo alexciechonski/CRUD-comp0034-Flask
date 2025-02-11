@@ -47,23 +47,30 @@ class GraphVisualizer:
         return edge_traces, arrow_traces
 
     @staticmethod
-    def create_node_trace(pos, G, metadata):
-        node_x, node_y, node_text, custom_data = [], [], [], []
-        for node in G.nodes():
-            x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
-            node_text.append(metadata.get(node, f"Node: {node}"))
-            custom_data.append(node)
-        return go.Scatter(
-            x=node_x, y=node_y, mode='markers+text',
-            marker=dict(size=10, color='lightblue', line=dict(width=2)),
-            text=[str(node) for node in G.nodes()],
+    def create_node_trace(pos, G, labels):
+        node_trace = go.Scatter(
+            x=[], y=[],
+            text=[],
+            mode='markers+text',
             textposition='top center',
-            hoverinfo='text+name',
-            customdata=custom_data,
-            hovertext=node_text
+            marker=dict(size=10, color='lightblue')
         )
+
+        # Add all nodes in the graph
+        for node in G.nodes:
+            x, y = pos[node]
+            node_trace.x += (x,)
+            node_trace.y += (y,)
+            node_trace.text += (labels[node],)
+
+        # Ensure disconnected nodes are visualized
+        for node in labels:
+            if node not in G.nodes:
+                node_trace.x += (0,)  # Default position for disconnected nodes
+                node_trace.y += (0,)
+                node_trace.text += (labels[node],)
+
+        return node_trace
 
 class Diagrams:
     def __init__(self, db_path, graph_path, mental_path) -> None:
@@ -90,7 +97,9 @@ class Diagrams:
 
         G = nx.DiGraph()
         GraphVisualizer.add_edges(G, adj, legend.keys())
-        pos = GraphVisualizer.generate_pos(G)
+
+        # Generate positions even if the graph has no edges
+        pos = nx.spring_layout(G) if G.nodes else {node: (0, 0) for node in adj}
 
         edge_traces, arrow_traces = GraphVisualizer.create_edge_traces(G, pos, legend)
         node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"Table: {node}" for node in adj})
@@ -107,8 +116,8 @@ class Diagrams:
                 yaxis=dict(showgrid=False, zeroline=False)
             )
         )
-        return fig
         # fig.show()
+        return fig
 
     def get_table(self, table_name):
         data = self.server.serve_table(table_name)
