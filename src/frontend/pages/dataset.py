@@ -177,6 +177,8 @@ def update_erd_chart(select_db, clickData, n_clicks):
         print(dgms.get_table(select_db, table_name))
         return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
 
+# ------- create db callbacks ------
+
 @callback(
     [
         Output('new-db', 'style'),
@@ -212,6 +214,9 @@ def create_new_db(n_clicks, value):
         # options.append(value)
     return get_databases()
 
+
+# ------- create table callbacks -------
+
 @callback(
     [
         Output('table-name-input', 'style'),
@@ -225,6 +230,8 @@ def create_form(n_clicks):
         return dict(), dict(), dict()
     else:
         return dict(display='none'), dict(display='none'), dict(display='none')
+
+# ---------- delete table callbacks ----------
 
 @callback(
     [
@@ -240,16 +247,3 @@ def delete_form(n_clicks):
         return dict(display='none'), dict(display='none'),
 
 
-# @callback(
-#     [
-#         Output('erd-chart', 'figure'),
-#         Output('table-name-input', 'style'),
-#         Output('columns-input', 'style'),
-#         Output('submit-create-button','style')
-#     ],
-#     Input('submit-create-button')
-# )
-
-"""
-create db
-"""
