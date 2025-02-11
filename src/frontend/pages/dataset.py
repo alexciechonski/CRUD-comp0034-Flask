@@ -67,7 +67,9 @@ def get_erd_graph(value):
         Output('erd-chart', 'figure'),
         Output('back-btn', 'style'),
         Output('back-btn', 'n_clicks'),
-        Output('erd-chart', 'clickData')
+        Output('erd-chart', 'clickData'),
+        Output('select_db', 'value')
+
     ],
     [
         Input('select_db', 'value'),
@@ -77,11 +79,11 @@ def get_erd_graph(value):
 )
 def update_erd_chart(select_db, clickData, n_clicks):
     if n_clicks > 0:
-        return dgms.erd(1), dict(display='none'), 0, None
+        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db'
 
     if not clickData:
-        return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update 
+        return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update 
     else: 
         table_name = clickData['points'][0].get('text')
         print(dgms.get_table(select_db, table_name))
-        return dgms.get_table(select_db, table_name), dict(), no_update, no_update 
+        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
