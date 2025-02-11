@@ -45,6 +45,53 @@ layout = [
                                 style=dict(display='none')
                             )
                         ]
+                    ),
+                    html.Br(),
+                    html.Div(
+                        id='insert-menu',
+                        children = [
+                            html.Button(
+                            "Insert Data From CSV",
+                            id='update',
+                            style=dict(display='none') # made invisible
+                           )
+                        ]
+                    ),
+                    html.Div(
+                        id='crud-menu',
+                        children=[
+                           html.Button(
+                            "Add Table",
+                            id='create'
+                           ),
+                           html.Button(
+                            "Delete Table",
+                            id='delete'
+                           ) 
+                        ]
+                    ),
+                    html.Div(
+                        id='add-menu',
+                        children=[
+                            dcc.Input(
+                                id='table-name-input',
+                                placeholder="Enter the Table Name"
+                            ),
+                            dcc.Textarea(
+                                id='columns-input',
+                                placeholder="""Enter the columns in a json format: column_name:type, nullable, primary, foreign_keys
+                                            example:
+                                            {
+                                                "id": "INTEGER PRIMARY KEY",
+                                                    "name": "INTEGER NOT NULL"
+                                            }
+                                            """
+                            ),
+                            html.Button(
+                                "SUBMIT",
+                                id='submit-button'
+                            )
+                        ]
                     )
                 ]
             ),
@@ -87,3 +134,10 @@ def update_erd_chart(select_db, clickData, n_clicks):
         table_name = clickData['points'][0].get('text')
         print(dgms.get_table(select_db, table_name))
         return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
+
+# @callback(
+#     Output('erd-chart', 'figure'),
+#     Input()
+# )
+# def add_table():
+#     pass

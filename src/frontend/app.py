@@ -21,4 +21,5 @@ TODO:
 - bug with redirection?
 - rename html vars
 - foreign keys not working in db creation
+- erd double click bug
 """
