@@ -1,7 +1,7 @@
-from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
+from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases
-
+import os
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -60,16 +60,37 @@ layout = [
                     html.Div(
                         id='crud-menu',
                         children=[
-                           html.Button(
-                            "Add Table",
-                            id='create-button',
-                            n_clicks=0
-                           ),
-                           html.Button(
-                            "Delete Table",
-                            id='delete-button',
-                            n_clicks=0
-                           ) 
+                            html.Button(
+                                "Create Databse",
+                                id='create-db',
+                                n_clicks = 0
+                            ),
+                            html.Button(
+                                "Add Table",
+                                id='create-button',
+                                n_clicks=0
+                            ),
+                            html.Button(
+                                "Delete Table",
+                                id='delete-button',
+                                n_clicks=0
+                            ) 
+                        ]
+                    ),
+                    html.Div(
+                        id='create-db-menu',
+                        children=[
+                            dcc.Input(
+                                id='new-db',
+                                placeholder="Create a New Database",
+                                style=dict(display='none') # made invisible
+                            ),
+                            html.Button(
+                                "SUBMIT",
+                                id='submit-new-db',
+                                n_clicks=0,
+                                style=dict(display='none') # made invisible
+                            )
                         ]
                     ),
                     html.Div(
@@ -158,6 +179,19 @@ def update_erd_chart(select_db, clickData, n_clicks):
 
 @callback(
     [
+        Output('new-db', 'style'),
+        Output('submit-new-db', 'style')
+    ],
+    Input('create-db', 'n_clicks')
+)
+def new_db_menu(n_clicks):
+    if n_clicks > 0:
+        return dict(), dict()
+    else:
+        return dict(display='none'), dict(display='none')
+
+@callback(
+    [
         Output('table-name-input', 'style'),
         Output('columns-input', 'style'),
         Output('submit-create-button','style')
@@ -193,3 +227,7 @@ def delete_form(n_clicks):
 #     ],
 #     Input('submit-create-button')
 # )
+
+"""
+create db
+"""
