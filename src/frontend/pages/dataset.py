@@ -1,6 +1,7 @@
 from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases
+from src.backend.erd_manager import CRUD
 import os
 
 dgms = Diagrams(
@@ -203,17 +204,8 @@ def new_db_menu(n_clicks):
 )
 def create_new_db(n_clicks, value):
     if n_clicks > 0 and value:
-        # Ensure the directory exists
-        directory = "src/backend/data"
-        os.makedirs(directory, exist_ok=True)
-
-        # Create the new database file
-        path = os.path.join(directory, value)
-        with open(path, 'w') as file:
-            pass  # Creates an empty file
-        # options.append(value)
+        CRUD.create_new_db(value)
     return get_databases()
-
 
 # ------- create table callbacks -------
 

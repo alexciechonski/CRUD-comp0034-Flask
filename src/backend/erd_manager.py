@@ -31,7 +31,19 @@ class Visualizer:
         adj = defaultdict(list)
         for start, end, typ in res:
             adj[start].append([end, typ])
-        return adj     
+        return adj
+
+    def add_graph(self, graph_id, graph_name):
+        with sqlite3.connect(self._db) as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO Graphs (graph_id, graph_name) VALUES (?, ?)", (graph_id, graph_name))
+            conn.commit()
+
+    def delete_graph(self, name):
+        pass
+
+    def add_edge():
+        pass     
 
 class CRUD:
     def __init__(self, db_name) -> None:
@@ -132,6 +144,16 @@ class CRUD:
     def export_to_csv(self, table):
         pass
 
+    @staticmethod
+    def create_new_db(db_name):
+        directory = "src/backend/data"
+        os.makedirs(directory, exist_ok=True)
+        path = os.path.join(directory, db_name)
+        with open(path, 'w') as file:
+            pass 
+        num_db = len(get_databases())
+        vis = Visualizer("src/backend/data/graph.db")
+        vis.add_graph(num_db, db_name)
 
 class DataValidator:
 
@@ -156,5 +178,11 @@ class DataValidator:
         return True
 
 if __name__ == "__main__":
-    vis = Visualizer("src/backend/data/graph.db")
-    print(vis.get_adj_list(1))
+    # vis = Visualizer("src/backend/data/graph.db")
+    # print(vis.get_adj_list(1))
+    with sqlite3.connect("src/backend/data/graph.db") as conn:
+        cursor = conn.cursor()
+        # cursor.execute("DELETE FROM Graphs WHERE graph_id = 4;")
+        cursor.execute("SELECT * FROM Graphs")
+        res = cursor.fetchall()
+        print(res)
