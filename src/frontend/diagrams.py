@@ -16,8 +16,16 @@ class GraphVisualizer:
     @staticmethod
     def add_edges(G, adj, connection_types):
         for node, neighbors in adj.items():
+            if node is None:
+                continue
+            if not neighbors:  # Add node even if it has no neighbors
+                G.add_node(node)
             for neighbor, connection_type in neighbors:
-                G.add_edge(node, neighbor, connection_type=connection_type)
+                if neighbor is None or connection_type is None:
+                    continue
+                if connection_type in connection_types:
+                    G.add_edge(node, neighbor, connection_type=connection_type)
+
 
     @staticmethod
     def create_edge_traces(G, pos, legend):
@@ -75,8 +83,8 @@ class Diagrams:
         buffer.close()
         return f"data:image/png;base64,{base64_image}"
 
-    def erd(self):
-        adj = self.server.serve_erd()
+    def erd(self, graph_id):
+        adj = self.server.serve_erd(graph_id)
         legend = {"one-n": "salmon", "zero-one": "black", "zero-n": "darkblue", "one-only": "lime"}
         legend_image_base64 = self.create_legend_base64(legend)
 
@@ -100,6 +108,7 @@ class Diagrams:
             )
         )
         return fig
+        # fig.show()
 
     def get_table(self, table_name):
         data = self.server.serve_table(table_name)
@@ -257,4 +266,5 @@ if __name__ == "__main__":
     "src/backend/data/mental_health.db"
     )
 
-    print(dgms.overlayed_series([]))
+    # print(dgms.overlayed_series([]))
+    dgms.erd(2)

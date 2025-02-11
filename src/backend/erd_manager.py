@@ -10,12 +10,24 @@ class Visualizer:
     def __init__(self, graph_db_path) -> None:
         self._db = graph_db_path
 
-    def get_adj_list(self, graph_name):
-        sql = """SELECT * FROM Graphs;
-
+    def get_adj_list(self, graph_id):
+        sql = """
+            SELECT 
+                fn.node_name AS from_node_name, 
+                tn.node_name AS to_node_name, 
+                et.type_name AS edge_type
+            FROM 
+                Nodes fn
+            LEFT JOIN 
+                Edges e ON e.from_node = fn.node_id
+            LEFT JOIN 
+                Nodes tn ON e.to_node = tn.node_id
+            LEFT JOIN 
+                EdgeTypes et ON e.type_id = et.type_id
+            WHERE 
+                fn.graph_id = ?;
             """
-        res = query_db(sql, self._db)
-        return res
+        res = query_db(sql, self._db, (graph_id,))
         adj = defaultdict(list)
         for start, end, typ in res:
             adj[start].append([end, typ])
@@ -145,4 +157,4 @@ class DataValidator:
 
 if __name__ == "__main__":
     vis = Visualizer("src/backend/data/graph.db")
-    print(vis.get_adj_list("covid.db"))
+    print(vis.get_adj_list(1))

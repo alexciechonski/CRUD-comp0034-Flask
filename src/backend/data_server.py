@@ -9,9 +9,9 @@ class DataServer:
         self._graph = graph_path
         self._mental = mental_path
 
-    def serve_erd(self):        
+    def serve_erd(self, graph_id):        
         erd = Visualizer(self._graph)
-        return erd.get_adj_list()
+        return erd.get_adj_list(graph_id)
 
     def serve_table(self, table):
         return get_table_info(table, self._db)
@@ -80,4 +80,4 @@ class DataServer:
 
 if __name__ == "__main__":
     server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
-    print(server.serve_mental_series())
+    print(server.serve_erd(2))
