@@ -188,7 +188,9 @@ def update_erd_chart(select_db, clickData, n_clicks):
         Output('new-db', 'style'),
         Output('submit-new-db', 'style')
     ],
-    Input('create-new-db', 'n_clicks')
+    Input('create-new-db', 'n_clicks'),
+    prevent_initial_call=True
+
 )
 def new_db_menu(n_clicks):
     if n_clicks > 0:
@@ -203,7 +205,8 @@ def new_db_menu(n_clicks):
     ],
     [
         State('new-db', 'value'),
-    ]
+    ],
+    prevent_initial_call=True
 )
 def create_new_db(n_clicks, value):
     if n_clicks > 0 and value:
@@ -218,7 +221,8 @@ def create_new_db(n_clicks, value):
         Output('columns-input', 'style'),
         Output('submit-create-button','style')
     ],
-    Input('create-button', 'n_clicks')
+    Input('create-button', 'n_clicks'),
+    prevent_initial_call=True
 )
 def create_form(n_clicks):
     if n_clicks > 0:
@@ -251,7 +255,9 @@ def update_db(select_db, table_name, cols, n_clicks):
         Output('delete-input', 'style'),
         Output('submit-delete-button', 'style')
     ],
-    Input('delete-button', 'n_clicks')
+    Input('delete-button', 'n_clicks'),
+    prevent_initial_call=True
+
 )
 def delete_form(n_clicks):
     if n_clicks > 0:
