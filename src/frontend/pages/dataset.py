@@ -1,6 +1,6 @@
 from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
-from src.utils import get_databases
+from src.utils import get_databases, show_tables
 from src.backend.erd_manager import CRUD
 import os
 import json
@@ -109,7 +109,7 @@ layout = [
                                             example:
                                             {
                                                 "id": "INTEGER PRIMARY KEY",
-                                                    "name": "INTEGER NOT NULL"
+                                                "name": "INTEGER NOT NULL"
                                             }
                                             """,
                                 style=dict(display='none') # made invisible
@@ -120,7 +120,8 @@ layout = [
                                 style=dict(display='none'),
                                 n_clicks = 0
                             ),
-                            dcc.Store(id='dummy')
+                            dcc.Store(id='dummy'),
+                            dcc.Store(id='dummy2')
                         ]
                     ),
                     html.Div(
@@ -128,13 +129,14 @@ layout = [
                         children=[
                             dcc.Dropdown(
                                 id='delete-input',
-                                options=get_databases(),
+                                options=show_tables("covid.db"),
                                 style=dict(display='none')
                             ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-delete-button',
-                                style=dict(display='none')
+                                style=dict(display='none'),
+                                n_clicks=0
                             )
                         ]
                     )
@@ -232,10 +234,12 @@ def create_form(n_clicks):
 
 @callback(
     Output('dummy', 'data'),
-    [Input('select_db', 'value'),
-    Input('table-name-input', 'value'),
-    Input('columns-input', 'value'),
-    Input('submit-create-button','n_clicks')],
+    [
+        Input('select_db', 'value'),
+        Input('table-name-input', 'value'),
+        Input('columns-input', 'value'),
+        Input('submit-create-button','n_clicks')
+    ],
     prevent_initial_call=True
 )
 def update_db(select_db, table_name, cols, n_clicks):
@@ -263,6 +267,30 @@ def delete_form(n_clicks):
     if n_clicks > 0:
         return dict(), dict()
     else:
-        return dict(display='none'), dict(display='none'),
+        return dict(display='none'), dict(display='none')
 
+@callback(
+    Output('delete-input', 'options'),
+    Input('select_db', 'value')
+)
+def update_delete_options(value):
+    if value:
+        return show_tables(value)
+    else:
+        return no_update
+
+@callback(
+    Output('dummy2', 'data'),
+    [
+        Input('select_db', 'value'),
+        Input('delete-input', 'value'),
+        Input('submit-delete-button', 'n_clicks')
+    ],
+    prevent_initial_call = True
+)
+def remove_from_db(select_db, table, n_clicks):
+    if n_clicks > 0:
+        crud = CRUD(select_db)
+        crud.remove_table(select_db, table)
+    return no_update
 

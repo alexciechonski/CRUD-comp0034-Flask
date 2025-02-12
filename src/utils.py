@@ -79,6 +79,22 @@ def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> N
         finally:
             conn.commit()
 
+def delete_table(db_name, table_name: str) -> None:
+        """
+        Deletes a specified table from the database.
+
+        Parameters:
+            table_name (str): The name of the table to delete.
+        """
+        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
+                conn.commit()
+                print(f"Table '{table_name}' has been deleted from the database.")
+            except sqlite3.DatabaseError as db_err:
+                print(f"Database error occurred: {db_err}")
+
 def get_table_info(table, db_path):
     with sqlite3.connect(db_path) as conn:
         try:
@@ -91,23 +107,21 @@ def get_table_info(table, db_path):
         except sqlite3.DatabaseError as db_err:
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
-def show_tables(self) -> None:
-        """
-        Connects to an SQLite database and prints all table names.
-        """
-        with sqlite3.connect(self._db) as conn:
-            try:
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-                if tables:
-                    print("Tables in the database:")
-                    for table in tables:
-                        print(f"- {table[0]}")
-                else:
-                    print("No tables found in the database.")
-            except sqlite3.Error as err:
-                print(f"An error occurred: {err}")
+def show_tables(db_name) -> None:
+    """
+    Connects to an SQLite database and prints all table names.
+    """
+    with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            if tables:
+                return [t[0] for t in tables]
+            else:
+                print("No tables found in the database.")
+        except sqlite3.Error as err:
+            print(f"An error occurred: {err}")
 
 def process_multiselect(selections):
     return [sel.replace(" ", "_").lower() for sel in selections]
@@ -126,5 +140,4 @@ def save_to_json(path, data):
         json.dump(data, f, indent=2)
 
 if __name__ == "__main__":
-    # print(process_multiselect(['Pubs Closed']))
-    print(get_databases())
+    print(show_tables("covid.db"))

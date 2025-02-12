@@ -87,24 +87,13 @@ class CRUD:
             finally:
                 conn.commit()
 
-    def delete_table(self, db_name, table_name: str) -> None:
-        """
-        Deletes a specified table from the database.
-
-        Parameters:
-            table_name (str): The name of the table to delete.
-        """
-        if table_name in self.table_map[table_name]:
-            raise ValueError
-        with sqlite3.connect(self._db) as conn:
+    @staticmethod
+    def remove_table(db_name, table):
+        delete_table(db_name, table)
+        with sqlite3.connect(f"src/backend/data/graph.db") as conn:
             cursor = conn.cursor()
-            try:
-                cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
-                conn.commit()
-                print(f"Table '{table_name}' has been deleted from the database '{self._db}'.")
-                self.table_map['added_by_user'][db_name].remove(table_name)
-            except sqlite3.DatabaseError as db_err:
-                print(f"Database error occurred: {db_err}")
+            cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", (table,))
+            conn.commit()
 
     def import_data_from_csv(self, table, data):
         if data is None:
@@ -157,5 +146,9 @@ class DataValidator:
 if __name__ == "__main__":
     # vis = Visualizer("src/backend/data/graph.db")
     # print(vis.get_adj_list(2))
-    crud = CRUD("covid.db")
-    print(crud.last_node_id)
+    # crud = CRUD("covid.db")
+    # print(crud.last_node_id)
+    with sqlite3.connect("src/backend/data/graph.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", ('xd',))
+        conn.commit()
