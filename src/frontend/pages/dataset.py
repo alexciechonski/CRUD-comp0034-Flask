@@ -10,11 +10,7 @@ dgms = Diagrams(
     "src/backend/data/graph.db",
     "src/backend/data/mental_health.db"
 )
-
-name_to_id = {
-    'covid.db': 1,
-    'mental_health.db': 2
-}
+name_to_id = {"covid.db":1, "mental_health.db":2}
 
 register_page(__name__, path='/dataset')
 
@@ -199,7 +195,6 @@ def new_db_menu(n_clicks):
     else:
         return dict(display='none'), dict(display='none')
 
-
 @callback(
     Output('select_db', 'options'),
     Input('submit-new-db', 'n_clicks'),
@@ -209,6 +204,8 @@ def new_db_menu(n_clicks):
 def test_callback(submit_new, select_db, new_db):
     if submit_new > 0 and new_db:
         CRUD.create_new_db(new_db)
+        n = len(get_databases())
+        name_to_id[new_db] = n + 1
         select_db.append({'label': new_db, 'value': new_db})
     return get_databases()
 

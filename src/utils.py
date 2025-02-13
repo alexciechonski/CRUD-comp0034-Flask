@@ -119,7 +119,8 @@ def show_tables(db_name) -> None:
             if tables:
                 return [t[0] for t in tables]
             else:
-                print("No tables found in the database.")
+                # print("No tables found in the database.")
+                return []
         except sqlite3.Error as err:
             print(f"An error occurred: {err}")
 
