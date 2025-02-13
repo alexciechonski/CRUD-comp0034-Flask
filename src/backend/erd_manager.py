@@ -105,6 +105,15 @@ class CRUD:
         vis = Visualizer("src/backend/data/graph.db")
         vis.add_graph(num_db, db_name)
 
+    @staticmethod 
+    def delete_database(db_name, graph_id): # can be 1 arg
+        directory = "src/backend/data"
+        os.makedirs(directory, exist_ok=True)
+        path = os.path.join(directory, db_name)
+        os.remove(path)
+        vis = Visualizer("src/backend/data/graph.db")
+        vis.delete_graph(graph_id)
+
 if __name__ == "__main__":
-    vis = Visualizer("src/backend/data/graph.db")
-    vis.delete_graph(3)
+    # vis = Visualizer("src/backend/data/graph.db")
+    CRUD.delete_database("test.db", 3)
