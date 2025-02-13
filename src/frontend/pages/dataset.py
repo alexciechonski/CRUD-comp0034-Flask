@@ -243,10 +243,7 @@ def insert_df(contents, db_name, submit, table):
     if contents and submit:
         data = parse_csv_contents(contents)
         crud = CRUD(db_name)
-        print(table)
-        print(data)
         crud.insert_data(table, data)
-        print('success')
     return no_update
 
 
