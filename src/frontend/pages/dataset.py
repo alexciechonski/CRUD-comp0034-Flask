@@ -1,4 +1,4 @@
-from dash import dcc, html, Input, Output, no_update, register_page, callback, State
+from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases, show_tables
 from src.backend.erd_manager import CRUD
@@ -55,49 +55,30 @@ layout = [
                            )
                         ]
                     ),
-                    html.Div(
-                        id='crud-menu',
-                        children=[
-                            html.Button(
-                                "Create Databse",
-                                id='create-new-db',
-                                n_clicks = 0
-                            ),
-                            html.Button(
-                                "Add Table",
-                                id='create-button',
-                                n_clicks=0
-                            ),
-                            html.Button(
-                                "Delete Table",
-                                id='delete-button',
-                                n_clicks=0
-                            ) 
-                        ]
-                    ),
+                    html.Br(),
+                    html.H3("Create Database"),
                     html.Div(
                         id='create-db-menu',
                         children=[
                             dcc.Input(
                                 id='new-db',
                                 placeholder="Create a New Database",
-                                style=dict(display='none') # made invisible
                             ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-new-db',
                                 n_clicks=0,
-                                style=dict(display='none') # made invisible
                             )
                         ]
                     ),
+                    html.Br(),
+                    html.H3("Add Table"),
                     html.Div(
                         id='add-menu',
                         children=[
                             dcc.Input(
                                 id='table-name-input',
                                 placeholder="Enter the Table Name",
-                                style=dict(display='none') # made invisible
                             ),
                             dcc.Textarea(
                                 id='columns-input',
@@ -108,35 +89,32 @@ layout = [
                                                 "name": "INTEGER NOT NULL"
                                             }
                                             """,
-                                style=dict(display='none') # made invisible
                             ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-create-button',
-                                style=dict(display='none'),
                                 n_clicks = 0
                             ),
                             dcc.Store(id='dummy'),
                             dcc.Store(id='dummy2')
                         ]
                     ),
+                    html.Br(),
+                    html.H3("Delete Table"),
                     html.Div(
                         id='delete-form',
                         children=[
                             dcc.Dropdown(
                                 id='delete-input',
                                 options=show_tables("covid.db"),
-                                style=dict(display='none')
                             ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-delete-button',
-                                style=dict(display='none'),
                                 n_clicks=0
                             )
                         ]
                     )
-
                 ]
             ),
         ]
@@ -160,40 +138,42 @@ def get_erd_graph(value):
         Output('back-btn', 'n_clicks'),
         Output('erd-chart', 'clickData'),
         Output('select_db', 'value')
-
     ],
     [
-        Input('select_db', 'value'),
-        Input('erd-chart', 'clickData'),
-        Input('back-btn', 'n_clicks')
+        Input('select_db', 'value'), # select db
+        Input('erd-chart', 'clickData'), # check if table clicked
+        Input('back-btn', 'n_clicks'), # check if back button clicked
+        Input('submit-create-button', 'n_clicks'), # check if add table new
+        Input('submit-delete-button', 'n_clicks'), # check if wants to delete
+        State('columns-input', 'value'),
+        State('table-name-input', 'value'),
+        State('delete-input', 'value')
     ]
 )
-def update_erd_chart(select_db, clickData, n_clicks):
-    if n_clicks > 0:
+def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, cols, new_table, delete_input):
+    id = ctx.triggered_id
+
+    # go back
+    if id == 'back-btn':
         return dgms.erd(1), dict(display='none'), 0, None, 'covid.db'
 
-    if not clickData:
-        return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update 
-    else: 
+    # show table
+    elif id == 'erd-chart': 
         table_name = clickData['points'][0].get('text')
-        print(dgms.get_table(select_db, table_name))
         return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
+    
+    # create table
+    elif id == 'submit-create-button':
+        crud = CRUD(select_db)
+        crud.add_table(new_table, json.loads(cols), name_to_id[select_db])
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
 
-# ------- create db callbacks ------
-@callback(
-    [
-        Output('new-db', 'style'),
-        Output('submit-new-db', 'style')
-    ],
-    Input('create-new-db', 'n_clicks'),
-    prevent_initial_call=True
-
-)
-def new_db_menu(n_clicks):
-    if n_clicks > 0:
-        return dict(), dict()
-    else:
-        return dict(display='none'), dict(display='none')
+    # delete table
+    elif id == 'submit-delete-button':
+        crud = CRUD(select_db)
+        crud.remove_table(select_db, delete_input)
+        
+    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update 
 
 @callback(
     Output('select_db', 'options'),
@@ -201,7 +181,7 @@ def new_db_menu(n_clicks):
     Input('select_db', 'options'),
     State('new-db', 'value'),
 )
-def test_callback(submit_new, select_db, new_db):
+def create_database(submit_new, select_db, new_db):
     if submit_new > 0 and new_db:
         CRUD.create_new_db(new_db)
         n = len(get_databases())
@@ -209,59 +189,9 @@ def test_callback(submit_new, select_db, new_db):
         select_db.append({'label': new_db, 'value': new_db})
     return get_databases()
 
-# ------- create table callbacks -------
-
-@callback(
-    [
-        Output('table-name-input', 'style'),
-        Output('columns-input', 'style'),
-        Output('submit-create-button','style')
-    ],
-    Input('create-button', 'n_clicks'),
-    prevent_initial_call=True
-)
-def create_form(n_clicks):
-    if n_clicks > 0:
-        return dict(), dict(), dict()
-    else:
-        return dict(display='none'), dict(display='none'), dict(display='none')
-
-@callback(
-    Output('dummy', 'data'),
-    [
-        Input('select_db', 'value'),
-        Input('table-name-input', 'value'),
-        Input('columns-input', 'value'),
-        Input('submit-create-button','n_clicks')
-    ],
-    prevent_initial_call=True
-)
-def update_db(select_db, table_name, cols, n_clicks):
-    if n_clicks > 0:
-        crud = CRUD(select_db)
-        crud.add_table(table_name, json.loads(cols), name_to_id[select_db])
-    return no_update
-
 """
 {"new":"INTEGER PRIMARY KEY"}
 """
-
-# ---------- delete table callbacks ----------
-
-@callback(
-    [
-        Output('delete-input', 'style'),
-        Output('submit-delete-button', 'style')
-    ],
-    Input('delete-button', 'n_clicks'),
-    prevent_initial_call=True
-
-)
-def delete_form(n_clicks):
-    if n_clicks > 0:
-        return dict(), dict()
-    else:
-        return dict(display='none'), dict(display='none')
 
 @callback(
     Output('delete-input', 'options'),
@@ -272,19 +202,3 @@ def update_delete_options(value):
         return show_tables(value)
     else:
         return no_update
-
-@callback(
-    Output('dummy2', 'data'),
-    [
-        Input('select_db', 'value'),
-        Input('delete-input', 'value'),
-        Input('submit-delete-button', 'n_clicks')
-    ],
-    prevent_initial_call = True
-)
-def remove_from_db(select_db, table, n_clicks):
-    if n_clicks > 0:
-        crud = CRUD(select_db)
-        crud.remove_table(select_db, table)
-    return no_update
-
