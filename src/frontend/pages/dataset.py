@@ -1,4 +1,4 @@
-from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
+from dash import dcc, html, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases, show_tables
 from src.backend.erd_manager import CRUD
@@ -184,7 +184,6 @@ def update_erd_chart(select_db, clickData, n_clicks):
         return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
 
 # ------- create db callbacks ------
-
 @callback(
     [
         Output('new-db', 'style'),
@@ -200,19 +199,17 @@ def new_db_menu(n_clicks):
     else:
         return dict(display='none'), dict(display='none')
 
+
 @callback(
     Output('select_db', 'options'),
-    [
-        Input('submit-new-db', 'n_clicks')
-    ],
-    [
-        State('new-db', 'value'),
-    ],
-    prevent_initial_call=True
+    Input('submit-new-db', 'n_clicks'),
+    Input('select_db', 'options'),
+    State('new-db', 'value'),
 )
-def create_new_db(n_clicks, value):
-    if n_clicks > 0 and value:
-        CRUD.create_new_db(value)
+def test_callback(submit_new, select_db, new_db):
+    if submit_new > 0 and new_db:
+        CRUD.create_new_db(new_db)
+        select_db.append({'label': new_db, 'value': new_db})
     return get_databases()
 
 # ------- create table callbacks -------

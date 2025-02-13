@@ -132,8 +132,13 @@ def convert_to_date(date_str):
 def get_databases():
     data_folder = 'src/backend/data'
     files = [file for file in os.listdir(data_folder) if os.path.isfile(os.path.join(data_folder, file))]
-    files.remove("graph.db")
-    return files
+    
+    if "graph.db" in files:
+        files.remove("graph.db")  # Avoid KeyError if "graph.db" is missing
+
+    # Convert list of strings into list of dictionaries for Dash dropdown
+    return [{'label': db, 'value': db} for db in files]
+
 
 def save_to_json(path, data):
     with open(path, 'w') as f:
