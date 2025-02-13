@@ -39,11 +39,13 @@ class Visualizer:
             cursor.execute("INSERT INTO Graphs (graph_id, graph_name) VALUES (?, ?)", (graph_id, graph_name))
             conn.commit()
 
-    def delete_graph(self, name):
-        pass
+    def delete_graph(self, graph_id):
+        with sqlite3.connect(self._db) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM Graphs WHERE graph_id = ?;", (graph_id,))
+            cursor.execute("DELETE FROM Nodes WHERE graph_id = ?;", (graph_id,))
+            conn.commit()
 
-    def add_edge():
-        pass     
 
 class CRUD:
     def __init__(self, db_name) -> None:
@@ -92,21 +94,6 @@ class CRUD:
             cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", (table,))
             conn.commit()
 
-    def import_data_from_csv(self, table, data):
-        if data is None:
-            return None
-        _, content_string = data.split(',')
-        decoded = base64.b64decode(content_string)
-        try:
-            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-            if DataValidator.validate_df(df, self.db_name, table):
-                CRUD.insert_data(self._db, table, list(df.itertuples(index=False, name=None)))
-        except Exception as e:
-            return f"Error processing file: {str(e)}"
-
-    def export_to_csv(self, table):
-        pass
-
     @staticmethod
     def create_new_db(db_name):
         directory = "src/backend/data"
@@ -118,28 +105,6 @@ class CRUD:
         vis = Visualizer("src/backend/data/graph.db")
         vis.add_graph(num_db, db_name)
 
-class DataValidator:
-
-    @staticmethod
-    def get_table_fields(db_name, table):
-        db_path = f"src/backend/data/{db_name}"
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(f"PRAGMA table_info('{table}');")
-            res = cursor.fetchall()
-            return res
-
-    @staticmethod
-    def validate_df(df, db_name, table):
-        table_fields = DataValidator.get_table_fields(db_name, table)
-        if len(table_fields) != len(df.columns):
-            return False
-        field_names = [field[1] for field in table_fields]
-        for col in df.columns:
-            if col not in field_names:
-                return False
-        return True
-
 if __name__ == "__main__":
-    crud = CRUD("test.db")
-    print(crud.last_node_id)
+    vis = Visualizer("src/backend/data/graph.db")
+    vis.delete_graph(3)
