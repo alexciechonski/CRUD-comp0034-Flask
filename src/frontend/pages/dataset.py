@@ -1,6 +1,6 @@
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
-from src.utils import get_databases, show_tables
+from src.utils import get_databases, show_tables, parse_csv_contents
 from src.backend.erd_manager import CRUD
 import os
 import json
@@ -45,16 +45,45 @@ layout = [
                         ]
                     ),
                     html.Br(),
+                    html.H3("Insert Data from csv"),
                     html.Div(
                         id='insert-menu',
                         children = [
+                            dcc.Upload(
+                            id='upload-data',
+                            children=html.Div([
+                                'Drag and Drop or ',
+                                html.A('Select Files')
+                            ]),
+                            style={
+                                'width': '100%',
+                                'height': '60px',
+                                'lineHeight': '60px',
+                                'borderWidth': '1px',
+                                'borderStyle': 'dashed',
+                                'borderRadius': '5px',
+                                'textAlign': 'center',
+                                'margin': '10px'
+                            },
+                            # Allow multiple files to be uploaded
+                            multiple=False
+                            ),
                             html.Button(
-                            "Insert Data From CSV",
-                            id='update',
-                            style=dict(display='none') # made invisible
-                           )
+                                "SUBMIT",
+                                id='submit-insert',
+                                n_clicks=0
+                            )
                         ]
                     ),
+                    html.Div(
+                        children = [
+                            dcc.Input(
+                            id='insert-to-table',
+                            placeholder="Enter a table name"
+                            ),
+                        ]
+                    ),
+                    dcc.Store(id='csv-dummy'),
                     html.Br(),
                     html.H3("Create Database"),
                     html.Div(
@@ -95,8 +124,6 @@ layout = [
                                 id='submit-create-button',
                                 n_clicks = 0
                             ),
-                            dcc.Store(id='dummy'),
-                            dcc.Store(id='dummy2')
                         ]
                     ),
                     html.Br(),
@@ -165,7 +192,9 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
     # create table
     elif id == 'submit-create-button':
         crud = CRUD(select_db)
-        crud.add_table(new_table, json.loads(cols), name_to_id[select_db])
+        graph_id = len(get_databases())
+        print("GID", graph_id)
+        crud.add_table(new_table, json.loads(cols), graph_id)
         return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
 
     # delete table
@@ -202,3 +231,33 @@ def update_delete_options(value):
         return show_tables(value)
     else:
         return no_update
+
+@callback(
+    Output('csv-dummy', 'data'),
+    Input('upload-data', 'contents'),
+    Input("select_db", 'value'),
+    Input('submit-insert', 'n_clicks'),
+    State('insert-to-table', 'value')
+)
+def insert_df(contents, db_name, submit, table):
+    if contents and submit:
+        data = parse_csv_contents(contents)
+        crud = CRUD(db_name)
+        print(table)
+        print(data)
+        crud.insert_data(table, data)
+        print('success')
+    return no_update
+
+
+"""
+BUGS:
+Add table:
+1. named simple all the time
+2. does not show up in new db
+
+GENERAL:
+1. use foreign keys in database
+2. get rid of name_to_id
+3. stop using len(get_databases()) for graph id
+"""

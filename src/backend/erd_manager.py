@@ -49,9 +49,6 @@ class CRUD:
     def __init__(self, db_name) -> None:
         self.db_name = db_name
         self._db = f"src/backend/data/{self.db_name}"
-        self.tables_path = 'src/backend/tables.json'
-        with open(self.tables_path, 'r') as file:
-            self.table_map = json.load(file)
         self._graph = "src/backend/data/graph.db"
         self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
         # self.last_graph_id = len(get_databases())
@@ -144,11 +141,5 @@ class DataValidator:
         return True
 
 if __name__ == "__main__":
-    # vis = Visualizer("src/backend/data/graph.db")
-    # print(vis.get_adj_list(2))
-    # crud = CRUD("covid.db")
-    # print(crud.last_node_id)
-    with sqlite3.connect("src/backend/data/graph.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", ('xd',))
-        conn.commit()
+    crud = CRUD("test.db")
+    print(crud.last_node_id)

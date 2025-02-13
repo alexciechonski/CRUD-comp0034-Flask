@@ -4,6 +4,9 @@ import math
 from datetime import datetime
 import os
 import json
+import base64
+import pandas as pd
+import io
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -140,10 +143,21 @@ def get_databases():
     # Convert list of strings into list of dictionaries for Dash dropdown
     return [{'label': db, 'value': db} for db in files]
 
-
 def save_to_json(path, data):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
+
+def parse_csv_contents(contents):
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
+    
+    # Read CSV data into a DataFrame
+    try:
+        df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+        return [tuple(row) for row in df.itertuples(index=False)]
+    except Exception as e:
+        print('THERE WAS AN ERROR PROCESSING THE CSV')
+        return
 
 if __name__ == "__main__":
     print(show_tables("covid.db"))

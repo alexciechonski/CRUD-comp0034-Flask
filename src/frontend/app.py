@@ -13,12 +13,6 @@ if __name__ == '__main__':
 
 """
 TODO:
-- make graphs look nicer and give better labels
-- raise db err ???
-- foreign keys db creation
-- too long functions
-- bug with redirection?
-- rename html vars
-- foreign keys not working in db creation
-- erd double click bug
+- name_to_id dictionary non sustainable for delete db and not scalable
+- need proper foreign and primary keys for delete db (graphs and graphid) can be done using shell
 """
