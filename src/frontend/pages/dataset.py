@@ -4,6 +4,7 @@ from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_na
 from src.backend.erd_manager import CRUD
 import os
 import json
+from src.frontend.input_validation import Validator as v
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -142,6 +143,23 @@ layout = [
                                 n_clicks=0
                             )
                         ]
+                    ),
+                    html.Br(),
+                    html.Div(
+                        [
+                            dcc.ConfirmDialog(
+                                id='add-val',
+                                message="You cannot add this table"
+                            ),
+                            dcc.ConfirmDialog(
+                                id='delete-val',
+                                message="You cannot delete this Table"
+                            ),
+                            dcc.ConfirmDialog(
+                                id='insert-val',
+                                message="You cannot insert into this Table"
+                            )
+                        ]
                     )
                 ]
             ),
@@ -160,15 +178,20 @@ layout = [
 
         Output('delete-input', 'options'),
 
-        #delete input
+        #delete input for add
         Output('table-name-input', 'value'),
-        Output('columns-input', 'value')
+        Output('columns-input', 'value'),
 
+        # warnings
+        Output('add-val', 'displayed'),
+        Output('delete-val', 'displayed'),
     ],
     [
         Input('select_db', 'value'), # select db
+
         Input('erd-chart', 'clickData'), # check if table clicked
         Input('back-btn', 'n_clicks'), # check if back button clicked
+
         Input('submit-create-button', 'n_clicks'), # check if add table new
         Input('submit-delete-button', 'n_clicks'), # check if wants to delete
         State('columns-input', 'value'),
@@ -181,31 +204,33 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 
     # go back
     if id == 'back-btn':
-        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update, "", ""
+        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update, "", "", False, False
 
     # show table
     elif id == 'erd-chart': 
         table_name = clickData['points'][0].get('text')
-        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db), "", ""
+        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db), "", "", False, False
     
     # create table
     elif id == 'submit-create-button':
+        if not v.val_create_table(select_db, new_table):
+            return no_update, no_update, no_update, no_update, no_update, no_update, "", "", True, False,
+
         crud = CRUD(select_db)
         graph_id = len(get_databases())
-        print("graph id", graph_id)
-        print(new_table)
         crud.add_table(new_table, json.loads(cols), graph_id)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", ""
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", "", False, False
 
     # delete table
     elif id == 'submit-delete-button':
+        if not v.val_delete_table(select_db, delete_input):
+            return no_update, no_update, no_update, no_update, no_update, no_update, "", "", False, True,
+
         crud = CRUD(select_db)
         crud.remove_table(select_db, delete_input)
-        print(show_tables(select_db))
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", ""
-
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", "", False, False
         
-    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", ""
+    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", "", False, False
 
 # @callback(
 #     Output('select_db', 'options'),
