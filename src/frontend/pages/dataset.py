@@ -153,11 +153,13 @@ layout = [
     [
         Output('erd-chart', 'figure'),
         Output('back-btn', 'style'),
-        Output('back-btn', 'n_clicks'),
+        Output('back-btn', 'n_clicks'), # this can be deleted
         Output('erd-chart', 'clickData'),
 
         Output('select_db', 'value'),
+
         Output('delete-input', 'options'),
+
     ],
     [
         Input('select_db', 'value'), # select db
@@ -189,7 +191,7 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
         print("graph id", graph_id)
         print(new_table)
         crud.add_table(new_table, json.loads(cols), graph_id)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), 
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db),
 
     # delete table
     elif id == 'submit-delete-button':
@@ -231,6 +233,9 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 
 @callback(
     Output('csv-dummy', 'data'),
+    Output('upload-data', 'contents'),
+    Output('insert-to-table', 'value'),
+
     Input('upload-data', 'contents'),
     Input("select_db", 'value'),
     Input('submit-insert', 'n_clicks'),
@@ -241,7 +246,8 @@ def insert_df(contents, db_name, submit, table):
         data = parse_csv_contents(contents)
         crud = CRUD(db_name)
         crud.insert_data(table, data)
-    return no_update
+        return no_update, None, ""
+    return no_update, no_update, no_update
 
 
 
