@@ -134,6 +134,7 @@ layout = [
                             dcc.Dropdown(
                                 id='delete-input',
                                 options=show_tables("covid.db"),
+                                placeholder="Enter a database to be deleted"
                             ),
                             html.Button(
                                 "SUBMIT",
@@ -154,7 +155,9 @@ layout = [
         Output('back-btn', 'style'),
         Output('back-btn', 'n_clicks'),
         Output('erd-chart', 'clickData'),
-        Output('select_db', 'value')
+
+        Output('select_db', 'value'),
+        Output('delete-input', 'options'),
     ],
     [
         Input('select_db', 'value'), # select db
@@ -172,12 +175,12 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 
     # go back
     if id == 'back-btn':
-        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db'
+        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update
 
     # show table
     elif id == 'erd-chart': 
         table_name = clickData['points'][0].get('text')
-        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update 
+        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db)
     
     # create table
     elif id == 'submit-create-button':
@@ -186,14 +189,17 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
         print("graph id", graph_id)
         print(new_table)
         crud.add_table(new_table, json.loads(cols), graph_id)
-        # return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), 
 
     # delete table
     elif id == 'submit-delete-button':
         crud = CRUD(select_db)
         crud.remove_table(select_db, delete_input)
+        print(show_tables(select_db))
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db)
+
         
-    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update 
+    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db)
 
 # @callback(
 #     Output('select_db', 'options'),
@@ -213,15 +219,15 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 {"new":"INTEGER PRIMARY KEY"}
 """
 
-@callback(
-    Output('delete-input', 'options'),
-    Input('select_db', 'value')
-)
-def update_delete_options(value):
-    if value:
-        return show_tables(value)
-    else:
-        return no_update
+# @callback(
+#     Output('delete-input', 'options'),
+#     Input('select_db', 'value')
+# )
+# def update_delete_options(value):
+#     if value:
+#         return show_tables(value)
+#     else:
+#         return no_update
 
 @callback(
     Output('csv-dummy', 'data'),
