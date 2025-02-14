@@ -84,22 +84,22 @@ layout = [
                         ]
                     ),
                     dcc.Store(id='csv-dummy'),
-                    html.Br(),
-                    html.H3("Create Database"),
-                    html.Div(
-                        id='create-db-menu',
-                        children=[
-                            dcc.Input(
-                                id='new-db',
-                                placeholder="Create a New Database",
-                            ),
-                            html.Button(
-                                "SUBMIT",
-                                id='submit-new-db',
-                                n_clicks=0,
-                            )
-                        ]
-                    ),
+                    # html.Br(),
+                    # html.H3("Create Database"),
+                    # html.Div(
+                    #     id='create-db-menu',
+                    #     children=[
+                    #         dcc.Input(
+                    #             id='new-db',
+                    #             placeholder="Create a New Database",
+                    #         ),
+                    #         html.Button(
+                    #             "SUBMIT",
+                    #             id='submit-new-db',
+                    #             n_clicks=0,
+                    #         )
+                    #     ]
+                    # ),
                     html.Br(),
                     html.H3("Add Table"),
                     html.Div(
@@ -149,16 +149,6 @@ layout = [
 ]
 
 @callback(
-    Output('erd-char', 'figure'),
-    Input('select_db', 'value')
-)
-def get_erd_graph(value):
-    if not value:
-        return dgms.erd(1)
-    if value and value != 1:
-        return dgms.erd(name_to_id[value])
-
-@callback(
     [
         Output('erd-chart', 'figure'),
         Output('back-btn', 'style'),
@@ -193,8 +183,10 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
     elif id == 'submit-create-button':
         crud = CRUD(select_db)
         graph_id = len(get_databases())
+        print("graph id", graph_id)
+        print(new_table)
         crud.add_table(new_table, json.loads(cols), graph_id)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
+        # return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
 
     # delete table
     elif id == 'submit-delete-button':
@@ -203,19 +195,19 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
         
     return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update 
 
-@callback(
-    Output('select_db', 'options'),
-    Input('submit-new-db', 'n_clicks'),
-    Input('select_db', 'options'),
-    State('new-db', 'value'),
-)
-def create_database(submit_new, select_db, new_db):
-    if submit_new > 0 and new_db:
-        CRUD.create_new_db(new_db)
-        n = len(get_databases())
-        name_to_id[new_db] = n + 1
-        select_db.append({'label': new_db, 'value': new_db})
-    return get_databases()
+# @callback(
+#     Output('select_db', 'options'),
+#     Input('submit-new-db', 'n_clicks'),
+#     Input('select_db', 'options'),
+#     State('new-db', 'value'),
+# )
+# def create_database(submit_new, select_db, new_db):
+#     if submit_new > 0 and new_db:
+#         CRUD.create_new_db(new_db)
+#         n = len(get_databases())
+#         name_to_id[new_db] = n + 1
+#         select_db.append({'label': new_db, 'value': new_db})
+#     return get_databases()
 
 """
 {"new":"INTEGER PRIMARY KEY"}
