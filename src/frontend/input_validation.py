@@ -1,4 +1,6 @@
 from src.utils import get_databases, show_tables
+import sqlite3
+import pandas as pd
 class Validator:
 
     @staticmethod
@@ -35,4 +37,17 @@ class Validator:
         if table not in show_tables(db_name):
             return False
         return True
+
+    @staticmethod
+    def val_schema(db_name, table, df):
+        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({table});")
+            data = cursor.fetchall()
+            cols = [t[1] for t in data]
+        return cols == list(df.columns)
+
+if __name__ == "__main__":
+    df = pd.DataFrame(columns=['a', 'b'])
+    print(Validator.val_schema("covid.db", "Date", df))
         

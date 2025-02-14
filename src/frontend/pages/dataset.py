@@ -158,6 +158,10 @@ layout = [
                             dcc.ConfirmDialog(
                                 id='insert-val',
                                 message="You cannot insert into this Table"
+                            ),
+                            dcc.ConfirmDialog(
+                                id='schema-val',
+                                message="Schema of table does not match"
                             )
                         ]
                     )
@@ -265,6 +269,7 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
     Output('upload-data', 'contents'),
     Output('insert-to-table', 'value'),
     Output('insert-val', 'displayed'),
+    Output('schema-val', 'displayed'),
 
     Input('upload-data', 'contents'),
     Input("select_db", 'value'),
@@ -275,11 +280,13 @@ def insert_df(contents, db_name, submit, table):
     if contents and submit:
         data, df = parse_csv_contents(contents)
         if not v.val_insert(db_name, table):
-            return no_update, None, "", True
+            return no_update, None, "", True, False
+        if not v.val_schema(db_name, table, df):
+            return no_update, None, "", False, True
         crud = CRUD(db_name)
         crud.insert_data(table, data)
-        return no_update, None, ""
-    return no_update, no_update, no_update, False
+        return no_update, None, "", False, False
+    return no_update, no_update, no_update, False, False
 
 
 
