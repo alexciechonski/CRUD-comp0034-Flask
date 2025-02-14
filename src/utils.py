@@ -154,7 +154,7 @@ def parse_csv_contents(contents):
     # Read CSV data into a DataFrame
     try:
         df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-        return [tuple(row) for row in df.itertuples(index=False)]
+        return [tuple(row) for row in df.itertuples(index=False)], df
     except Exception as e:
         print('THERE WAS AN ERROR PROCESSING THE CSV')
         return

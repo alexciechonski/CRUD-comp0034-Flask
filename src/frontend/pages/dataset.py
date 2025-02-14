@@ -264,6 +264,7 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
     Output('csv-dummy', 'data'),
     Output('upload-data', 'contents'),
     Output('insert-to-table', 'value'),
+    Output('insert-val', 'displayed'),
 
     Input('upload-data', 'contents'),
     Input("select_db", 'value'),
@@ -272,11 +273,13 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 )
 def insert_df(contents, db_name, submit, table):
     if contents and submit:
-        data = parse_csv_contents(contents)
+        data, df = parse_csv_contents(contents)
+        if not v.val_insert(db_name, table):
+            return no_update, None, "", True
         crud = CRUD(db_name)
         crud.insert_data(table, data)
         return no_update, None, ""
-    return no_update, no_update, no_update
+    return no_update, no_update, no_update, False
 
 
 

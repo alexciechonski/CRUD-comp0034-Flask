@@ -23,7 +23,7 @@ class Validator:
         return True
 
     @staticmethod
-    def val_insert(db_name, table, df):
+    def val_insert(db_name, table):
         if db_name == "graph.db":
             return False
         if db_name == "covid.db":
