@@ -1,6 +1,6 @@
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
-from src.utils import get_databases, show_tables, parse_csv_contents
+from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
 from src.backend.erd_manager import CRUD
 import os
 import json
@@ -10,7 +10,7 @@ dgms = Diagrams(
     "src/backend/data/graph.db",
     "src/backend/data/mental_health.db"
 )
-name_to_id = {"covid.db":1, "mental_health.db":2}
+name_to_id = dynamic_name_id()
 
 register_page(__name__, path='/dataset')
 
@@ -193,7 +193,6 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
     elif id == 'submit-create-button':
         crud = CRUD(select_db)
         graph_id = len(get_databases())
-        print("GID", graph_id)
         crud.add_table(new_table, json.loads(cols), graph_id)
         return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update
 
@@ -247,14 +246,4 @@ def insert_df(contents, db_name, submit, table):
     return no_update
 
 
-"""
-BUGS:
-Add table:
-1. named simple all the time
-2. does not show up in new db
 
-GENERAL:
-1. use foreign keys in database
-2. get rid of name_to_id
-3. stop using len(get_databases()) for graph id
-"""

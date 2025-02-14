@@ -18,6 +18,7 @@ TODO:
 
 Adding:
 - new table stopped showing
+- last node id does not go down for removing graphs and tables
 
 - matplotlib bug
 - graphviz warning

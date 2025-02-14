@@ -159,5 +159,15 @@ def parse_csv_contents(contents):
         print('THERE WAS AN ERROR PROCESSING THE CSV')
         return
 
+def dynamic_name_id():
+    with sqlite3.connect("src/backend/data/graph.db") as conn:
+        res = {}
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Graphs;")
+        data = cursor.fetchall()
+        for id, name in data:
+            res[name] = id
+        return res
+
 if __name__ == "__main__":
     print(show_tables("covid.db"))
