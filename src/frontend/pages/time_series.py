@@ -24,6 +24,7 @@ layout = [
                         id='select-db',
                         options = get_databases()
                     ),
+                    html.Br(),
                     dcc.Dropdown(
                         id='select-table',
                         style = dict(display='none')
@@ -79,14 +80,26 @@ def update_time_series(value):
 
 @callback(
     Output('corr-chart', 'figure'),
-    Input('dropdown', 'value')
+    Input('dropdown', 'value'),
+    Input('select-db', 'value'),
+    Input('select-table', 'value')
 )
-def update_correlation(value):
+def update_correlation(value, db_name, table):
     if not value:
-        return dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
+        return no_update
     elif isinstance(value, str):
         value = process_multiselect(value)
-        return dgms.overlayed_series([value], "mental_health.db", "MHCareCluster")
+        return dgms.overlayed_series([value], db_name, table)
     else:  
         value = process_multiselect(value)
-        return dgms.overlayed_series(value, "mental_health.db", "MHCareCluster")
+        return dgms.overlayed_series(value, db_name, table)
+
+@callback(
+    Output('select-table', 'style'),
+    Output('select-table', 'options'),
+    Input('select-db', 'value')
+)
+def show_table_select(value):
+    if value:
+        return dict(), show_tables(value)
+    return no_update, no_update
