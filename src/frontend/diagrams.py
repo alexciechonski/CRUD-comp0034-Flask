@@ -130,7 +130,7 @@ class Diagrams:
         x_line, y_line = zip(*sql)
 
         if mental:
-            mental_data = self.server.serve_mental_series()
+            mental_data = self.server.serve_second_series("mental_health.db", 'MHCareCluster')
             x_scatter, y_scatter = zip(*mental_data)
         else:
             x_scatter, y_scatter = [], []
@@ -177,8 +177,8 @@ class Diagrams:
             }
         }
 
-    def overlayed_series(self, restrs: list):
-        model = Model(restrs)
+    def overlayed_series(self, restrs: list, db_name, table_name):
+        model = Model(restrs, db_name, table_name)
         df = model.train_linear()
         return {
             "data": [
@@ -276,5 +276,4 @@ if __name__ == "__main__":
     "src/backend/data/mental_health.db"
     )
 
-    # print(dgms.overlayed_series([]))
-    dgms.erd(2)
+    print(dgms.overlayed_series(['wfh'], "mental_health.db", "MHCareCluster"))

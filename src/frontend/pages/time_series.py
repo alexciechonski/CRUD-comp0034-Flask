@@ -1,7 +1,6 @@
 from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
 from src.frontend.diagrams import Diagrams
-from src.utils import process_multiselect
-
+from src.utils import process_multiselect, show_tables, get_databases
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -18,6 +17,19 @@ layout = [
         className="section",
         children=[
             html.H1("TIME SERIES"),
+            html.Div(
+                id='select-data',
+                children=[
+                    dcc.Dropdown(
+                        id='select-db',
+                        options = get_databases()
+                    ),
+                    dcc.Dropdown(
+                        id='select-table',
+                        style = dict(display='none')
+                    )
+                ]
+            ),
             dcc.Graph(
                 id='time-series-chart',
                 figure=dgms.time_series([])
@@ -41,7 +53,7 @@ layout = [
                         children = [
                             dcc.Graph(
                                 id='corr-chart',
-                                figure=dgms.overlayed_series([])
+                                figure=dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
                             )
                         ]
                     ),
@@ -71,10 +83,10 @@ def update_time_series(value):
 )
 def update_correlation(value):
     if not value:
-        return dgms.overlayed_series(restrs = [])
+        return dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
     elif isinstance(value, str):
         value = process_multiselect(value)
-        return dgms.overlayed_series(restrs=[value])
+        return dgms.overlayed_series([value], "mental_health.db", "MHCareCluster")
     else:  
         value = process_multiselect(value)
-        return dgms.overlayed_series(restrs=value)
+        return dgms.overlayed_series(value, "mental_health.db", "MHCareCluster")

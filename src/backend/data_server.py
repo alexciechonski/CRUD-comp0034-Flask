@@ -73,13 +73,14 @@ class DataServer:
                 """
         return query_db(query, self._db)
 
-    def serve_mental_series(self):
-        query = "SELECT reporting_period, measured_value FROM MHCareCluster"
-        raw_data = query_db(query, self._mental)
+    @staticmethod
+    def serve_second_series(db_name, table_name):
+        query = f"SELECT time, measured_value FROM {table_name};"
+        raw_data = query_db(query, f"src/backend/data/{db_name}")
         processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
         return processed_data
 
 if __name__ == "__main__":
     server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
-    print(server.serve_erd(1))
+    print(server.serve_second_series("mental_health.db", "MHCareCluster"))
 
