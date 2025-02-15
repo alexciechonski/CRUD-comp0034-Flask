@@ -252,6 +252,7 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, col
 
 """
 {"new":"INTEGER PRIMARY KEY"}
+{"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}
 """
 
 # @callback(
