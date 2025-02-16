@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 class Model:
     def __init__(self, restrs, db_name, table_name) -> None:
         self.restrs = restrs 
-        self._db = db_name
+        self._db = f"src/backend/data{db_name}"
         self.table_name = table_name
         self.df = self.prepare()
 

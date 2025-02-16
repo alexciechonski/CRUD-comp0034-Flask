@@ -77,7 +77,10 @@ class DataServer:
     def serve_second_series(db_name, table_name):
         query = f"SELECT time, measured_value FROM {table_name};"
         raw_data = query_db(query, f"src/backend/data/{db_name}")
-        processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
+        try:
+            processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
+        except ValueError:
+            processed_data = [(row[0], row[1]) for row in raw_data]
         return processed_data
 
 if __name__ == "__main__":

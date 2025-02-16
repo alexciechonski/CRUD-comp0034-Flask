@@ -125,12 +125,13 @@ class Diagrams:
         df = pd.DataFrame(data, columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
         return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='lavender', align='left'))])
 
-    def time_series(self, restrs, mental=True):
+    def time_series(self, restrs = [], db_name = "mental_health.db", table = 'MHCareCluster', mental=True):
         sql = self.server.serve_time_series(restrs)
+        print(sql)
         x_line, y_line = zip(*sql)
 
         if mental:
-            mental_data = self.server.serve_second_series("mental_health.db", 'MHCareCluster')
+            mental_data = self.server.serve_second_series(db_name, table)
             x_scatter, y_scatter = zip(*mental_data)
         else:
             x_scatter, y_scatter = [], []
@@ -276,4 +277,4 @@ if __name__ == "__main__":
     "src/backend/data/mental_health.db"
     )
 
-    print(dgms.overlayed_series(['wfh'], "mental_health.db", "MHCareCluster"))
+    print(dgms.time_series())

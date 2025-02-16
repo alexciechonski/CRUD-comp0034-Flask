@@ -20,9 +20,19 @@ layout = [
             html.Div(
                 id='select-data',
                 children=[
+                    html.H3("Plot against a custom dataset"),
+                    dcc.RadioItems(
+                        id='plot-against',
+                        options=[
+                            {'label': 'Yes', 'value': True},
+                            {'label': 'No', 'value': False},
+                        ],
+                        value=False,
+                    ),
                     dcc.Dropdown(
                         id='select-db',
-                        options = get_databases()
+                        options = get_databases(),
+                        style = dict(display='none')
                     ),
                     html.Br(),
                     dcc.Dropdown(
@@ -33,7 +43,7 @@ layout = [
             ),
             dcc.Graph(
                 id='time-series-chart',
-                figure=dgms.time_series([])
+                figure=dgms.time_series()
             ),
             html.Div(
                 id ='restr_multiselect',
@@ -42,7 +52,7 @@ layout = [
                     ["Curfew", 'Eat Out to Help Out', "Eating Places Closed", "Household Mixing Indoors Banned",  "Pubs Closed", "Rule of 6 Indoors", "Shools Closed", "Shops Closed", "Stay at Home", "WFH"],
                     multi=True,
                     placeholder = "All",
-                    id = 'dropdown'
+                    id = 'restr-select'
                     ),
                 ]
             ),
@@ -54,7 +64,7 @@ layout = [
                         children = [
                             dcc.Graph(
                                 id='corr-chart',
-                                figure=dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
+                                # figure=dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
                             )
                         ]
                     ),
@@ -66,33 +76,57 @@ layout = [
 
 @callback(
     Output('time-series-chart', 'figure'),
-    Input('dropdown', 'value')
-)
-def update_time_series(value):
-    if not value:
-        return dgms.time_series(restrs=[])
-    elif isinstance(value, str): 
-        value = process_multiselect(value)
-        return dgms.time_series(restrs=[value])
-    else:  
-        value = process_multiselect(value)
-        return dgms.time_series(restrs=value)
-
-@callback(
-    Output('corr-chart', 'figure'),
-    Input('dropdown', 'value'),
+    Input('plot-against', 'value'),
+    Input('restr-select', 'value'),
     Input('select-db', 'value'),
     Input('select-table', 'value')
 )
-def update_correlation(value, db_name, table):
-    if not value:
-        return no_update
-    elif isinstance(value, str):
-        value = process_multiselect(value)
-        return dgms.overlayed_series([value], db_name, table)
-    else:  
-        value = process_multiselect(value)
-        return dgms.overlayed_series(value, db_name, table)
+def update_time_series(plot_against, restrs, db_name, table):
+    if plot_against and db_name and table:
+        if not restrs:
+            return dgms.time_series(db_name=db_name, table=table)
+        else:
+            if isinstance(restrs, str):
+                return dgms.time_series(restrs=[restrs], db_name=db_name, table=table)
+            else:
+                return dgms.time_series(restrs=restrs, db_name=db_name, table=table)
+    else:
+        return dgms.time_series(mental=False)
+
+    # if not restrs:
+    #     return dgms.time_series()
+    # elif isinstance(value, str): 
+    #     value = process_multiselect(value)
+    #     return dgms.time_series(restrs=[value])
+    # else:  
+    #     value = process_multiselect(value)
+    #     return dgms.time_series(restrs=value)
+
+# @callback(
+#     Output('corr-chart', 'figure'),
+#     Input('restr-select', 'value'),
+#     Input('select-db', 'value'),
+#     Input('select-table', 'value')
+# )
+# def update_correlation(value, db_name, table):
+#     if not value:
+#         return no_update
+#     elif isinstance(value, str):
+#         value = process_multiselect(value)
+#         return dgms.overlayed_series([value], db_name, table)
+#     else:  
+#         value = process_multiselect(value)
+#         return dgms.overlayed_series(value, db_name, table)
+
+@callback(
+    Output('select-db', 'style'),
+    Input('plot-against', 'value')
+)
+def show_menu(value):
+    if value:
+        return dict()
+    else:
+        return dict(display='none')
 
 @callback(
     Output('select-table', 'style'),
