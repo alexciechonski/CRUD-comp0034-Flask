@@ -50,8 +50,8 @@ class Visualizer:
 class CRUD:
     def __init__(self, db_name) -> None:
         self.db_name = db_name
-        self._db = f"src/backend/data/{self.db_name}"
-        self._graph = "src/backend/data/graph.db"
+        self._db = PATHS[self.db_name]
+        self._graph = PATHS["graph.db"]
         self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
         # self.last_graph_id = len(get_databases())
 
@@ -90,31 +90,10 @@ class CRUD:
     @staticmethod
     def remove_table(db_name, table):
         delete_table(db_name, table)
-        with sqlite3.connect(f"src/backend/data/graph.db") as conn:
+        with sqlite3.connect(PATHS["graph.db"]) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", (table,))
             conn.commit()
 
-    @staticmethod
-    def create_new_db(db_name):
-        directory = "src/backend/data"
-        os.makedirs(directory, exist_ok=True)
-        path = os.path.join(directory, db_name)
-        with open(path, 'w') as file:
-            pass 
-        num_db = len(get_databases())
-        vis = Visualizer("src/backend/data/graph.db")
-        vis.add_graph(num_db, db_name)
-
-    @staticmethod 
-    def delete_database(db_name, graph_id): # can be 1 arg
-        directory = "src/backend/data"
-        os.makedirs(directory, exist_ok=True)
-        path = os.path.join(directory, db_name)
-        os.remove(path)
-        vis = Visualizer("src/backend/data/graph.db")
-        vis.delete_graph(graph_id)
-
 if __name__ == "__main__":
-    # vis = Visualizer("src/backend/data/graph.db")
-    CRUD.delete_database("test.db", 3)
+    pass

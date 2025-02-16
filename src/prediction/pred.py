@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from src.backend.data_server import DataServer
 import matplotlib.pyplot as plt
+from src.config import PATHS
 
 class Model:
     def __init__(self, restrs, db_name, table_name) -> None:
@@ -12,7 +13,7 @@ class Model:
         self.table_name = table_name
 
     def prepare(self):
-        server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", "src/backend/data/mental_health.db")
+        server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["mental_health.db"])
         time_series_data = server.serve_time_series(self.restrs)
         second_series_data = server.serve_second_series(self.db_name, self.table_name)
         time_series_df = pd.DataFrame(time_series_data, columns=["date", "restr_value"])

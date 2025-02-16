@@ -8,14 +8,9 @@ import base64
 import pandas as pd
 import io
 import ollama
+from src.config import PATHS, IMMUTABLE
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
-    """
-    Executes a query against the main database.
-
-    Returns:
-        list[tuple[Any, ...]]: Results of the query if it is a SELECT query.
-    """
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         try:
@@ -36,13 +31,6 @@ def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
 def create_table(db_path: str, table_name: str, cols_dict: dict[str, str], foreign_keys: list[str] = None) -> None:
-    """
-    Creates a table in the database with specified columns.
-
-    Parameters:
-        table_name (str): Name of the table to create.
-        cols_dict (dict): Column names as keys and data types as values.
-    """
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("PRAGMA foreign_keys = ON;")
@@ -61,14 +49,6 @@ def create_table(db_path: str, table_name: str, cols_dict: dict[str, str], forei
             conn.commit()
 
 def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> None:
-    """
-    Inserts data into an SQLite table.
-
-    Parameters:
-    - table_name (str): Name of the table to insert data into.
-    - data (list of tuples): List of tuples, each tuple represents a row of data.
-                            Example: [(1, '2023-01-01'), (2, '2023-01-02')]
-    """
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         placeholders = ', '.join(['?' for _ in data[0]])
@@ -84,13 +64,7 @@ def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> N
             conn.commit()
 
 def delete_table(db_name, table_name: str) -> None:
-        """
-        Deletes a specified table from the database.
-
-        Parameters:
-            table_name (str): The name of the table to delete.
-        """
-        with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+        with sqlite3.connect(PATHS[db_name]) as conn:
             cursor = conn.cursor()
             try:
                 cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
@@ -112,10 +86,8 @@ def get_table_info(table, db_path):
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
 def show_tables(db_name) -> None:
-    """
-    Connects to an SQLite database and prints all table names.
-    """
-    with sqlite3.connect(f"src/backend/data/{db_name}") as conn:
+    print(PATHS[db_name])
+    with sqlite3.connect(PATHS[db_name]) as conn:
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -141,12 +113,7 @@ def get_databases():
     if "graph.db" in files:
         files.remove("graph.db")  # Avoid KeyError if "graph.db" is missing
 
-    # Convert list of strings into list of dictionaries for Dash dropdown
     return [{'label': db, 'value': db} for db in files]
-
-def save_to_json(path, data):
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
 
 def parse_csv_contents(contents):
     content_type, content_string = contents.split(',')
@@ -161,7 +128,7 @@ def parse_csv_contents(contents):
         return
 
 def dynamic_name_id():
-    with sqlite3.connect("src/backend/data/graph.db") as conn:
+    with sqlite3.connect(PATHS["graph.db"]) as conn:
         res = {}
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Graphs;")
@@ -179,4 +146,4 @@ def get_resp(prompt):
     return response['message']['content'] if 'message' in response else "No response"
 
 if __name__ == "__main__":
-    print(show_tables("covid.db"))
+    print(show_tables("mental_health.db"))

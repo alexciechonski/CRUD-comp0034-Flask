@@ -1,6 +1,6 @@
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
-from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
+from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id, insert_data
 from src.backend.erd_manager import CRUD
 import os
 import json
@@ -208,6 +208,8 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, new
         crud.remove_table(select_db, delete_input)
         return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
         
+    print(select_db)
+    print(show_tables(select_db))
     return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
 
 @callback(
@@ -227,7 +229,7 @@ def insert_df(contents, db_name, submit, table):
         data, df = parse_csv_contents(contents)
         if not v.val_insert(db_name, table):
             return no_update, None, True, False
-        if not v.val_schema(db_name, table, df):
+        if not v.val_schema(df):
             return no_update, None, False, True
         crud = CRUD(db_name)
         crud.insert_data(table, data)

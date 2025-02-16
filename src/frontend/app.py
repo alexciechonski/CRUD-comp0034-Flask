@@ -13,12 +13,8 @@ if __name__ == '__main__':
 
 """
 TODO:
-- name_to_id dictionary non sustainable for delete db and not scalable
-- need proper foreign and primary keys for delete db (graphs and graphid) can be done using shell
-
-Adding:
-- new table stopped showing
-- last node id does not go down for removing graphs and tables
+- name_to_id declaration
+- dgms declaration
 
 - matplotlib bug
 - graphviz warning
