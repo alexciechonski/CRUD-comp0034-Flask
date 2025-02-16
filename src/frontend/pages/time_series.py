@@ -64,7 +64,8 @@ layout = [
                         children = [
                             dcc.Graph(
                                 id='corr-chart',
-                                # figure=dgms.overlayed_series([], "mental_health.db", "MHCareCluster")
+                                figure=dgms.correlation(),
+                                style=dict(display='none')
                             )
                         ]
                     ),
@@ -86,43 +87,44 @@ def update_time_series(plot_against, restrs, db_name, table):
         if not restrs:
             return dgms.time_series(db_name=db_name, table=table)
         else:
-            if isinstance(restrs, str):
-                return dgms.time_series(restrs=[restrs], db_name=db_name, table=table)
-            else:
-                return dgms.time_series(restrs=restrs, db_name=db_name, table=table)
+            if db_name and table:
+                return dgms.time_series(restrs=process_multiselect(restrs), db_name=db_name, table=table)
     else:
-        return dgms.time_series(mental=False)
+        if restrs:
+            return dgms.time_series(restrs=process_multiselect(restrs), mental=False)
+        else:
+            return dgms.time_series(mental=False)
 
-    # if not restrs:
-    #     return dgms.time_series()
-    # elif isinstance(value, str): 
-    #     value = process_multiselect(value)
-    #     return dgms.time_series(restrs=[value])
-    # else:  
-    #     value = process_multiselect(value)
-    #     return dgms.time_series(restrs=value)
-
-# @callback(
-#     Output('corr-chart', 'figure'),
-#     Input('restr-select', 'value'),
-#     Input('select-db', 'value'),
-#     Input('select-table', 'value')
-# )
-# def update_correlation(value, db_name, table):
-#     if not value:
-#         return no_update
-#     elif isinstance(value, str):
-#         value = process_multiselect(value)
-#         return dgms.overlayed_series([value], db_name, table)
-#     else:  
-#         value = process_multiselect(value)
-#         return dgms.overlayed_series(value, db_name, table)
+@callback(
+    Output('corr-chart', 'figure'),
+    Input('restr-select', 'value'),
+    Input('select-db', 'value'),
+    Input('select-table', 'value')
+)
+def update_correlation(restrs, db_name, table_name):
+    if db_name and table_name:
+        if not restrs:
+            return dgms.correlation(db_name=db_name, table_name=table_name)
+        else:
+            return dgms.correlation(restrs=process_multiselect(restrs), db_name=db_name, table_name=table_name)
+    else:
+        return no_update
 
 @callback(
     Output('select-db', 'style'),
     Input('plot-against', 'value')
 )
 def show_menu(value):
+    if value:
+        return dict()
+    else:
+        return dict(display='none')
+
+@callback(
+    Output('corr-chart', 'style'),
+    Input('select-table', 'value')
+)
+def show_corr_graph(value):
     if value:
         return dict()
     else:

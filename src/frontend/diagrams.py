@@ -127,7 +127,6 @@ class Diagrams:
 
     def time_series(self, restrs = [], db_name = "mental_health.db", table = 'MHCareCluster', mental=True):
         sql = self.server.serve_time_series(restrs)
-        print(sql)
         x_line, y_line = zip(*sql)
 
         if mental:
@@ -178,7 +177,7 @@ class Diagrams:
             }
         }
 
-    def overlayed_series(self, restrs: list, db_name, table_name):
+    def correlation(self, restrs = [], db_name = "mental_health.db", table_name= "MHCareCluster"):
         model = Model(restrs, db_name, table_name)
         df = model.train_linear()
         return {
@@ -277,4 +276,4 @@ if __name__ == "__main__":
     "src/backend/data/mental_health.db"
     )
 
-    print(dgms.time_series())
+    print(dgms.time_series(restrs=['wfh'], mental=False))

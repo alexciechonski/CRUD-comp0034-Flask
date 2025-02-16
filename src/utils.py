@@ -24,11 +24,11 @@ def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple
                 cursor.execute(query)
             if query.strip().upper().startswith("SELECT"):
                 results = cursor.fetchall()
-                print("SELECT query executed successfully.")
+                # print("SELECT query executed successfully.")
                 return results
             else:
                 conn.commit()
-                print("Query executed successfully")
+                # print("Query executed successfully")
         except sqlite3.IntegrityError as int_err:
             raise sqlite3.IntegrityError("Database query failed") from int_err
         except sqlite3.DatabaseError as db_err:

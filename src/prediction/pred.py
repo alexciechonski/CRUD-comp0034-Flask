@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 class Model:
     def __init__(self, restrs, db_name, table_name) -> None:
         self.restrs = restrs 
-        self._db = f"src/backend/data{db_name}"
+        self.db_name = db_name
         self.table_name = table_name
-        self.df = self.prepare()
 
     def prepare(self):
         server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", "src/backend/data/mental_health.db")
         time_series_data = server.serve_time_series(self.restrs)
-        second_series_data = server.serve_second_series(self._db, self.table_name)
+        second_series_data = server.serve_second_series(self.db_name, self.table_name)
         time_series_df = pd.DataFrame(time_series_data, columns=["date", "restr_value"])
         second_series_df = pd.DataFrame(second_series_data, columns=["date", "mental_health_value"])
         time_series_df['date'] = pd.to_datetime(time_series_df['date'])
@@ -46,6 +45,6 @@ class Model:
         return correlation
 
 if __name__ == "__main__":
-    m = Model(["wfh"], "mental_health.db", "MHCareCluster")
+    m = Model([], "mental_health.db", "MHCareCluster")
     print(m.train_linear())
 
