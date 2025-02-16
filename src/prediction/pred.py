@@ -16,22 +16,22 @@ class Model:
         server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["custom.db"])
         time_series_data = server.serve_time_series(self.restrs)
         second_series_data = server.serve_second_series(self.db_name, self.table_name)
-        time_series_df = pd.DataFrame(time_series_data, columns=["date", "restr_value"])
-        second_series_df = pd.DataFrame(second_series_data, columns=["date", "custom_value"])
+
+        time_series_df = pd.DataFrame(time_series_data, columns=["date", "restr_value"]).sort_values('date')
+        second_series_df = pd.DataFrame(second_series_data, columns=["date", "custom_value"]).sort_values('date')
+
         time_series_df['date'] = pd.to_datetime(time_series_df['date'])
         second_series_df['date'] = pd.to_datetime(second_series_df['date'])
-        merged_df = pd.merge_asof(
-            time_series_df.sort_values('date'),
-            second_series_df.sort_values('date'),
-            on='date',
-            direction='nearest'
-        )
-        merged_df.interpolate(method='linear', inplace=True)
-        aggregated_df = merged_df.groupby('restr_value')['custom_value'].mean().reset_index()
-        return aggregated_df
+        merged_df = pd.merge_asof(time_series_df, second_series_df, on='date', direction='nearest').interpolate(method='linear')
+
+        return merged_df.groupby('restr_value', as_index=False)['custom_value'].mean()
+
 
     def train_linear(self):
         df = self.prepare()
+        if df.empty:
+            return df
+            
         X_train = df[['restr_value']]
         y_train = df['custom_value']
         model = LinearRegression().fit(X_train, y_train)

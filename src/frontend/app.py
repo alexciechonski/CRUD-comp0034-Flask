@@ -16,6 +16,8 @@ TODO:
 - name_to_id declaration
 - dgms declaration
 - server injection serve second series
+- one function for handling queries
+- separate module for sql utils
 
 - matplotlib bug
 - graphviz warning

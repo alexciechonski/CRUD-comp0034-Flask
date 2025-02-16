@@ -71,18 +71,7 @@ def get_table_info(table, db_path):
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
 def show_tables(db_name) -> None:
-    with sqlite3.connect(PATHS[db_name]) as conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
-            if tables:
-                return [t[0] for t in tables]
-            else:
-                # print("No tables found in the database.")
-                return []
-        except sqlite3.Error as err:
-            print(f"An error occurred: {err}")
+    return [row[0] for row in query_db("SELECT name FROM sqlite_master WHERE type='table';", PATHS[db_name]) or []]
 
 def process_multiselect(selections):
     return [sel.replace(" ", "_").lower() for sel in selections]
@@ -101,9 +90,7 @@ def get_databases():
 
 def parse_csv_contents(contents):
     _, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    
-    # Read CSV data into a DataFrame
+    decoded = base64.b64decode(content_string)    
     try:
         df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
         return [tuple(row) for row in df.itertuples(index=False)], df
@@ -131,4 +118,4 @@ def get_resp(prompt):
 
 if __name__ == "__main__":
     # print(select_graphable_tables(show_tables("covid.db")))
-    print(get_databases())
+    print(show_tables("custom.db"))
