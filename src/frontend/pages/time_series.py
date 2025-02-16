@@ -1,6 +1,6 @@
 from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
 from src.frontend.diagrams import Diagrams
-from src.utils import process_multiselect, show_tables, get_databases
+from src.utils import process_multiselect, show_tables, get_databases, select_graphable_tables
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -137,5 +137,5 @@ def show_corr_graph(value):
 )
 def show_table_select(value):
     if value:
-        return dict(), show_tables(value)
+        return dict(), select_graphable_tables(show_tables(value))
     return no_update, no_update

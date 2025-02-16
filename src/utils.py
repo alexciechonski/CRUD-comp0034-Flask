@@ -169,5 +169,9 @@ def dynamic_name_id():
             res[name] = id
         return res
 
+def select_graphable_tables(tables):
+    non_graphable = {"Date", "Week", "Restriction", "Source", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"}
+    return [table for table in tables if table not in non_graphable]
+
 if __name__ == "__main__":
     print(show_tables("covid.db"))
