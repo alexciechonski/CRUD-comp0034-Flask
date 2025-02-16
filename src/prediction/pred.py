@@ -37,14 +37,14 @@ class Model:
         df['predicted_mental'] = model.predict(df[['restr_value']])
         return df
 
-    @staticmethod
-    def get_correlation(x, y):
-        x = np.array(x)
-        y = np.array(y)
+    def get_correlation(self):
+        data = self.prepare()
+        x = np.array(data['restr_value'].tolist())
+        y = np.array(data['mental_health_value'].tolist())
         correlation = np.corrcoef(x, y)[0, 1]
         return correlation
 
 if __name__ == "__main__":
-    m = Model([], "mental_health.db", "MHCareCluster")
-    print(m.train_linear())
+    m = Model([], "mental_health.db", "Deaths")
+    print(m.get_correlation())
 

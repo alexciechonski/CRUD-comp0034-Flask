@@ -1,6 +1,7 @@
-from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
+from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
-from src.utils import process_multiselect, show_tables, get_databases, select_graphable_tables
+from src.utils import process_multiselect, show_tables, get_databases, select_graphable_tables, get_resp
+from src.prediction.pred import Model
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
@@ -70,6 +71,25 @@ layout = [
                         ]
                     ),
                 ]
+            ),
+            html.Br(),
+            html.Div(
+                id='generate-resp',
+                children=[
+                    html.H3("What would you like to know about the data correlation"),
+                    dcc.Textarea(
+                        id='user-prompt',
+                        value="Explain the correlation.",
+                        style=dict(display='none')
+                    ),
+                    html.Button(
+                        "SUBMIT",
+                        id='submit-prompt',
+                        n_clicks=0,
+                        style=dict(display='none')
+                    ),
+                    dcc.Markdown(id='llm-response', style=dict(display='none'))
+                ]
             )
         ]
     )
@@ -122,13 +142,16 @@ def show_menu(value):
 
 @callback(
     Output('corr-chart', 'style'),
+    Output('user-prompt', 'style'),
+    Output('submit-prompt', 'style'),
+    Output('llm-response', 'style'),
     Input('select-table', 'value')
 )
 def show_corr_graph(value):
     if value:
-        return dict()
+        return dict(), dict(), dict(), dict()
     else:
-        return dict(display='none')
+        return dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none')
 
 @callback(
     Output('select-table', 'style'),
@@ -139,3 +162,22 @@ def show_table_select(value):
     if value:
         return dict(), select_graphable_tables(show_tables(value))
     return no_update, no_update
+
+@callback(
+    Output('llm-response', 'children'),
+    State('user-prompt', 'value'),
+    Input('submit-prompt', 'n_clicks'),
+    Input('restr-select', 'value'),
+    State('select-db', 'value'),
+    State('select-table', 'value'),
+    prevent_initiak_call=True
+)
+def show_llm_resp(prompt, click, restrs, db_name, table_name):
+    if click > 0:
+        restrs = [] or restrs
+        m = Model(restrs, db_name, table_name)
+        meta=f"The correlation coefficient between the number of lockdown restriction and {table_name} is {m.get_correlation()}."
+        resp = get_resp(meta + prompt)
+        return resp
+    return no_update
+    

@@ -7,6 +7,7 @@ import json
 import base64
 import pandas as pd
 import io
+import ollama
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -172,6 +173,10 @@ def dynamic_name_id():
 def select_graphable_tables(tables):
     non_graphable = {"Date", "Week", "Restriction", "Source", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"}
     return [table for table in tables if table not in non_graphable]
+
+def get_resp(prompt):
+    response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": prompt}])
+    return response['message']['content'] if 'message' in response else "No response"
 
 if __name__ == "__main__":
     print(show_tables("covid.db"))

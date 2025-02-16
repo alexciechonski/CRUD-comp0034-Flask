@@ -66,7 +66,6 @@ layout = [
                                 'textAlign': 'center',
                                 'margin': '10px'
                             },
-                            # Allow multiple files to be uploaded
                             multiple=False
                             ),
                             html.Button(

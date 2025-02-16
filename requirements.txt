@@ -10,3 +10,4 @@ dash-extensions
 networkx
 pydot
 scikit-learn
+ollama
