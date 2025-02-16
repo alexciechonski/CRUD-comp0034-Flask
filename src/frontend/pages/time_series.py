@@ -88,7 +88,13 @@ layout = [
                         n_clicks=0,
                         style=dict(display='none')
                     ),
-                    dcc.Markdown(id='llm-response', style=dict(display='none'))
+                    dcc.Loading(
+                        id="loading",
+                        type="circle",
+                        children = [
+                            dcc.Markdown(id='llm-response', style=dict(display='none'))
+                        ]
+                    ),
                 ]
             )
         ]
@@ -170,11 +176,11 @@ def show_table_select(value):
     Input('restr-select', 'value'),
     State('select-db', 'value'),
     State('select-table', 'value'),
-    prevent_initiak_call=True
+    prevent_initial_call=True
 )
 def show_llm_resp(prompt, click, restrs, db_name, table_name):
     if click > 0:
-        restrs = [] or restrs
+        restrs = restrs or []
         m = Model(restrs, db_name, table_name)
         meta=f"The correlation coefficient between the number of lockdown restriction and {table_name} is {m.get_correlation()}."
         resp = get_resp(meta + prompt)
