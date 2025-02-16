@@ -8,5 +8,6 @@
         "covid.db" : ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"],
         "mental_health.db" : ["MHCareCluster"]
     },
-    "schema" : ["id", "time", "measured_value"]
+    "schema" : ["id", "time", "measured_value"],
+    "non_graphable" : ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"]
 }

@@ -8,7 +8,7 @@ import base64
 import pandas as pd
 import io
 import ollama
-from src.config import PATHS, IMMUTABLE
+from src.config import PATHS, NON_GRAPHABLE
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     with sqlite3.connect(db_path) as conn:
@@ -48,30 +48,15 @@ def create_table(db_path: str, table_name: str, cols_dict: dict[str, str], forei
         finally:
             conn.commit()
 
-def insert_data(db_path: str, table_name: str, data: list[tuple[Any, ...]]) -> None:
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
-        placeholders = ', '.join(['?' for _ in data[0]])
-        insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
-
-        try:
-            for row in data:
-                cursor.execute(insert_sql, row)
-            print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
-        except sqlite3.Error as e:
-            print(f"An error occurred: {e}")
-        finally:
-            conn.commit()
-
 def delete_table(db_name, table_name: str) -> None:
-        with sqlite3.connect(PATHS[db_name]) as conn:
-            cursor = conn.cursor()
-            try:
-                cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
-                conn.commit()
-                print(f"Table '{table_name}' has been deleted from the database.")
-            except sqlite3.DatabaseError as db_err:
-                print(f"Database error occurred: {db_err}")
+    with sqlite3.connect(PATHS[db_name]) as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
+            conn.commit()
+            print(f"Table '{table_name}' has been deleted from the database.")
+        except sqlite3.DatabaseError as db_err:
+            print(f"Database error occurred: {db_err}")
 
 def get_table_info(table, db_path):
     with sqlite3.connect(db_path) as conn:
@@ -86,7 +71,6 @@ def get_table_info(table, db_path):
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
 def show_tables(db_name) -> None:
-    print(PATHS[db_name])
     with sqlite3.connect(PATHS[db_name]) as conn:
         try:
             cursor = conn.cursor()
@@ -138,7 +122,7 @@ def dynamic_name_id():
         return res
 
 def select_graphable_tables(tables):
-    non_graphable = {"Date", "Week", "Restriction", "Source", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"}
+    non_graphable = set(NON_GRAPHABLE)
     return [table for table in tables if table not in non_graphable]
 
 def get_resp(prompt):
@@ -146,4 +130,4 @@ def get_resp(prompt):
     return response['message']['content'] if 'message' in response else "No response"
 
 if __name__ == "__main__":
-    print(show_tables("mental_health.db"))
+    print(select_graphable_tables(show_tables("covid.db")))

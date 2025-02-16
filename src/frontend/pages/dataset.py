@@ -1,6 +1,6 @@
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
-from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id, insert_data
+from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
 from src.backend.erd_manager import CRUD
 import os
 import json
