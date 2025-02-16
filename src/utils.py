@@ -8,7 +8,7 @@ import base64
 import pandas as pd
 import io
 import ollama
-from src.config import PATHS, NON_GRAPHABLE
+from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     with sqlite3.connect(db_path) as conn:
@@ -91,7 +91,7 @@ def convert_to_date(date_str):
     return datetime.strptime(date_str, '%m/%Y').strftime('%Y-%m-%d')
 
 def get_databases():
-    data_folder = 'src/backend/data'
+    data_folder = BASE_PATH
     files = [file for file in os.listdir(data_folder) if os.path.isfile(os.path.join(data_folder, file))]
     
     if "graph.db" in files:
@@ -130,4 +130,5 @@ def get_resp(prompt):
     return response['message']['content'] if 'message' in response else "No response"
 
 if __name__ == "__main__":
-    print(select_graphable_tables(show_tables("covid.db")))
+    # print(select_graphable_tables(show_tables("covid.db")))
+    print(get_databases())
