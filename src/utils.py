@@ -100,7 +100,7 @@ def get_databases():
     return [{'label': db, 'value': db} for db in files]
 
 def parse_csv_contents(contents):
-    content_type, content_string = contents.split(',')
+    _, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     
     # Read CSV data into a DataFrame
