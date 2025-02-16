@@ -85,22 +85,6 @@ layout = [
                         ]
                     ),
                     dcc.Store(id='csv-dummy'),
-                    # html.Br(),
-                    # html.H3("Create Database"),
-                    # html.Div(
-                    #     id='create-db-menu',
-                    #     children=[
-                    #         dcc.Input(
-                    #             id='new-db',
-                    #             placeholder="Create a New Database",
-                    #         ),
-                    #         html.Button(
-                    #             "SUBMIT",
-                    #             id='submit-new-db',
-                    #             n_clicks=0,
-                    #         )
-                    #     ]
-                    # ),
                     html.Br(),
                     html.H3("Add Table"),
                     html.Div(
@@ -110,16 +94,6 @@ layout = [
                                 id='table-name-input',
                                 placeholder="Enter the Table Name",
                             ),
-                            # dcc.Textarea(
-                            #     id='columns-input',
-                            #     placeholder="""Enter the columns in a json format: column_name:type, nullable, primary, foreign_keys
-                            #                 example:
-                            #                 {
-                            #                     "id": "INTEGER PRIMARY KEY",
-                            #                     "name": "INTEGER NOT NULL"
-                            #                 }
-                            #                 """,
-                            # ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-create-button',
@@ -184,7 +158,6 @@ layout = [
 
         #delete input for add
         Output('table-name-input', 'value'),
-        # Output('columns-input', 'value'),
 
         # warnings
         Output('add-val', 'displayed'),
@@ -235,11 +208,6 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, new
         return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False
         
     return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", False, False
-
-"""
-{"new":"INTEGER PRIMARY KEY"}
-{"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}
-"""
 
 @callback(
     Output('csv-dummy', 'data'),
