@@ -2,6 +2,7 @@ from typing import Optional, Any
 import sqlite3
 from src.utils import query_db, get_table_info, convert_to_date
 from src.backend.erd_manager import Visualizer
+from src.config import PATHS
 
 class DataServer:
     def __init__(self, db_path, graph_path, custom_path) -> None:
@@ -14,7 +15,7 @@ class DataServer:
         return erd.get_adj_list(graph_id)
 
     def serve_table(self, db_name, table):
-        db_path = f"src/backend/data/{db_name}"
+        db_path = PATHS[db_name]
         return get_table_info(table, db_path)
 
     def serve_time_series(self, restrs = []):
@@ -25,22 +26,18 @@ class DataServer:
                     JOIN Date ON DailyRestriction.date_id = Date.date_id
                     GROUP BY Date.date;
                     """
-            return query_db(query, self._db, restrs)
-        else:
-            placeholders = ', '.join(['?'] * len(restrs))
-            query = f"""
-                SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
-                FROM DailyRestriction
-                JOIN Date ON DailyRestriction.date_id = Date.date_id
-                JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
-                WHERE Restriction.restriction IN ({placeholders})
-                GROUP BY Date.date;
-            """
-            with sqlite3.connect(self._db) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, restrs)
-                return cursor.fetchall()
-        # return query_db(query, self._db, restrs)
+            return query_db(query, self._db)
+        
+        placeholders = ', '.join(['?'] * len(restrs))
+        query = f"""
+            SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
+            FROM DailyRestriction
+            JOIN Date ON DailyRestriction.date_id = Date.date_id
+            JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
+            WHERE Restriction.restriction IN ({placeholders})
+            GROUP BY Date.date;
+        """
+        return query_db(query, self._db, restrs)
 
     def serve_restr_distr(self, end_date = None):
         if end_date is not None:
@@ -76,7 +73,7 @@ class DataServer:
     @staticmethod
     def serve_second_series(db_name, table_name):
         query = f"SELECT time, measured_value FROM {table_name};"
-        raw_data = query_db(query, f"src/backend/data/{db_name}")
+        raw_data = query_db(query, PATHS[db_name])
         try:
             processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
         except ValueError:
