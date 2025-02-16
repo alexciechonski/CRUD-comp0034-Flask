@@ -53,7 +53,6 @@ class CRUD:
         self._db = PATHS[self.db_name]
         self._graph = PATHS["graph.db"]
         self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
-        # self.last_graph_id = len(get_databases())
 
     def add_table(self, table_name: str, graph_id) -> None:
         cols = {"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}

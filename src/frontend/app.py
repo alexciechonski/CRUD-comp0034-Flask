@@ -15,6 +15,7 @@ if __name__ == '__main__':
 TODO:
 - name_to_id declaration
 - dgms declaration
+- server injection serve second series
 
 - matplotlib bug
 - graphviz warning
