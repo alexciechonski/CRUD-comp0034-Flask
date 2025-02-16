@@ -110,16 +110,16 @@ layout = [
                                 id='table-name-input',
                                 placeholder="Enter the Table Name",
                             ),
-                            dcc.Textarea(
-                                id='columns-input',
-                                placeholder="""Enter the columns in a json format: column_name:type, nullable, primary, foreign_keys
-                                            example:
-                                            {
-                                                "id": "INTEGER PRIMARY KEY",
-                                                "name": "INTEGER NOT NULL"
-                                            }
-                                            """,
-                            ),
+                            # dcc.Textarea(
+                            #     id='columns-input',
+                            #     placeholder="""Enter the columns in a json format: column_name:type, nullable, primary, foreign_keys
+                            #                 example:
+                            #                 {
+                            #                     "id": "INTEGER PRIMARY KEY",
+                            #                     "name": "INTEGER NOT NULL"
+                            #                 }
+                            #                 """,
+                            # ),
                             html.Button(
                                 "SUBMIT",
                                 id='submit-create-button',
@@ -184,7 +184,7 @@ layout = [
 
         #delete input for add
         Output('table-name-input', 'value'),
-        Output('columns-input', 'value'),
+        # Output('columns-input', 'value'),
 
         # warnings
         Output('add-val', 'displayed'),
@@ -198,72 +198,48 @@ layout = [
 
         Input('submit-create-button', 'n_clicks'), # check if add table new
         Input('submit-delete-button', 'n_clicks'), # check if wants to delete
-        State('columns-input', 'value'),
+        # State('columns-input', 'value'),
         State('table-name-input', 'value'),
         State('delete-input', 'value')
     ]
 )
-def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, cols, new_table, delete_input):
+def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, new_table, delete_input):
     id = ctx.triggered_id
 
     # go back
     if id == 'back-btn':
-        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update, "", "", False, False
+        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update, "", False, False
 
     # show table
     elif id == 'erd-chart': 
         table_name = clickData['points'][0].get('text')
-        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db), "", "", False, False
+        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db), "", False, False
     
     # create table
     elif id == 'submit-create-button':
         if not v.val_create_table(select_db, new_table):
-            return no_update, no_update, no_update, no_update, no_update, no_update, "", "", True, False,
+            return no_update, no_update, no_update, no_update, no_update, no_update, "", True, False,
 
         crud = CRUD(select_db)
         graph_id = len(get_databases())
-        crud.add_table(new_table, json.loads(cols), graph_id)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", "", False, False
+        crud.add_table(new_table, graph_id)
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False
 
     # delete table
     elif id == 'submit-delete-button':
         if not v.val_delete_table(select_db, delete_input):
-            return no_update, no_update, no_update, no_update, no_update, no_update, "", "", False, True,
+            return no_update, no_update, no_update, no_update, no_update, no_update, "", False, True,
 
         crud = CRUD(select_db)
         crud.remove_table(select_db, delete_input)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", "", False, False
+        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False
         
-    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", "", False, False
-
-# @callback(
-#     Output('select_db', 'options'),
-#     Input('submit-new-db', 'n_clicks'),
-#     Input('select_db', 'options'),
-#     State('new-db', 'value'),
-# )
-# def create_database(submit_new, select_db, new_db):
-#     if submit_new > 0 and new_db:
-#         CRUD.create_new_db(new_db)
-#         n = len(get_databases())
-#         name_to_id[new_db] = n + 1
-#         select_db.append({'label': new_db, 'value': new_db})
-#     return get_databases()
+    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", False, False
 
 """
 {"new":"INTEGER PRIMARY KEY"}
 {"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}
 """
-
-# @callback(
-#     Output('delete-input', 'options'),
-#     Input('select_db', 'value')
-# )
-# def update_delete_options(value):
-#     if value:
-#         return show_tables(value)
-#     else:
-#         return no_update
 
 @callback(
     Output('csv-dummy', 'data'),

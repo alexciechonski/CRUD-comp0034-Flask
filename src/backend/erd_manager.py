@@ -55,8 +55,9 @@ class CRUD:
         self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
         # self.last_graph_id = len(get_databases())
 
-    def add_table(self, table_name: str, cols_dict: dict[str, str], graph_id) -> None:
-        create_table(self._db, table_name, cols_dict)
+    def add_table(self, table_name: str, graph_id) -> None:
+        cols = {"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}
+        create_table(self._db, table_name, cols)
         # add node to graph db
         self.last_node_id += 1
         with sqlite3.connect(self._graph) as conn:
