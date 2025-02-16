@@ -4,10 +4,10 @@ from src.utils import query_db, get_table_info, convert_to_date
 from src.backend.erd_manager import Visualizer
 
 class DataServer:
-    def __init__(self, db_path, graph_path, mental_path) -> None:
+    def __init__(self, db_path, graph_path, custom_path) -> None:
         self._db = db_path
         self._graph = graph_path
-        self._mental = mental_path
+        self._custom = custom_path
 
     def serve_erd(self, graph_id):        
         erd = Visualizer(self._graph)
@@ -84,6 +84,6 @@ class DataServer:
         return processed_data
 
 if __name__ == "__main__":
-    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/mental_health.db')
-    print(server.serve_second_series("mental_health.db", "MHCareCluster"))
+    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/custom.db')
+    print(server.serve_second_series("custom.db", "MHCareCluster"))
 

@@ -13,11 +13,11 @@ class Model:
         self.table_name = table_name
 
     def prepare(self):
-        server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["mental_health.db"])
+        server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["custom.db"])
         time_series_data = server.serve_time_series(self.restrs)
         second_series_data = server.serve_second_series(self.db_name, self.table_name)
         time_series_df = pd.DataFrame(time_series_data, columns=["date", "restr_value"])
-        second_series_df = pd.DataFrame(second_series_data, columns=["date", "mental_health_value"])
+        second_series_df = pd.DataFrame(second_series_data, columns=["date", "custom_value"])
         time_series_df['date'] = pd.to_datetime(time_series_df['date'])
         second_series_df['date'] = pd.to_datetime(second_series_df['date'])
         merged_df = pd.merge_asof(
@@ -27,13 +27,13 @@ class Model:
             direction='nearest'
         )
         merged_df.interpolate(method='linear', inplace=True)
-        aggregated_df = merged_df.groupby('restr_value')['mental_health_value'].mean().reset_index()
+        aggregated_df = merged_df.groupby('restr_value')['custom_value'].mean().reset_index()
         return aggregated_df
 
     def train_linear(self):
         df = self.prepare()
         X_train = df[['restr_value']]
-        y_train = df['mental_health_value']
+        y_train = df['custom_value']
         model = LinearRegression().fit(X_train, y_train)
         df['predicted_mental'] = model.predict(df[['restr_value']])
         return df
@@ -41,11 +41,11 @@ class Model:
     def get_correlation(self):
         data = self.prepare()
         x = np.array(data['restr_value'].tolist())
-        y = np.array(data['mental_health_value'].tolist())
+        y = np.array(data['custom_value'].tolist())
         correlation = np.corrcoef(x, y)[0, 1]
         return correlation
 
 if __name__ == "__main__":
-    m = Model([], "mental_health.db", "Deaths")
+    m = Model([], "custom.db", "Deaths")
     print(m.get_correlation())
 

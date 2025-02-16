@@ -6,7 +6,7 @@ from src.prediction.pred import Model
 dgms = Diagrams(
     "src/backend/data/covid.db",
     "src/backend/data/graph.db",
-    "src/backend/data/mental_health.db"
+    "src/backend/data/custom.db"
 )
 
 register_page(__name__, path='/time-series')

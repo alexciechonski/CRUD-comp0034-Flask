@@ -2,12 +2,13 @@ from dash import dcc, html, Dash, Input, Output, no_update, register_page, callb
 from src.frontend.diagrams import Diagrams
 import dash_daq as daq
 import dash
+from src.config import PATHS
 
 
 dgms = Diagrams(
     "src/backend/data/covid.db",
     "src/backend/data/graph.db",
-    "src/backend/data/mental_health.db"
+    "src/backend/data/custom.db"
 )
 
 register_page(__name__, path='/timeline')

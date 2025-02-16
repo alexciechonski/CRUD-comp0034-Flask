@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 dgms = Diagrams(
     "src/backend/data/covid.db",
     "src/backend/data/graph.db",
-    "src/backend/data/mental_health.db"
+    "src/backend/data/custom.db"
 )
 
 register_page(__name__, path='/restriction-distribution')

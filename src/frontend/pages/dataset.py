@@ -9,7 +9,7 @@ from src.frontend.input_validation import Validator as v
 dgms = Diagrams(
     "src/backend/data/covid.db",
     "src/backend/data/graph.db",
-    "src/backend/data/mental_health.db"
+    "src/backend/data/custom.db"
 )
 name_to_id = dynamic_name_id()
 

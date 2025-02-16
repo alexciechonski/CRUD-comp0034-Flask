@@ -125,7 +125,7 @@ class Diagrams:
         df = pd.DataFrame(data, columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
         return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='lavender', align='left'))])
 
-    def time_series(self, restrs = [], db_name = "mental_health.db", table = 'MHCareCluster', mental=True):
+    def time_series(self, restrs = [], db_name = "custom.db", table = 'MHCareCluster', mental=True):
         sql = self.server.serve_time_series(restrs)
         x_line, y_line = zip(*sql)
 
@@ -177,7 +177,7 @@ class Diagrams:
             }
         }
 
-    def correlation(self, restrs = [], db_name = "mental_health.db", table_name= "MHCareCluster"):
+    def correlation(self, restrs = [], db_name = "custom.db", table_name= "MHCareCluster"):
         model = Model(restrs, db_name, table_name)
         df = model.train_linear()
         return {
@@ -273,7 +273,7 @@ if __name__ == "__main__":
     dgms = Diagrams(
     "src/backend/data/covid.db",
     "src/backend/data/graph.db",
-    "src/backend/data/mental_health.db"
+    "src/backend/data/custom.db"
     )
 
     print(dgms.time_series(restrs=['wfh'], mental=False))
