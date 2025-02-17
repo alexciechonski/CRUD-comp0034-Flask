@@ -33,22 +33,40 @@ class GraphVisualizer:
 
     @staticmethod
     def create_edge_traces(G, pos, legend):
-        edge_traces, arrow_traces = [], []
+        edge_traces = []
+        annotations = []  # ✅ Store annotations for arrows
+        
         for connection_type, color in legend.items():
-            edge_x, edge_y, arrow_x, arrow_y = [], [], [], []
+            edge_x, edge_y = [], []
             for edge in G.edges(data=True):
                 if edge[2]['connection_type'] == connection_type:
                     x0, y0 = pos[edge[0]]
                     x1, y1 = pos[edge[1]]
+                    
                     edge_x.extend([x0, x1, None])
                     edge_y.extend([y0, y1, None])
-                    arrow_x.append(x1 * 0.9 + x0 * 0.1)
-                    arrow_y.append(y1 * 0.9 + y0 * 0.1)
-            edge_trace = go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=2, color=color), hoverinfo='none')
-            arrow_trace = go.Scatter(x=arrow_x, y=arrow_y, mode='markers', marker=dict(size=10, color=color, symbol='triangle-up'), hoverinfo='none')
+                    
+                    annotations.append(dict(
+                        x=x1, y=y1,  # Arrowhead position
+                        ax=x0, ay=y0,  # Arrow tail position
+                        xref="x", yref="y",
+                        axref="x", ayref="y",
+                        showarrow=True,
+                        arrowhead=3,  # Arrow style
+                        arrowsize=1.5,  # Arrow size
+                        arrowwidth=2,  # Thickness
+                        arrowcolor=color  # Match edge color
+                    ))
+
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                mode='lines',
+                line=dict(width=2, color=color),
+                hoverinfo='none'
+            )
             edge_traces.append(edge_trace)
-            arrow_traces.append(arrow_trace)
-        return edge_traces, arrow_traces
+
+        return edge_traces, annotations 
 
     @staticmethod
     def create_node_trace(pos, G, labels):
@@ -109,23 +127,26 @@ class Diagrams:
         else:
             pos = nx.spring_layout(G)
 
-        edge_traces, arrow_traces = GraphVisualizer.create_edge_traces(G, pos, legend)
         node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"{node}" for node in adj})
 
+        edge_traces, annotations = GraphVisualizer.create_edge_traces(G, pos, legend)
+
         fig = go.Figure(
-            data=edge_traces + arrow_traces + [node_trace],
+            data=edge_traces + [node_trace],
             layout=go.Layout(
-                # title='Directed Graph Visualization',
                 showlegend=False,
-                images=[dict(source=legend_image_base64, x=0, y=1, xref='paper', yref='paper', xanchor='left', yanchor='top', sizex=0.15, sizey=0.15, opacity=1)],
+                images=[dict(
+                    source=legend_image_base64, x=0, y=1, xref='paper', yref='paper',
+                    xanchor='left', yanchor='top', sizex=0.15, sizey=0.15, opacity=1
+                )],
                 hovermode='closest',
                 margin=dict(b=0, l=0, r=0, t=40),
                 plot_bgcolor="white",
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False)
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
+                annotations=annotations 
             )
         )
-        # fig.show()
         return fig
 
     def get_table(self, db_name, table_name):

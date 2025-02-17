@@ -4,12 +4,13 @@ import dash_daq as daq
 from sqlite3 import DatabaseError
 from datetime import date
 import plotly.graph_objects as go
+from src.config import PATHS
 
 
 dgms = Diagrams(
-    "src/backend/data/covid.db",
-    "src/backend/data/graph.db",
-    "src/backend/data/custom.db"
+    PATHS["covid.db"],
+    PATHS["graph.db"],
+    PATHS["custom.db"]
 )
 
 register_page(__name__, path='/restriction-distribution')

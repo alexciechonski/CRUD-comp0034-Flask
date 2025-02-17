@@ -6,9 +6,9 @@ from src.config import PATHS
 
 
 dgms = Diagrams(
-    "src/backend/data/covid.db",
-    "src/backend/data/graph.db",
-    "src/backend/data/custom.db"
+    PATHS["covid.db"],
+    PATHS["graph.db"],
+    PATHS["custom.db"]
 )
 
 register_page(__name__, path='/timeline')

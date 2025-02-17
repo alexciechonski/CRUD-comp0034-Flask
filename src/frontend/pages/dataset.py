@@ -5,11 +5,12 @@ from src.backend.erd_manager import CRUD
 import os
 import json
 from src.frontend.input_validation import Validator as v
+from src.config import PATHS
 
 dgms = Diagrams(
-    "src/backend/data/covid.db",
-    "src/backend/data/graph.db",
-    "src/backend/data/custom.db"
+    PATHS["covid.db"],
+    PATHS["graph.db"],
+    PATHS["custom.db"]
 )
 name_to_id = dynamic_name_id()
 

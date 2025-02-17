@@ -2,11 +2,12 @@ from dash import dcc, html, Dash, Input, Output, no_update, register_page, callb
 from src.frontend.diagrams import Diagrams
 from src.utils import process_multiselect, show_tables, get_databases, select_graphable_tables, get_resp
 from src.prediction.pred import Model
+from src.config import PATHS
 
 dgms = Diagrams(
-    "src/backend/data/covid.db",
-    "src/backend/data/graph.db",
-    "src/backend/data/custom.db"
+    PATHS["covid.db"],
+    PATHS["graph.db"],
+    PATHS["custom.db"]
 )
 
 register_page(__name__, path='/time-series')
