@@ -92,14 +92,8 @@ layout = [
                         children = [
                             dcc.Textarea(
                                 id='user-prompt',
+                                className='prompt',
                                 value="Explain the correlation.",
-                                # style={
-                                #     "width": "70%",
-                                #     "maxWidth": "800px", 
-                                #     "minWidth": "300px",
-                                #     "height": "100px", 
-                                #     "padding": "10px",
-                                # },
                             ),
                         ],
                     ),

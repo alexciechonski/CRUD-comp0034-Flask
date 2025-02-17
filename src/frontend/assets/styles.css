@@ -21,3 +21,23 @@
     text-align: center; /* Centers text inside */
     margin: 4px;
 }
+
+.menu-link{
+    color:black;
+}
+
+.slash{
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.text-input{
+    display: flex;
+    justify-content: center;
+    width: auto;
+}
+
+.prompt{
+    width: 70%; 
+    height: 100px;
+}

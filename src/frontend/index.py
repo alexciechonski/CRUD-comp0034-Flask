@@ -2,7 +2,7 @@ from dash import html, dcc
 import dash
 
 layout = html.Div([
-    html.H1("Welcome to the Dashboard"),
+    html.H1("COVID-19 Insights", className='centered-item'),
     dcc.Location(id='url', refresh=False),
     html.Div(
         children=[
@@ -14,7 +14,12 @@ layout = html.Div([
             html.Br(),
             dcc.Link('Timeline Page', href='/timeline'),
         ],
-        style={'padding': '20px'}
+        style={
+            'display': 'flex',
+            'justify-content': 'center',
+            'gap': '20px', 
+            'padding': '20px'
+        }
     ),
     dash.page_container  
 ])
