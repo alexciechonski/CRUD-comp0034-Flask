@@ -145,7 +145,7 @@ class Diagrams:
                     "x": x_line,
                     "y": y_line,
                     "type": "line",
-                    "name": "Time Series",
+                    "name": "Restrictions",
                     "yaxis": "y" 
                 },
                 {
@@ -160,7 +160,7 @@ class Diagrams:
             "layout": {
                 "title": "Time Series Plot",
                 "yaxis": {
-                    "title": "Time Series Value",
+                    "title": "Restriction Value",
                     "side": "left"  
                 },
                 "yaxis2": {
