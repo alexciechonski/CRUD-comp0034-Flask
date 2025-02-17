@@ -117,9 +117,9 @@ def update_time_series(plot_against, restrs, db_name, table):
                 return dgms.time_series(restrs=process_multiselect(restrs), db_name=db_name, table=table)
     else:
         if restrs:
-            return dgms.time_series(restrs=process_multiselect(restrs), mental=False)
+            return dgms.time_series(restrs=process_multiselect(restrs), custom=False)
         else:
-            return dgms.time_series(mental=False)
+            return dgms.time_series(custom=False)
 
 @callback(
     Output('corr-chart', 'figure'),

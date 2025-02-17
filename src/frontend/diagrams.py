@@ -76,8 +76,8 @@ class GraphVisualizer:
         return node_trace
 
 class Diagrams:
-    def __init__(self, db_path, graph_path, mental_path) -> None:
-        self.server = DataServer(db_path, graph_path, mental_path)
+    def __init__(self, db_path, graph_path, custom_path) -> None:
+        self.server = DataServer(db_path, graph_path, custom_path)
 
     @staticmethod
     def create_legend_base64(legend):
@@ -126,16 +126,16 @@ class Diagrams:
         df = pd.DataFrame(data, columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
         return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='lavender', align='left'))])
 
-    def time_series(self, restrs = [], db_name = "custom.db", table = 'MHCareCluster', mental=True):
+    def time_series(self, restrs = [], db_name = "custom.db", table = 'MHCareCluster', custom=True):
         sql = self.server.serve_time_series(restrs)
         x_line, y_line = zip(*sql)
 
-        if mental:
+        if custom:
             if not table_not_empty(db_name, table):
                 x_scatter, y_scatter = [], []
             else:
-                mental_data = self.server.serve_second_series(db_name, table)
-                x_scatter, y_scatter = zip(*mental_data)
+                custom_data = self.server.serve_second_series(db_name, table)
+                x_scatter, y_scatter = zip(*custom_data)
         else:
             x_scatter, y_scatter = [], []
 
@@ -153,7 +153,7 @@ class Diagrams:
                     "y": y_scatter,
                     "type": "scatter",
                     "mode": "lines+markers", 
-                    "name": "Mental Series",
+                    "name": "custom Series",
                     "yaxis": "y2"  
                 }
             ],
@@ -164,7 +164,7 @@ class Diagrams:
                     "side": "left"  
                 },
                 "yaxis2": {
-                    "title": "Mental Series Value",
+                    "title": "custom Series Value",
                     "overlaying": "y",   
                     "side": "right",     
                     "showgrid": False    
@@ -191,7 +191,7 @@ class Diagrams:
             "data": [
                 {
                     "x": df['restr_value'],
-                    "y": df['predicted_mental'],
+                    "y": df['predicted'],
                     "type": "line",
                     "name": "Time Series",
                     "yaxis": "y"
@@ -200,7 +200,7 @@ class Diagrams:
             "layout": {
                 "title": "Time Series Plot",
                 "yaxis": {
-                    "title": "Mental Health"
+                    "title": "custom"
                 },
                 "xaxis": {
                     "title": "Restrictions"
@@ -283,4 +283,4 @@ if __name__ == "__main__":
     "src/backend/data/custom.db"
     )
 
-    print(dgms.time_series(restrs=['wfh'], mental=False))
+    print(dgms.time_series(restrs=['wfh'], custom=False))

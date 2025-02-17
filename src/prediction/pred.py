@@ -35,7 +35,7 @@ class Model:
         X_train = df[['restr_value']]
         y_train = df['custom_value']
         model = LinearRegression().fit(X_train, y_train)
-        df['predicted_mental'] = model.predict(df[['restr_value']])
+        df['predicted'] = model.predict(df[['restr_value']])
         return df
 
     def get_correlation(self):
