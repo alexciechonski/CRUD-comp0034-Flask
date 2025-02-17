@@ -23,9 +23,10 @@ layout = [
                 id="dataset-page",
                 className="section",
                 children=[
-                    html.H1("DATASET"),
+                    html.H1("DATASET", className='centered-item'),
                     dcc.Dropdown(
                         id='select_db',
+                        className='user-input',
                         options=get_databases(),
                         value="covid.db"
                     ),
@@ -46,7 +47,7 @@ layout = [
                         ]
                     ),
                     html.Br(),
-                    html.H3("Insert Data from csv"),
+                    html.H3("Insert Data from csv", className='centered-item'),
                     html.Div(
                         id='insert-menu',
                         children = [
@@ -57,65 +58,91 @@ layout = [
                                 html.A('Select Files')
                             ]),
                             style={
-                                'width': '100%',
+                                'width': '70%',
                                 'height': '60px',
                                 'lineHeight': '60px',
                                 'borderWidth': '1px',
                                 'borderStyle': 'dashed',
                                 'borderRadius': '5px',
                                 'textAlign': 'center',
-                                'margin': '10px'
+                                'margin': '10px auto'
                             },
                             multiple=False
                             ),
-                            html.Button(
-                                "SUBMIT",
-                                id='submit-insert',
-                                n_clicks=0
-                            )
-                        ]
-                    ),
-                    html.Div(
-                        children = [
                             dcc.Dropdown(
-                            id='insert-to-table',
-                            options=show_tables("covid.db"),
-                            placeholder="Enter a table name"
+                                id='insert-to-table',
+                                className='user-input',
+                                options=show_tables("covid.db"),
+                                placeholder="Enter a table name"
+                                ),
+                            html.Div(
+                                className='centered-item',
+                                children=[
+                                    html.Button(
+                                        "SUBMIT",
+                                        id='submit-insert',
+                                        className="button",
+                                        n_clicks=0,
+                                    )
+                                ]
                             ),
                         ]
                     ),
                     dcc.Store(id='csv-dummy'),
                     html.Br(),
-                    html.H3("Add Table"),
+                    html.H3("Add Table", className='centered-item'),
                     html.Div(
                         id='add-menu',
                         children=[
-                            dcc.Input(
-                                id='table-name-input',
-                                placeholder="Enter the Table Name",
+                            html.Div(
+                                style={"width":"100%", "display":"flex"},
+                                children=[
+                                    dcc.Input(
+                                        id='table-name-input',
+                                        placeholder="Enter the Table Name",
+                                        style={"width": "70%", "margin":"0 auto", "padding": "10px"}
+                                    ),
+                                ],
                             ),
-                            html.Button(
-                                "SUBMIT",
-                                id='submit-create-button',
-                                n_clicks = 0
+                            html.Div(
+                                className='centered-item',
+                                children=[
+                                    html.Button(
+                                        "SUBMIT",
+                                        id='submit-create-button',
+                                        className='button',
+                                        n_clicks = 0
+                                    )
+                                ]
                             ),
                         ]
                     ),
                     html.Br(),
-                    html.H3("Delete Table"),
+                    html.H3("Delete Table", className='centered-item'),
                     html.Div(
                         id='delete-form',
                         children=[
-                            dcc.Dropdown(
-                                id='delete-input',
-                                options=show_tables("covid.db"),
-                                placeholder="Enter a database to be deleted"
+                            html.Div(
+                                className='user-input',
+                                children=[
+                                    dcc.Dropdown(
+                                        id='delete-input',
+                                        options=show_tables("covid.db"),
+                                        placeholder="Enter a database to be deleted"
+                                    ),
+                                ]
                             ),
-                            html.Button(
-                                "SUBMIT",
-                                id='submit-delete-button',
-                                n_clicks=0
-                            )
+                            html.Div(
+                                className='centered-item',
+                                children=[
+                                    html.Button(
+                                        "SUBMIT",
+                                        id='submit-delete-button',
+                                        className='button',
+                                        n_clicks=0
+                                    )
+                                ]
+                            ),
                         ]
                     ),
                     html.Br(),

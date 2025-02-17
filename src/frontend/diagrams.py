@@ -109,7 +109,7 @@ class Diagrams:
         fig = go.Figure(
             data=edge_traces + arrow_traces + [node_trace],
             layout=go.Layout(
-                title='Directed Graph Visualization',
+                # title='Directed Graph Visualization',
                 showlegend=False,
                 images=[dict(source=legend_image_base64, x=0, y=0, xref='paper', yref='paper', xanchor='left', yanchor='bottom', sizex=0.15, sizey=0.15, opacity=1)],
                 hovermode='closest',
@@ -193,7 +193,7 @@ class Diagrams:
                     "x": df['restr_value'],
                     "y": df['predicted'],
                     "type": "line",
-                    "name": "Time Series",
+                    "name": "Restriction Series",
                     "yaxis": "y"
                 }
             ],
@@ -210,7 +210,7 @@ class Diagrams:
 
     def restr_distr(self, final_date=None):
         restr, val = zip(*self.server.serve_restr_distr(final_date))
-        return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'}, title='Restrictions and Total Count')
+        return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
 
     def timeline(self):
         sql = self.server.serve_timeline()
@@ -264,9 +264,9 @@ class Diagrams:
 
         # Customize the layout
         fig.update_layout(
-            title="Event Timeline",
+            # title="Event Timeline",
             xaxis=dict(title="Date"),
-            yaxis=dict(visible=False),  # Hide the y-axis
+            yaxis=dict(visible=False),
             showlegend=False,
             height=600,
             margin=dict(l=40, r=40, t=40, b=40)

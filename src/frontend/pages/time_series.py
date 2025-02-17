@@ -17,19 +17,20 @@ layout = [
         id='time-series-page',
         className="section",
         children=[
-            html.H1("TIME SERIES"),
+            html.H1("TIME SERIES", className='centered-item'),
             html.Div(
                 id='select-data',
                 children=[
-                    html.H3("Plot against a custom dataset"),
-                    dcc.RadioItems(
+                    html.H3("Plot against a custom dataset", className='centered-item'),
+                    dcc.Checklist(
                         id='plot-against',
+                        className='centered-item',
                         options=[
-                            {'label': 'Yes', 'value': True},
-                            {'label': 'No', 'value': False},
+                            {'label': 'Show Plot', 'value': True},
                         ],
-                        value=False,
+                        value=[],
                     ),
+                    html.Br(),
                     dcc.Dropdown(
                         id='select-db',
                         options = get_databases(),
@@ -46,6 +47,7 @@ layout = [
                 id='time-series-chart',
                 figure=dgms.time_series()
             ),
+            html.H3("Select Restrictions", className='centered-item'),
             html.Div(
                 id ='restr_multiselect',
                 children = [
@@ -53,22 +55,25 @@ layout = [
                     ["Curfew", 'Eat Out to Help Out', "Eating Places Closed", "Household Mixing Indoors Banned",  "Pubs Closed", "Rule of 6 Indoors", "Shools Closed", "Shops Closed", "Stay at Home", "WFH"],
                     multi=True,
                     placeholder = "All",
-                    id = 'restr-select'
+                    id = 'restr-select',
+                    className='user-input',
                     ),
                 ]
             ),
+            html.Br(),
             html.Div(
                 id='correlation',
                 children = [
                     html.Div(
                         id='corr-graph',
                         children = [
+                            html.H3("Correlation Graph", className='centered-item'),
                             dcc.Graph(
                                 id='corr-chart',
                                 figure=dgms.correlation(),
-                                style=dict(display='none')
                             )
-                        ]
+                        ],
+                        style=dict(display='none')
                     ),
                 ]
             ),
@@ -76,17 +81,40 @@ layout = [
             html.Div(
                 id='generate-resp',
                 children=[
-                    html.H3("What would you like to know about the data correlation"),
-                    dcc.Textarea(
-                        id='user-prompt',
-                        value="Explain the correlation.",
+                    html.H3(
+                        "Data Correlation Insights",
+                        id='corr-title',
+                        className='centered-item',
                         style=dict(display='none')
                     ),
-                    html.Button(
-                        "SUBMIT",
-                        id='submit-prompt',
-                        n_clicks=0,
-                        style=dict(display='none')
+                    html.Div(                 
+                        style={"display":"flex", 'justify-content':'center', "alignItems": "center"},       
+                        children = [
+                            dcc.Textarea(
+                                id='user-prompt',
+                                value="Explain the correlation.",
+                                # style={
+                                #     "width": "70%",
+                                #     "maxWidth": "800px", 
+                                #     "minWidth": "300px",
+                                #     "height": "100px", 
+                                #     "padding": "10px",
+                                # },
+                            ),
+                        ],
+                    ),
+                    html.Br(),
+                    html.Div(
+                        className='centered-item',
+                        children=[
+                            html.Button(
+                                "SUBMIT",
+                                id='submit-prompt',
+                                n_clicks=0,
+                                className='button',
+                                style=dict(display='none')
+                            ),
+                        ]
                     ),
                     dcc.Loading(
                         id="loading",
@@ -147,17 +175,18 @@ def show_menu(value):
         return dict(display='none')
 
 @callback(
-    Output('corr-chart', 'style'),
+    Output('corr-graph', 'style'),
     Output('user-prompt', 'style'),
     Output('submit-prompt', 'style'),
     Output('llm-response', 'style'),
+    Output('corr-title', 'style'),
     Input('select-table', 'value')
 )
 def show_corr_graph(value):
     if value:
-        return dict(), dict(), dict(), dict()
+        return dict(), dict(), dict(), dict(), dict()
     else:
-        return dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none')
+        return dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none')
 
 @callback(
     Output('select-table', 'style'),

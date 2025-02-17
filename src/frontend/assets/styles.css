@@ -1,37 +1,23 @@
-/* body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-}
-
-.container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;    
-    height: 100vh;
-    width: 100vw;
-}
-
-.section {
-    display: flex;
-    gap: 20px;  
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; 
-} */
-
-.user-input{
-    width: 90%;
-}
-
-.text-input{
+.centered-item {
     display: flex;
     justify-content: center;
-    width: auto;
+    align-items: center;
 }
-
-.slash{
-    font-size: 28px;
-    font-weight: bold;
+.user-input{
+    width: 600px;
+    width: 70%;
+    margin: 0 auto;
+}
+.button {
+    width: 70%;         
+    width: 150px; 
+    padding: 12px 20px; /* Adds spacing inside the button */
+    font-size: 12px;    /* Increases text size */
+    border-radius: 5px; /* Slightly rounded corners */
+    border: none;       /* Removes default border */
+    background-color: black; /* Blue button */
+    color: white;       /* White text */
+    cursor: pointer;    /* Changes cursor to pointer */
+    text-align: center; /* Centers text inside */
+    margin: 4px;
 }
