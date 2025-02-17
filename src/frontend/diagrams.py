@@ -8,13 +8,14 @@ import io
 import base64
 from src.prediction.pred import Model
 from src.utils import table_not_empty
+import matplotlib
+matplotlib.use('Agg')
 
 class GraphVisualizer:
     @staticmethod
     def generate_pos(graph):
-        # Set Graphviz attributes directly in graph
-        graph.graph['overlap'] = 'false'  # Prevents node overlap
-        graph.graph['mode'] = 'KK'        # Kamada-Kawai layout
+        graph.graph['overlap'] = 'false'  
+        graph.graph['mode'] = 'KK'        
         return nx.nx_pydot.graphviz_layout(graph, prog='neato')
 
     @staticmethod
@@ -22,8 +23,7 @@ class GraphVisualizer:
         for node, neighbors in adj.items():
             if node is None:
                 continue
-            if not neighbors:  # Add node even if it has no neighbors
-                G.add_node(node)
+            G.add_node(node)
             for neighbor, connection_type in neighbors:
                 if neighbor is None or connection_type is None:
                     continue
@@ -56,8 +56,10 @@ class GraphVisualizer:
             text=[],
             mode='markers+text',
             textposition='top center',
-            marker=dict(size=10, color='lightblue'),
-            customdata=[]
+            marker=dict(size=10, color='black'),
+            textfont=dict(size=10, color='black'),
+            customdata=[],
+            hoverinfo='none'
         )
 
         for node in G.nodes:
@@ -101,7 +103,10 @@ class Diagrams:
         G = nx.DiGraph()
         GraphVisualizer.add_edges(G, adj, legend.keys())
 
-        pos = GraphVisualizer.generate_pos(G)
+        if len(G.edges) > 0:
+            pos = GraphVisualizer.generate_pos(G)
+        else:
+            pos = nx.spring_layout(G)
 
         edge_traces, arrow_traces = GraphVisualizer.create_edge_traces(G, pos, legend)
         node_trace = GraphVisualizer.create_node_trace(pos, G, {node: f"{node}" for node in adj})
@@ -111,11 +116,12 @@ class Diagrams:
             layout=go.Layout(
                 # title='Directed Graph Visualization',
                 showlegend=False,
-                images=[dict(source=legend_image_base64, x=0, y=0, xref='paper', yref='paper', xanchor='left', yanchor='bottom', sizex=0.15, sizey=0.15, opacity=1)],
+                images=[dict(source=legend_image_base64, x=0, y=1, xref='paper', yref='paper', xanchor='left', yanchor='top', sizex=0.15, sizey=0.15, opacity=1)],
                 hovermode='closest',
                 margin=dict(b=0, l=0, r=0, t=40),
-                xaxis=dict(showgrid=False, zeroline=False),
-                yaxis=dict(showgrid=False, zeroline=False)
+                plot_bgcolor="white",
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False)
             )
         )
         # fig.show()
@@ -282,5 +288,6 @@ if __name__ == "__main__":
     "src/backend/data/graph.db",
     "src/backend/data/custom.db"
     )
+    dgms.erd(2)
+            
 
-    print(dgms.time_series(restrs=['wfh'], custom=False))
