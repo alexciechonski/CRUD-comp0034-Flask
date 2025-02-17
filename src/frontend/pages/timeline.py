@@ -18,7 +18,7 @@ layout = [
         id='timeline-page',
         className="section",
         children=[
-            html.H1("TIMELINE"),
+            html.H1("TIMELINE", className='centered-item'),
             dcc.Location(id='url', refresh=True),
             dcc.Graph(id="timeline-graph", figure=dgms.timeline()),
         ]

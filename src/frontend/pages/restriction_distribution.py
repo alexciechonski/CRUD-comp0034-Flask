@@ -18,9 +18,8 @@ register_page(__name__, path='/restriction-distribution')
 layout = [
     html.Div(
         id='restriction-distribution-page',
-        className="section",
         children=[
-            html.H1("RESTRICTION DISTRIBUTION"),
+            html.H1("RESTRICTION DISTRIBUTION", className='centered-item'),
             dcc.Graph(
                 id='restriction_distribution_graph',
                 figure=dgms.restr_distr()
