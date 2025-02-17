@@ -73,6 +73,14 @@ def get_table_info(table, db_path):
 def show_tables(db_name) -> None:
     return [row[0] for row in query_db("SELECT name FROM sqlite_master WHERE type='table';", PATHS[db_name]) or []]
 
+def table_not_empty(db_name: str, table_name: str) -> bool:
+    query = f"SELECT COUNT(*) FROM {table_name};"
+    with sqlite3.connect(PATHS[db_name]) as conn:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        row_count = cursor.fetchone()[0]  # Get the first column value (row count)
+    return row_count > 0 
+
 def process_multiselect(selections):
     return [sel.replace(" ", "_").lower() for sel in selections]
 
