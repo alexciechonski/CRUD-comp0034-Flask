@@ -6,6 +6,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import io
 import base64
+import dash.dash_table as dt
 from src.prediction.pred import Model
 from src.utils import table_not_empty
 import matplotlib
@@ -130,7 +131,8 @@ class Diagrams:
     def get_table(self, db_name, table_name):
         data = self.server.serve_table(db_name, table_name)
         df = pd.DataFrame(data, columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key'])
-        return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='lavender', align='left'))])
+        # return dt.DataTable(df.to_dict('records'), [{"name": i, "id": i} for i in df.columns])
+        return go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='black', font=dict(color='white', size=12), align='left'), cells=dict(values=[df[col] for col in df.columns], fill_color='white', font=dict(color='black', size=12), align='left'))])
 
     def time_series(self, restrs = [], db_name = "custom.db", table = 'MHCareCluster', custom=True):
         sql = self.server.serve_time_series(restrs)
