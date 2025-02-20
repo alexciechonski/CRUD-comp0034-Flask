@@ -13,22 +13,22 @@ class Validator:
 
     @staticmethod
     def val_delete_table(db_name, table):
-        if db_name == "graph.db":
-            return False
+        # if db_name == "graph.db":
+        #     return False
         if table in IMMUTABLE[db_name]:
             return False
-        if table not in show_tables(db_name):
-            return False
+        # if table not in show_tables(db_name):
+        #     return False
         return True
 
     @staticmethod
     def val_insert(db_name, table):
-        if db_name == "graph.db":
-            return False
+        # if db_name == "graph.db":
+        #     return False
         if table in IMMUTABLE[db_name]:
             return False
-        if table not in show_tables(db_name):
-            return False
+        # if table not in show_tables(db_name):
+        #     return False
         return True
 
     @staticmethod
