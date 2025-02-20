@@ -93,6 +93,38 @@ def test_add(url):
     
     assert 'Test' in show_tables('custom.db')
 
+def test_insert(url):
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=False)
+        page = browser.new_page()
+        page.goto(url)
+        time.sleep(1)
+
+        # select custom.db
+        dropdown = page.locator("#select_db")
+        dropdown.click()
+        time.sleep(1)
+        custom_db = dropdown.get_by_text('custom.db')
+        custom_db.click()
+        time.sleep(3)
+
+        # upload csv
+        with page.expect_file_chooser() as fc_info:
+            page.locator('#upload-data').click()  # Click upload button
+        file_chooser = fc_info.value
+        file_chooser.set_files("src/testing/test.csv")  # Set the file
+
+        dropdown = page.locator('#insert-to-table')
+        dropdown.click()
+        time.sleep(1)
+        table = dropdown.get_by_text('Test')
+        table.click()
+        time.sleep(1)
+
+        page.locator('#submit-insert').click()
+
+
+
 if __name__ == "__main__":
-    test_add("http://127.0.0.1:8050/dataset")
+    test_insert("http://127.0.0.1:8050/dataset")
     # print(show_tables('custom.db'))
