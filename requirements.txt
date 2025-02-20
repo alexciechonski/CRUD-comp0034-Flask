@@ -11,3 +11,4 @@ networkx
 pydot
 scikit-learn
 ollama
+playwright
