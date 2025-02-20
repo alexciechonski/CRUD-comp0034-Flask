@@ -81,8 +81,16 @@ def test_insert_bad_schema(url):
         table = dropdown.get_by_text('Test')
         table.click()
         time.sleep(1)
-
         page.locator('#submit-insert').click()
+        time.sleep(1)
+
+        dropdown = page.locator('#delete-input')
+        dropdown.click()
+        time.sleep(1)
+        table = dropdown.get_by_text('Test')
+        table.click()
+        time.sleep(1)
+        page.locator('#submit-delete-button').click()
 
 if __name__ == "__main__":
     test_insert_bad_schema("http://127.0.0.1:8050/dataset")

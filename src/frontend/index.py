@@ -6,13 +6,13 @@ layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(
         children=[
-            dcc.Link('Dataset Page', href='/dataset'),
+            dcc.Link('Dataset', href='/dataset'),
             html.Br(),
-            dcc.Link('Time Series Page', href='/time-series'),
+            dcc.Link('Time Series', href='/time-series'),
             html.Br(),
-            dcc.Link('Restriction Distribution Page', href='/restriction-distribution'),
+            dcc.Link('Restriction Distribution', href='/restriction-distribution'),
             html.Br(),
-            dcc.Link('Timeline Page', href='/timeline'),
+            dcc.Link('Timeline ', href='/timeline'),
         ],
         style={
             'display': 'flex',
