@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 import time
-from src.utils import show_tables
+from src.utils import show_tables, query_db
 
 def show_mouse(page, x, y):
     page.evaluate(f"""
@@ -123,8 +123,31 @@ def test_insert(url):
 
         page.locator('#submit-insert').click()
 
+def test_delete(url):
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=False)
+        page = browser.new_page()
+        page.goto(url)
+        time.sleep(1)
+
+        # select custom.db
+        dropdown = page.locator("#select_db")
+        dropdown.click()
+        time.sleep(1)
+        custom_db = dropdown.get_by_text('custom.db')
+        custom_db.click()
+        time.sleep(3)
+
+        dropdown = page.locator('#delete-input')
+        dropdown.click()
+        time.sleep(5)
+        table = dropdown.get_by_text('Test')
+        table.click()
+        time.sleep(1)
+        page.locator('#submit-delete-button').click()
+
 
 
 if __name__ == "__main__":
-    test_insert("http://127.0.0.1:8050/dataset")
+    test_delete("http://127.0.0.1:8050/dataset")
     # print(show_tables('custom.db'))
