@@ -20,6 +20,30 @@ def test_view_table(url):
         page.goto(url)
         time.sleep(1)
 
+        # click Date
+        date = page.get_by_text('Date')
+        box = date.bounding_box()
+        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
+        page.mouse.click(x, y)
+        time.sleep(1)
+        table = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
+        res['Date'] = table
+        time.sleep(1)
+        page.locator('#back-btn').click()
+        time.sleep(3)
+
+        # click Week
+        source = page.get_by_text('Source')
+        box = source.bounding_box()
+        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
+        page.mouse.click(x, y)
+        time.sleep(1)
+        table = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
+        res['Source'] = table
+        time.sleep(1)
+        page.locator('#back-btn').click()
+        time.sleep(3)
+
         # select custom.db
         dropdown = page.locator("#select_db")
         dropdown.click()
@@ -40,9 +64,11 @@ def test_view_table(url):
         page.locator('#back-btn').click()
         time.sleep(3)
 
-
-
-
+    assert res == {
+        'Date': '0\n1\nColumn ID\ndate\ndate_id\nField Name\nTEXT\nINTEGER\nData Type\n1\n0\nNot Null\nnull\nnull\nDefault\n0\n1\nPrimary Key',
+        'Source': '0\n1\n2\nColumn ID\nsource\nsource_id\nname\nField Name\nTEXT\nINTEGER\nTEXT\nData Type\n1\n0\n1\nNot Null\nnull\nnull\nnull\nDefault\n0\n1\n0\nPrimary Key',
+        'MHCareCluster': '0\n1\n2\nColumn ID\nid\ntime\nmeasured_value\nField Name\nINTEGER\nINTEGER\nINTEGER\nData Type\n0\n1\n1\nNot Null\nnull\nnull\nnull\nDefault\n1\n0\n0\nPrimary Key'
+        }
 
 def test_add(url):
     with sync_playwright() as pw:
