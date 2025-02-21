@@ -2,6 +2,7 @@ from playwright.sync_api import sync_playwright
 import time
 
 def test_series_flow(url):
+    res = ""
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
@@ -50,6 +51,11 @@ def test_series_flow(url):
         page.locator('#user-prompt').fill("Explain the relationship")
         page.locator('#submit-prompt').click()
         time.sleep(10)
+
+        res += str(page.locator('#llm-response').inner_text())
+
+    assert res, "Missing explanation"
+
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 from playwright.sync_api import sync_playwright
 import time
 from src.utils import show_tables, query_db
+from src.config import PATHS
+import pandas as pd
 
 def show_mouse(page, x, y):
     page.evaluate(f"""
@@ -69,7 +71,7 @@ def test_view_table(url):
         'Date': '0\n1\nColumn ID\ndate\ndate_id\nField Name\nTEXT\nINTEGER\nData Type\n1\n0\nNot Null\nnull\nnull\nDefault\n0\n1\nPrimary Key',
         'Source': '0\n1\n2\nColumn ID\nsource\nsource_id\nname\nField Name\nTEXT\nINTEGER\nTEXT\nData Type\n1\n0\n1\nNot Null\nnull\nnull\nnull\nDefault\n0\n1\n0\nPrimary Key',
         'MHCareCluster': '0\n1\n2\nColumn ID\nid\ntime\nmeasured_value\nField Name\nINTEGER\nINTEGER\nINTEGER\nData Type\n0\n1\n1\nNot Null\nnull\nnull\nnull\nDefault\n1\n0\n0\nPrimary Key'
-        }
+        }, "Wrong or missing data"
 
 def test_add(url):
     with sync_playwright() as pw:
@@ -122,6 +124,9 @@ def test_insert(url):
         time.sleep(1)
 
         page.locator('#submit-insert').click()
+    
+    df = pd.read_csv("src/testing/test.csv")
+    assert query_db("SELECT * FROM Test", PATHS['custom.db']) == list(df.itertuples(index=False, name=None)), "Wrong or missing data"
 
 def test_delete(url):
     with sync_playwright() as pw:
@@ -146,6 +151,7 @@ def test_delete(url):
         time.sleep(1)
         page.locator('#submit-delete-button').click()
 
+    assert "Test" not in show_tables(PATHS['custom.db'])
 
 
 if __name__ == "__main__":

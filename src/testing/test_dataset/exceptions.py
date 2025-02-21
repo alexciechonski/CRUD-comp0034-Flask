@@ -1,5 +1,8 @@
 from playwright.sync_api import sync_playwright
 import time
+from src.utils import show_tables, query_db
+from src.config import PATHS
+import pandas as pd
 
 def test_create_table(url):
     with sync_playwright() as pw:
@@ -12,6 +15,8 @@ def test_create_table(url):
         page.locator('#table-name-input').fill("Date")
         page.locator('#submit-create-button').click()
         time.sleep(1)
+
+    assert show_tables('custom.db').count("Date") == 1, "Created a duplicate table"
 
 def test_delete_immutable_table(url):
     with sync_playwright() as pw:
@@ -28,6 +33,8 @@ def test_delete_immutable_table(url):
         table.click()
         time.sleep(1)
         page.locator('#submit-delete-button').click()
+
+    assert "Date" in show_tables('covid.db'), "Deleted immutable table"
 
 def test_insert_immutable_table(url):
     with sync_playwright() as pw:
@@ -48,6 +55,9 @@ def test_insert_immutable_table(url):
         table = dropdown.get_by_text('Date')
         table.click()
         time.sleep(1)
+
+    df = pd.read_csv('src/testing/test.csv')
+    assert query_db("SELECT * FROM Date", PATHS['covid.db']) != list(df.itertuples(index=False, name=None)), "Inserted into immutable table"
 
 def test_insert_bad_schema(url):
     with sync_playwright() as pw:
@@ -91,6 +101,8 @@ def test_insert_bad_schema(url):
         table.click()
         time.sleep(1)
         page.locator('#submit-delete-button').click()
+
+    assert not query_db("SELECT * FROM Test"), "Inserted Bad Schema"
 
 if __name__ == "__main__":
     test_insert_bad_schema("http://127.0.0.1:8050/dataset")

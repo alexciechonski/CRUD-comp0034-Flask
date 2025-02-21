@@ -61,6 +61,8 @@ def test_workflow():
         page.locator('#submit-prompt').click()
         time.sleep(10)
 
+        res += str(page.locator('#llm-response').inner_text())
+
         page.goto("http://127.0.0.1:8050/dataset")
 
         # select custom.db
@@ -78,6 +80,8 @@ def test_workflow():
         table.click()
         time.sleep(1)
         page.locator('#submit-delete-button').click()
+
+    assert res, "Explanation missing"
 
 if __name__ == "__main__":
     test_workflow()
