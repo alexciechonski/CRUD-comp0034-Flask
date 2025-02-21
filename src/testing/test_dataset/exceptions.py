@@ -47,7 +47,7 @@ def test_insert_immutable_table(url):
         with page.expect_file_chooser() as fc_info:
             page.locator('#upload-data').click()  # Click upload button
         file_chooser = fc_info.value
-        file_chooser.set_files("src/testing/test.csv")  # Set the file
+        file_chooser.set_files("src/testing/resources/test.csv")  # Set the file
 
         dropdown = page.locator('#insert-to-table')
         dropdown.click()
@@ -83,7 +83,7 @@ def test_insert_bad_schema(url):
         with page.expect_file_chooser() as fc_info:
             page.locator('#upload-data').click()  # Click upload button
         file_chooser = fc_info.value
-        file_chooser.set_files("src/testing/bad_schema.csv")  # Set the file
+        file_chooser.set_files("src/testing/resources/bad_schema.csv")  # Set the file
 
         dropdown = page.locator('#insert-to-table')
         dropdown.click()
