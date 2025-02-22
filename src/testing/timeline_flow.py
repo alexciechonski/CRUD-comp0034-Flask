@@ -1,7 +1,8 @@
 from playwright.sync_api import sync_playwright
 import time
+import pytest
 
-def test_workflow(url):
+def test_workflow():
     res = {}
 
     def click_timeline(node_name):
@@ -20,7 +21,7 @@ def test_workflow(url):
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
-        page.goto(url)
+        page.goto("http://127.0.0.1:8050/timeline")
         page.wait_for_load_state("networkidle")
 
         click_timeline("Lockdown 2")
@@ -34,6 +35,3 @@ def test_workflow(url):
         'Plan B': 'https://www.gov.uk/government/speeches/pm-statement-at-coronavirus-press-conference-29-march-2021',
         'Stay Alert': 'https://www.gov.uk/government/news/schools-colleges-and-early-years-settings-to-close'
         }, "Incorrect Urls"
-
-if __name__ == "__main__":
-    test_workflow("http://127.0.0.1:8050/timeline")

@@ -3,18 +3,8 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
-from testing.crud_actions import fillout_form, dropdown_select, upload_data
+from testing.crud_actions import fillout_form, dropdown_select, upload_data, load_all
 
-def show_mouse(page, x, y):
-    page.evaluate(f"""
-        const box = document.createElement('div');
-        box.style.position = 'absolute';
-        box.style.left = '{x}px';
-        box.style.top = '{y}px';
-        box.style.border = '2px solid red';
-        box.style.zIndex = '10000';
-        document.body.appendChild(box);
-    """)
 
 def test_view_table(url):
     res = {}
@@ -22,15 +12,18 @@ def test_view_table(url):
     def click_table(table_name):
         table = page.get_by_text(table_name)
         box = table.bounding_box()
-        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
+        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 32
         page.mouse.click(x, y)
-        time.sleep(1)
+        load_all(page)
         table_contents = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
-        res[table_name] = table_contents
+        processed_contents = [line.strip() for line in table_contents.split("\n") if line.strip()]
+        res[table_name] = processed_contents
+
+    def go_back():
         back = page.locator('#back-btn')
-        back.wait_for(state='visible', timeout=5000)
+        back.wait_for(state='attached', timeout=5000)
         back.click()
-        time.sleep(3)
+        time.sleep(1)
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
@@ -40,22 +33,22 @@ def test_view_table(url):
 
         # click Date
         click_table("Date")
+        go_back()
 
         # click Week
         click_table("Source")
-
-        # select custom.db
-        dropdown_select(page, "#select_db", 'custom.db')
-        time.sleep(3)
+        go_back()
 
         # click MHCare Cluster
-        click_table("MHCareCluster")
+        click_table("WeeklyRestriction")
+        go_back()
 
     assert res == {
-        'Date': '0\n1\nColumn ID\ndate\ndate_id\nField Name\nTEXT\nINTEGER\nData Type\n1\n0\nNot Null\nnull\nnull\nDefault\n0\n1\nPrimary Key',
-        'Source': '0\n1\n2\nColumn ID\nsource\nsource_id\nname\nField Name\nTEXT\nINTEGER\nTEXT\nData Type\n1\n0\n1\nNot Null\nnull\nnull\nnull\nDefault\n0\n1\n0\nPrimary Key',
-        'MHCareCluster': '0\n1\n2\nColumn ID\nid\ntime\nmeasured_value\nField Name\nINTEGER\nINTEGER\nINTEGER\nData Type\n0\n1\n1\nNot Null\nnull\nnull\nnull\nDefault\n1\n0\n0\nPrimary Key'
+        'Date': ['0', '1', 'Column ID', 'date', 'date_id', 'Field Name', 'TEXT', 'INTEGER', 'Data Type', '1', '0', 'Not Null', 'null', 'null', 'Default', '0', '1', 'Primary Key'],
+        'Source': ['0', '1', '2', 'Column ID', 'source', 'source_id', 'name', 'Field Name', 'TEXT', 'INTEGER', 'TEXT', 'Data Type', '1', '0', '1', 'Not Null', 'null', 'null', 'null', 'Default', '0', '1', '0', 'Primary Key'],
+        'WeeklyRestriction': ['0', '1', '2', 'Column ID', 'week_id', 'restriction_id', 'in_place', 'Field Name', 'INTEGER', 'INTEGER', 'INTEGER', 'Data Type', '1', '1', '1', 'Not Null', 'null', 'null', 'null', 'Default', '0', '0', '0', 'Primary Key']
         }, "Wrong or missing data"
+
 
 def test_add(url):
     with sync_playwright() as pw:
@@ -65,7 +58,7 @@ def test_add(url):
         page.wait_for_load_state("networkidle")
 
         dropdown_select(page, "#select_db", 'custom.db')
-        time.sleep(1)
+        load_all(page)
 
         fillout_form(page, "#table-name-input", "#submit-create-button", "Test")
     

@@ -3,7 +3,7 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
-from testing.crud_actions import fillout_form, dropdown_select, upload_data
+from testing.crud_actions import fillout_form, dropdown_select, upload_data, load_all
 
 def test_create_table(url):
     with sync_playwright() as pw:
@@ -43,7 +43,7 @@ def test_insert_bad_schema(url):
         page.wait_for_load_state("networkidle")
 
         dropdown_select(page, "#select_db", 'custom.db')
-        time.sleep(3)
+        load_all(page)
 
         # create Test
         fillout_form(page, "#table-name-input", "#submit-create-button", "Test")

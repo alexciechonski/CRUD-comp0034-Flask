@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright, Page
 import time
+from src.testing.crud_actions import load_all
 
 def dropdown_select(page: Page, dropdown_id, selection):
     page.wait_for_selector(dropdown_id, timeout=5000)
@@ -29,6 +30,7 @@ def test_workflow():
         page.wait_for_load_state("networkidle")
 
         dropdown_select(page, "#select_db", 'custom.db')
+        load_all(page)
 
         fillout_form(page, "#table-name-input", "#submit-create-button", "Deaths2")
 
@@ -57,6 +59,7 @@ def test_workflow():
         page.wait_for_load_state("networkidle")
 
         dropdown_select(page, "#select_db", 'custom.db')
+        load_all(page)
 
         dropdown_select(page, "#delete-input", "Deaths2")
 

@@ -17,3 +17,6 @@ def upload_data(page: Page, filepath):
         page.locator('#upload-data').click()
     file_chooser = fc_info.value
     file_chooser.set_files(filepath)
+
+def load_all(page: Page):
+    page.wait_for_function("document.querySelector('#select_db').getAttribute('data-dash-is-loading') === null")
