@@ -3,7 +3,7 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
-from src.testing.test_utils import fillout_form, dropdown_select, upload_data
+from testing.crud_actions import fillout_form, dropdown_select, upload_data
 
 def test_create_table(url):
     with sync_playwright() as pw:

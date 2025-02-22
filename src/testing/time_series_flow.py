@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 import time
-from src.testing.test_utils import dropdown_select, fillout_form
+from testing.crud_actions import dropdown_select, fillout_form
 
 def test_series_flow():
     res = ""
