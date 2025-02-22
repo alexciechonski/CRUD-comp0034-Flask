@@ -64,6 +64,4 @@ def test_workflow():
 
     assert res, "Explanation missing"
 
-if __name__ == "__main__":
-    test_workflow()
 
