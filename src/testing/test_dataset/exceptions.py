@@ -1,63 +1,71 @@
-from playwright.sync_api import sync_playwright
-import time
+import pytest
+import pandas as pd
+from playwright.sync_api import sync_playwright, Page
 from src.utils import show_tables, query_db
 from src.config import PATHS
-import pandas as pd
 from testing.crud_actions import fillout_form, dropdown_select, upload_data, load_all
 
-def test_create_table(url):
+@pytest.fixture(scope="function")
+def browser():
+    """Setup and teardown Playwright browser instance."""
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
-        page.goto(url)
-        page.wait_for_load_state("networkidle")
-        fillout_form(page, '#table-name-input', '#submit-create-button', "Date")
-    assert show_tables('covid.db').count("Date") == 1, "Created a duplicate table"
+        yield page 
+        browser.close()
 
-def test_delete_immutable_table(url):
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto(url)
-        page.wait_for_load_state("networkidle")
-        dropdown_select(page, '#delete-input', "Date")
-        page.locator('#submit-delete-button').click()
-    assert "Date" in show_tables('covid.db'), "Deleted immutable table"
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
+def test_create_table(browser, url):
+    """Tests creating a new table."""
+    browser.goto(url)
+    browser.wait_for_load_state("networkidle")
 
-def test_insert_immutable_table(url):
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto(url)
-        page.wait_for_load_state("networkidle")
-        upload_data(page, "src/testing/resources/test.csv")
-        dropdown_select(page, '#insert-to-table', 'Date')
-    df = pd.read_csv('src/testing/resources/test.csv')
-    assert query_db("SELECT * FROM Date", PATHS['covid.db']) != list(df.itertuples(index=False, name=None)), "Inserted into immutable table"
+    fillout_form(browser, "#table-name-input", "#submit-create-button", "Date")
 
-def test_insert_bad_schema(url):
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto(url)
-        page.wait_for_load_state("networkidle")
+    assert show_tables("covid.db").count("Date") == 1, "❌ Created a duplicate table"
 
-        dropdown_select(page, "#select_db", 'custom.db')
-        load_all(page)
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
+def test_delete_immutable_table(browser, url):
+    """Tests that an immutable table cannot be deleted."""
+    browser.goto(url)
+    browser.wait_for_load_state("networkidle")
 
-        # create Test
-        fillout_form(page, "#table-name-input", "#submit-create-button", "Test")
+    dropdown_select(browser, "#delete-input", "Date")
+    browser.locator("#submit-delete-button").click()
 
-        # upload csv
-        upload_data(page, "src/testing/resources/test.csv")
-        dropdown_select(page, '#insert-to-table', 'Test')
-        data = query_db("SELECT * FROM Test", PATHS['custom.db'])
+    assert "Date" in show_tables("covid.db"), "❌ Deleted an immutable table"
 
-        dropdown_select(page, "#delete-input", "Test")
-        page.locator('#submit-delete-button').click()
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
+def test_insert_immutable_table(browser, url):
+    """Tests that data cannot be inserted into an immutable table."""
+    browser.goto(url)
+    browser.wait_for_load_state("networkidle")
+
+    upload_data(browser, "src/testing/resources/test.csv")
+    dropdown_select(browser, "#insert-to-table", "Date")
+
+    df = pd.read_csv("src/testing/resources/test.csv")
+    assert query_db("SELECT * FROM Date", PATHS["covid.db"]) != list(df.itertuples(index=False, name=None)), "❌ Inserted into an immutable table"
+
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
+def test_insert_bad_schema(browser, url):
+    """Tests that data with an incorrect schema is not inserted."""
+    browser.goto(url)
+    browser.wait_for_load_state("networkidle")
+
+    dropdown_select(browser, "#select_db", 'custom.db')
+    load_all(browser)
+
+    # create Test
+    fillout_form(browser, "#table-name-input", "#submit-create-button", "Test")
+
+    # upload csv
+    upload_data(browser, "src/testing/resources/test.csv")
+    dropdown_select(browser, '#insert-to-table', 'Test')
+    data = query_db("SELECT * FROM Test", PATHS['custom.db'])
+
+    dropdown_select(browser, "#delete-input", "Test")
+    browser.locator('#submit-delete-button').click()
 
     assert not data, "Inserted Bad Schema"
 
-if __name__ == "__main__":
-    test_insert_bad_schema("http://127.0.0.1:8050/dataset")
-    # print(query_db("SELECT * FROM Test", PATHS['custom.db']))
