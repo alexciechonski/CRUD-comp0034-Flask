@@ -18,7 +18,6 @@ def test_workflow(url):
         page.wait_for_load_state("networkidle")
 
     with sync_playwright() as pw:
-        # Lockdown 2
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
