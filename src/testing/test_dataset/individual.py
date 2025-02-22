@@ -151,9 +151,8 @@ def test_delete(url):
         time.sleep(1)
         page.locator('#submit-delete-button').click()
 
-    assert "Test" not in show_tables(PATHS['custom.db'])
+    assert "Test" not in show_tables('custom.db')
 
 
 if __name__ == "__main__":
     test_delete("http://127.0.0.1:8050/dataset")
-    # print(show_tables('custom.db'))

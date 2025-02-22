@@ -3,37 +3,25 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
+from src.testing.test_utils import fillout_form, dropdown_select, upload_data
 
 def test_create_table(url):
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
-
-        #create Date
-        page.locator('#table-name-input').fill("Date")
-        page.locator('#submit-create-button').click()
-        time.sleep(1)
-
-    assert show_tables('custom.db').count("Date") == 1, "Created a duplicate table"
+        page.wait_for_load_state("networkidle")
+        fillout_form(page, '#table-name-input', '#submit-create-button', "Date")
+    assert show_tables('covid.db').count("Date") == 1, "Created a duplicate table"
 
 def test_delete_immutable_table(url):
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
-
-        # delete Date
-        dropdown = page.locator('#delete-input')
-        dropdown.click()
-        time.sleep(5)
-        table = dropdown.get_by_text('Date')
-        table.click()
-        time.sleep(1)
+        page.wait_for_load_state("networkidle")
+        dropdown_select(page, '#delete-input', "Date")
         page.locator('#submit-delete-button').click()
-
     assert "Date" in show_tables('covid.db'), "Deleted immutable table"
 
 def test_insert_immutable_table(url):
@@ -41,22 +29,10 @@ def test_insert_immutable_table(url):
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
-
-        # insert into Date
-        with page.expect_file_chooser() as fc_info:
-            page.locator('#upload-data').click()  # Click upload button
-        file_chooser = fc_info.value
-        file_chooser.set_files("src/testing/resources/test.csv")  # Set the file
-
-        dropdown = page.locator('#insert-to-table')
-        dropdown.click()
-        time.sleep(1)
-        table = dropdown.get_by_text('Date')
-        table.click()
-        time.sleep(1)
-
-    df = pd.read_csv('src/testing/test.csv')
+        page.wait_for_load_state("networkidle")
+        upload_data(page, "src/testing/resources/test.csv")
+        dropdown_select(page, '#insert-to-table', 'Date')
+    df = pd.read_csv('src/testing/resources/test.csv')
     assert query_db("SELECT * FROM Date", PATHS['covid.db']) != list(df.itertuples(index=False, name=None)), "Inserted into immutable table"
 
 def test_insert_bad_schema(url):
@@ -64,45 +40,24 @@ def test_insert_bad_schema(url):
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
+        page.wait_for_load_state("networkidle")
 
-        # select custom.db
-        dropdown = page.locator("#select_db")
-        dropdown.click()
-        time.sleep(1)
-        custom_db = dropdown.get_by_text('custom.db')
-        custom_db.click()
+        dropdown_select(page, "#select_db", 'custom.db')
         time.sleep(3)
 
         # create Test
-        page.locator('#table-name-input').fill("Test")
-        page.locator('#submit-create-button').click()
-        time.sleep(1)
+        fillout_form(page, "#table-name-input", "#submit-create-button", "Test")
 
         # upload csv
-        with page.expect_file_chooser() as fc_info:
-            page.locator('#upload-data').click()  # Click upload button
-        file_chooser = fc_info.value
-        file_chooser.set_files("src/testing/resources/bad_schema.csv")  # Set the file
+        upload_data(page, "src/testing/resources/test.csv")
+        dropdown_select(page, '#insert-to-table', 'Test')
+        data = query_db("SELECT * FROM Test", PATHS['custom.db'])
 
-        dropdown = page.locator('#insert-to-table')
-        dropdown.click()
-        time.sleep(1)
-        table = dropdown.get_by_text('Test')
-        table.click()
-        time.sleep(1)
-        page.locator('#submit-insert').click()
-        time.sleep(1)
-
-        dropdown = page.locator('#delete-input')
-        dropdown.click()
-        time.sleep(1)
-        table = dropdown.get_by_text('Test')
-        table.click()
-        time.sleep(1)
+        dropdown_select(page, "#delete-input", "Test")
         page.locator('#submit-delete-button').click()
 
-    assert not query_db("SELECT * FROM Test"), "Inserted Bad Schema"
+    assert not data, "Inserted Bad Schema"
 
 if __name__ == "__main__":
     test_insert_bad_schema("http://127.0.0.1:8050/dataset")
+    # print(query_db("SELECT * FROM Test", PATHS['custom.db']))
