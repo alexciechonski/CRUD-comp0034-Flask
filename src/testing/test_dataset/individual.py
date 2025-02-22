@@ -3,6 +3,7 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
+from src.testing.test_utils import fillout_form, dropdown_select, upload_data
 
 def show_mouse(page, x, y):
     page.evaluate(f"""
@@ -17,55 +18,38 @@ def show_mouse(page, x, y):
 
 def test_view_table(url):
     res = {}
+
+    def click_table(table_name):
+        table = page.get_by_text(table_name)
+        box = table.bounding_box()
+        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
+        page.mouse.click(x, y)
+        time.sleep(1)
+        table_contents = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
+        res[table_name] = table_contents
+        back = page.locator('#back-btn')
+        back.wait_for(state='visible', timeout=5000)
+        back.click()
+        time.sleep(3)
+
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
+        page.wait_for_load_state("networkidle")
 
         # click Date
-        date = page.get_by_text('Date')
-        box = date.bounding_box()
-        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
-        page.mouse.click(x, y)
-        time.sleep(1)
-        table = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
-        res['Date'] = table
-        time.sleep(1)
-        page.locator('#back-btn').click()
-        time.sleep(3)
+        click_table("Date")
 
         # click Week
-        source = page.get_by_text('Source')
-        box = source.bounding_box()
-        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
-        page.mouse.click(x, y)
-        time.sleep(1)
-        table = page.locator('xpath=//*[@id="erd-chart"]').inner_text()
-        res['Source'] = table
-        time.sleep(1)
-        page.locator('#back-btn').click()
-        time.sleep(3)
+        click_table("Source")
 
         # select custom.db
-        dropdown = page.locator("#select_db")
-        dropdown.click()
-        time.sleep(1)
-        custom_db = dropdown.get_by_text('custom.db')
-        custom_db.click()
+        dropdown_select(page, "#select_db", 'custom.db')
         time.sleep(3)
 
         # click MHCare Cluster
-        cluster = page.get_by_text('MHCareCluster')
-        box = cluster.bounding_box()
-        x, y = box['x'] + box['width']/2, box['y'] + box['height']/2 + 10
-        page.mouse.click(x, y)
-        time.sleep(1)
-        table = page.locator('xpath=//*[@id="erd-chart"]/div[2]/div/div').inner_text()
-        res['MHCareCluster'] = table
-        time.sleep(1)
-        page.locator('#back-btn').click()
-        time.sleep(3)
+        click_table("MHCareCluster")
 
     assert res == {
         'Date': '0\n1\nColumn ID\ndate\ndate_id\nField Name\nTEXT\nINTEGER\nData Type\n1\n0\nNot Null\nnull\nnull\nDefault\n0\n1\nPrimary Key',
@@ -78,20 +62,12 @@ def test_add(url):
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
+        page.wait_for_load_state("networkidle")
+
+        dropdown_select(page, "#select_db", 'custom.db')
         time.sleep(1)
 
-        # select custom.db
-        dropdown = page.locator("#select_db")
-        dropdown.click()
-        time.sleep(1)
-        custom_db = dropdown.get_by_text('custom.db')
-        custom_db.click()
-        time.sleep(3)
-
-        # add table
-        page.locator('#table-name-input').fill("Test")
-        page.locator('#submit-create-button').click()
-        time.sleep(1)
+        fillout_form(page, "#table-name-input", "#submit-create-button", "Test")
     
     assert 'Test' in show_tables('custom.db')
 
@@ -100,29 +76,10 @@ def test_insert(url):
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
-
-        # select custom.db
-        dropdown = page.locator("#select_db")
-        dropdown.click()
-        time.sleep(1)
-        custom_db = dropdown.get_by_text('custom.db')
-        custom_db.click()
-        time.sleep(3)
-
-        # upload csv
-        with page.expect_file_chooser() as fc_info:
-            page.locator('#upload-data').click()  # Click upload button
-        file_chooser = fc_info.value
-        file_chooser.set_files("src/testing/resources/test.csv")  # Set the file
-
-        dropdown = page.locator('#insert-to-table')
-        dropdown.click()
-        time.sleep(1)
-        table = dropdown.get_by_text('Test')
-        table.click()
-        time.sleep(1)
-
+        page.wait_for_load_state("networkidle")
+        dropdown_select(page, "#select_db", 'custom.db')
+        upload_data(page, "src/testing/resources/test.csv")
+        dropdown_select(page, '#insert-to-table', 'Test')
         page.locator('#submit-insert').click()
     
     df = pd.read_csv("src/testing/resources/test.csv")
@@ -133,26 +90,12 @@ def test_delete(url):
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
-        time.sleep(1)
-
-        # select custom.db
-        dropdown = page.locator("#select_db")
-        dropdown.click()
-        time.sleep(1)
-        custom_db = dropdown.get_by_text('custom.db')
-        custom_db.click()
-        time.sleep(3)
-
-        dropdown = page.locator('#delete-input')
-        dropdown.click()
-        time.sleep(5)
-        table = dropdown.get_by_text('Test')
-        table.click()
-        time.sleep(1)
+        page.wait_for_load_state("networkidle")
+        dropdown_select(page, "#select_db", 'custom.db')
+        dropdown_select(page, "#delete-input", 'Test')
         page.locator('#submit-delete-button').click()
-
     assert "Test" not in show_tables('custom.db')
 
 
 if __name__ == "__main__":
-    test_delete("http://127.0.0.1:8050/dataset")
+    test_view_table("http://127.0.0.1:8050/dataset")
