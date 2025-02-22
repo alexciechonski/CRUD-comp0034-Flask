@@ -1,28 +1,35 @@
 from playwright.sync_api import sync_playwright
 import time
 from testing.crud_actions import dropdown_select, fillout_form
+import pytest
 
-def test_series_flow():
-    res = ""
+@pytest.fixture(scope="function")
+def browser():
+    """Setup and teardown Playwright browser instance."""
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
-        page.goto("http://127.0.0.1:8050/time-series")
-        page.wait_for_load_state("networkidle")
+        yield page 
+        browser.close()
 
-        dropdown_select(page, "#restr-select", "curfew")
-        dropdown_select(page, "#restr-select", "WFH")
-        dropdown_select(page, "#restr-select", "Pubs Closed")
+def test_series_flow(browser):
+    res = ""
+    browser.goto("http://127.0.0.1:8050/time-series")
+    browser.wait_for_load_state("networkidle")
 
-        page.get_by_role("checkbox").check()
+    dropdown_select(browser, "#restr-select", "curfew")
+    dropdown_select(browser, "#restr-select", "WFH")
+    dropdown_select(browser, "#restr-select", "Pubs Closed")
 
-        dropdown_select(page, "#select-db", 'custom.db')
+    browser.get_by_role("checkbox").check()
 
-        dropdown_select(page, "#select-table", 'Deaths')
+    dropdown_select(browser, "#select-db", 'custom.db')
 
-        fillout_form(page, "#user-prompt", "#submit-prompt", "Explain the relationship")
+    dropdown_select(browser, "#select-table", 'Deaths')
 
-        page.wait_for_selector('#llm-response')
-        res += str(page.locator('#llm-response').inner_text())
+    fillout_form(browser, "#user-prompt", "#submit-prompt", "Explain the relationship")
+
+    browser.wait_for_selector('#llm-response')
+    res += str(browser.locator('#llm-response').inner_text())
 
     assert res, "Missing explanation"
