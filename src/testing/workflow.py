@@ -1,6 +1,16 @@
 from playwright.sync_api import sync_playwright, Page
 import time
 from src.testing.crud_actions import load_all
+import pytest
+
+@pytest.fixture(scope="function")
+def browser():
+    """Setup and teardown Playwright browser instance."""
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=False)
+        page = browser.new_page()
+        yield page
+        browser.close()
 
 def dropdown_select(page: Page, dropdown_id, selection):
     page.wait_for_selector(dropdown_id, timeout=5000)
@@ -13,7 +23,6 @@ def dropdown_select(page: Page, dropdown_id, selection):
 def fillout_form(page: Page, input_id, button_id, user_input):
     page.locator(input_id).fill(user_input)
     page.locator(button_id).click()
-    time.sleep(1)
 
 def upload_data(page: Page, filepath):
     with page.expect_file_chooser() as fc_info:
@@ -21,49 +30,46 @@ def upload_data(page: Page, filepath):
     file_chooser = fc_info.value
     file_chooser.set_files(filepath)
 
-def test_workflow():
+def test_workflow(browser):
     res = ""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto("http://127.0.0.1:8050/dataset")
-        page.wait_for_load_state("networkidle")
+    browser.goto("http://127.0.0.1:8050/dataset")
+    browser.wait_for_load_state("networkidle")
 
-        dropdown_select(page, "#select_db", 'custom.db')
-        load_all(page)
+    dropdown_select(browser, "#select_db", 'custom.db')
+    load_all(browser)
 
-        fillout_form(page, "#table-name-input", "#submit-create-button", "Deaths2")
+    fillout_form(browser, "#table-name-input", "#submit-create-button", "Deaths2")
 
-        upload_data(page, "src/testing/resources/deaths.csv")
+    upload_data(browser, "src/testing/resources/deaths.csv")
 
-        dropdown_select(page, '#insert-to-table', 'Deaths2')
-    
-        page.locator('#submit-insert').click()
+    dropdown_select(browser, '#insert-to-table', 'Deaths2')
 
-        # get correlation graph
-        page.goto("http://127.0.0.1:8050/time-series")
-        page.wait_for_load_state("networkidle")
+    browser.locator('#submit-insert').click()
 
-        page.get_by_role("checkbox").check()
+    # get correlation graph
+    browser.goto("http://127.0.0.1:8050/time-series")
+    browser.wait_for_load_state("networkidle")
 
-        dropdown_select(page, "#select-db", 'custom.db')
+    browser.get_by_role("checkbox").check()
 
-        dropdown_select(page, "#select-table", 'Deaths2')
+    dropdown_select(browser, "#select-db", 'custom.db')
 
-        fillout_form(page, "#user-prompt", "#submit-prompt", "Explain the relationship")
+    dropdown_select(browser, "#select-table", 'Deaths2')
 
-        page.wait_for_selector('#llm-response')
-        res += str(page.locator('#llm-response').inner_text())
+    fillout_form(browser, "#user-prompt", "#submit-prompt", "Explain the relationship")
 
-        page.goto("http://127.0.0.1:8050/dataset")
-        page.wait_for_load_state("networkidle")
+    browser.wait_for_selector('#llm-response')
+    res += str(browser.locator('#llm-response').inner_text())
 
-        dropdown_select(page, "#select_db", 'custom.db')
-        load_all(page)
+    browser.goto("http://127.0.0.1:8050/dataset")
+    browser.wait_for_load_state("networkidle")
 
-        dropdown_select(page, "#delete-input", "Deaths2")
+    dropdown_select(browser, "#select_db", 'custom.db')
+    load_all(browser)
 
-        page.locator('#submit-delete-button').click()
+    dropdown_select(browser, "#delete-input", "Deaths2")
+
+    browser.locator('#submit-delete-button').click()
 
     assert res, "Explanation missing"
 
