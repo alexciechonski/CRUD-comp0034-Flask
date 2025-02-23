@@ -29,7 +29,7 @@ def go_back(page: Page):
     back = page.locator('#back-btn')
     back.wait_for(state='attached', timeout=5000)
     back.click()
-    time.sleep(1)
+    page.wait_for_selector('xpath=//*[@id="erd-chart"]', state='visible', timeout=5000)
     
 @pytest.mark.parametrize("table_name, expected_data", [
     ("Date", [

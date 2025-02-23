@@ -22,7 +22,7 @@ def test_create_table(browser, url):
 
     fillout_form(browser, "#table-name-input", "#submit-create-button", "Date")
 
-    assert show_tables("covid.db").count("Date") == 1, "❌ Created a duplicate table"
+    assert show_tables("covid.db").count("Date") == 1, "Created a duplicate table"
 
 @pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
 def test_delete_immutable_table(browser, url):
