@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "comp0035-14Covid-1"
-version = "2024.1"
-description = "COMP0035 Coursework using 14-Covid-1 dataset"
+name = "comp0034-14Covid-1"
+version = "2025.1"
+description = "COMP0034 Coursework using 14-Covid-1 dataset"
 readme = "README.md"
 keywords = ["data-science", "sqlite", "database", "data-exploration"]
 classifiers = [
@@ -14,19 +14,13 @@ classifiers = [
 ]
 requires-python = ">=3.6"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pylint.'MESSAGES CONTROL']
 disable=[
   'no-name-in-module'
 ]
 
-# [tool.setuptools.packages.find]
-# include = [""]
-
-# Pytest configuration
-# [tool.pytest.ini_options]
-# pythonpath = [
-#     "coursework2" 
-# ]
-# testpaths = [
-#     "test_sql.py"
-# ]
+[tool.pytest.ini_options]
+pythonpath = "src"
