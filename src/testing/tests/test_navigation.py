@@ -7,7 +7,7 @@ BASE_URL = "http://127.0.0.1:8050"
 def browser():
     """Setup and teardown Playwright browser instance."""
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
+        browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
         yield page
         browser.close()

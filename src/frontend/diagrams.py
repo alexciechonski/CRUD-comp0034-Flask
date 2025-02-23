@@ -2,7 +2,7 @@ import pandas as pd
 from backend.data_server import DataServer
 import plotly.graph_objs as go
 import plotly.express as px
-import networkx as nx
+import networkx as nx # nx uses graphviz which has not been covered in the course: https://graphviz.org/
 import matplotlib.pyplot as plt
 import io
 import base64

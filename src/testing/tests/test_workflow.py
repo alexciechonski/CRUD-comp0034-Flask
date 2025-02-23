@@ -7,7 +7,7 @@ import pytest
 def browser():
     """Setup and teardown Playwright browser instance."""
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
+        browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
         yield page
         browser.close()

@@ -7,7 +7,7 @@ import json
 import base64
 import pandas as pd
 import io
-import ollama
+import ollama # ollama has not been covered in the couse: https://github.com/ollama/ollama
 from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
