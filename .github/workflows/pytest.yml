@@ -46,6 +46,23 @@ jobs:
           source venv/bin/activate
           playwright install --with-deps 
 
+            - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Pull TinyLlama Model
+        run: |
+          ollama pull tinyllama
+
+      - name: Verify Ollama Installation
+        run: |
+          ollama list || echo "Ollama is not installed or the model is missing!"
+
+      - name: Start Ollama
+        run: |
+          ollama serve &
+          sleep 5
+          
       - name: Start Dash app
         run: |
           source venv/bin/activate
