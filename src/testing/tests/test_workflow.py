@@ -58,7 +58,7 @@ def test_workflow(browser):
 
     fillout_form(browser, "#user-prompt", "#submit-prompt", "Explain the relationship")
 
-    browser.wait_for_selector('#llm-response')
+    browser.wait_for_selector('#llm-response', timeout=30000)
     res += str(browser.locator('#llm-response').inner_text())
 
     browser.goto("http://127.0.0.1:8050/dataset")

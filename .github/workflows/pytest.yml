@@ -51,7 +51,7 @@ jobs:
           source venv/bin/activate
           echo %PYTHONPATH%
           python src/frontend/app.py &
-          sleep 5 
+          sleep 10
 
       - name: Run tests with coverage
         run: |
