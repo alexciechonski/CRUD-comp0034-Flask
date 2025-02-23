@@ -58,10 +58,10 @@ jobs:
         run: |
           ollama list || echo "Ollama is not installed or the model is missing!"
 
-      - name: Start Ollama
-        run: |
-          ollama serve &
-          sleep 5
+      # - name: Start Ollama
+      #   run: |
+      #     ollama serve &
+      #     sleep 5
 
       - name: Start Dash app
         run: |
