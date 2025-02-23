@@ -28,6 +28,9 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
           pip install -e .  
+      
+      -name: Install graphviz
+        run: sudo apt-get install graphviz
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}:${{ github.workspace }}" >> $GITHUB_ENV
