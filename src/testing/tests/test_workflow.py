@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright, Page
 import time
-from src.testing.crud_actions import load_all
+from testing.helpers.crud_actions import load_all
 import pytest
 
 @pytest.fixture(scope="function")

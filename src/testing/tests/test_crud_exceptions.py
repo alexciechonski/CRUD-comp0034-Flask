@@ -3,7 +3,7 @@ import pandas as pd
 from playwright.sync_api import sync_playwright, Page
 from src.utils import show_tables, query_db
 from src.config import PATHS
-from testing.crud_actions import fillout_form, dropdown_select, upload_data, load_all
+from testing.helpers.crud_actions import fillout_form, dropdown_select, upload_data, load_all
 
 @pytest.fixture(scope="function")
 def browser():

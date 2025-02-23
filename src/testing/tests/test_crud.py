@@ -3,7 +3,7 @@ import time
 from src.utils import show_tables, query_db
 from src.config import PATHS
 import pandas as pd
-from testing.crud_actions import fillout_form, dropdown_select, upload_data, load_all
+from testing.helpers.crud_actions import fillout_form, dropdown_select, upload_data, load_all
 import pytest
 
 @pytest.fixture(scope="function")

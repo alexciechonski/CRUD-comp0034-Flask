@@ -2,3 +2,6 @@ https://digital.nhs.uk/data-and-information/publications/statistical/mental-heal
 
 
 https://github.com/Financial-Times/coronavirus-excess-mortality-data
+
+
+ pytest src/testing/tests/ --cov=testing --cov-report=term-missing -v
