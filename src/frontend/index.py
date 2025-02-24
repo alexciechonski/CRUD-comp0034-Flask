@@ -17,9 +17,9 @@ layout = html.Div([
         style={
             'display': 'flex',
             'justify-content': 'center',
-            'gap': '20px', 
+            'gap': '20px',
             'padding': '20px'
         }
     ),
-    dash.page_container  
+    dash.page_container
 ])

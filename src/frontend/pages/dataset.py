@@ -2,8 +2,6 @@ from dash import dcc, html, Input, Output, no_update, register_page, callback, S
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
 from src.backend.erd_manager import CRUD
-import os
-import json
 from src.frontend.input_validation import Validator as v
 from src.config import PATHS
 
@@ -32,7 +30,7 @@ layout = [
                         value="covid.db"
                     ),
                     dcc.Graph(
-                        id='erd-chart', 
+                        id='erd-chart',
                         figure=dgms.erd(1),
                         ),
                     html.Div(
@@ -205,38 +203,117 @@ layout = [
         State('delete-input', 'value')
     ]
 )
-def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, new_table, delete_input):
-    id = ctx.triggered_id
+def update_erd_chart(
+    select_db, click_data,
+    back_btn, create_btn, delete_btn,
+    new_table, delete_input
+    ):
+
+    trigger_id = ctx.triggered_id
 
     # go back
-    if id == 'back-btn':
-        return dgms.erd(1), dict(display='none'), 0, None, 'covid.db', no_update, "", False, False, show_tables(select_db)
+    if trigger_id== 'back-btn':
+        return (
+        dgms.erd(1),
+        dict(display='none'),
+        0, None, 'covid.db',
+        no_update,
+        "",
+        False,
+        False,
+        show_tables(select_db)
+        )
 
     # show table
-    elif id == 'erd-chart': 
-        table_name = clickData['points'][0].get('text')
-        return dgms.get_table(select_db, table_name), dict(), no_update, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
-    
+    elif trigger_id == 'erd-chart':
+        table_name = click_data['points'][0].get('text')
+        return (
+            dgms.get_table(select_db, table_name),
+            dict(),
+            no_update,
+            no_update,
+            no_update,
+            show_tables(select_db),
+            "",
+            False,
+            False,
+            show_tables(select_db)
+            )
+
     # create table
-    elif id == 'submit-create-button':
+    elif trigger_id == 'submit-create-button':
         if not v.val_create_table(select_db, new_table):
-            return no_update, no_update, no_update, no_update, no_update, no_update, "", True, False, show_tables(select_db)
+            return (
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    "",
+                    True,
+                    False,
+                    show_tables(select_db)
+                    )
 
         crud = CRUD(select_db)
         graph_id = len(get_databases())
         crud.add_table(new_table, graph_id)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
+        return (
+            dgms.erd(name_to_id[select_db]),
+            no_update,
+            0,
+            no_update,
+            no_update,
+            show_tables(select_db),
+            "",
+            False,
+            False,
+            show_tables(select_db)
+            )
 
     # delete table
-    elif id == 'submit-delete-button':
+    elif trigger_id == 'submit-delete-button':
         if not v.val_delete_table(select_db, delete_input):
-            return no_update, no_update, no_update, no_update, no_update, no_update, "", False, True, show_tables(select_db)
+            return (
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                "",
+                False,
+                True,
+                show_tables(select_db)
+                )
 
         crud = CRUD(select_db)
         crud.remove_table(select_db, delete_input)
-        return dgms.erd(name_to_id[select_db]), no_update, 0, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
-        
-    return dgms.erd(name_to_id[select_db]), dict(display='none'), 0, no_update, no_update, show_tables(select_db), "", False, False, show_tables(select_db)
+        return (
+            dgms.erd(name_to_id[select_db]),
+            no_update,
+            0,
+            no_update,
+            no_update,
+            show_tables(select_db),
+            "",
+            False,
+            False,
+            show_tables(select_db)
+            )
+
+    return (
+        dgms.erd(name_to_id[select_db]),
+        dict(display='none'),
+        0,
+        no_update,
+        no_update,
+        show_tables(select_db),
+        "", False,
+        False,
+        show_tables(select_db)
+        )
 
 @callback(
     Output('csv-dummy', 'data'),
@@ -252,15 +329,12 @@ def update_erd_chart(select_db, clickData, back_btn, create_btn, delete_btn, new
 )
 def insert_df(contents, db_name, submit, table):
     if contents and submit:
-        data, df = parse_csv_contents(contents)
+        data, contents_df = parse_csv_contents(contents)
         if not v.val_insert(db_name, table):
             return no_update, None, True, False
-        if not v.val_schema(df):
+        if not v.val_schema(contents_df):
             return no_update, None, False, True
         crud = CRUD(db_name)
         crud.insert_data(table, data)
         return no_update, None, False, False
     return no_update, no_update, False, False
-
-
-

@@ -1,6 +1,7 @@
-from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback, State
+from dash import dcc, html, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
-from src.utils import process_multiselect, show_tables, get_databases, select_graphable_tables, get_resp
+from src.utils import process_multiselect, show_tables
+from src.utils import get_databases, select_graphable_tables, get_resp
 from src.prediction.pred import Model
 from src.config import PATHS
 
@@ -53,7 +54,18 @@ layout = [
                 id ='restr_multiselect',
                 children = [
                     dcc.Dropdown(
-                    ["Curfew", 'Eat Out to Help Out', "Eating Places Closed", "Household Mixing Indoors Banned",  "Pubs Closed", "Rule of 6 Indoors", "Shools Closed", "Shops Closed", "Stay at Home", "WFH"],
+                    [
+                        "Curfew",
+                        'Eat Out to Help Out',
+                        "Eating Places Closed",
+                        "Household Mixing Indoors Banned",
+                        "Pubs Closed",
+                        "Rule of 6 Indoors",
+                        "Shools Closed",
+                        "Shops Closed",
+                        "Stay at Home",
+                        "WFH"
+                        ],
                     multi=True,
                     placeholder = "All",
                     id = 'restr-select',
@@ -88,8 +100,12 @@ layout = [
                         className='centered-item',
                         style=dict(display='none')
                     ),
-                    html.Div(                 
-                        style={"display":"flex", 'justify-content':'center', "alignItems": "center"},       
+                    html.Div(
+                        style={
+                            "display":"flex",
+                            'justify-content':'center',
+                            "alignItems": "center"
+                            },
                         children = [
                             dcc.Textarea(
                                 id='user-prompt',
@@ -137,10 +153,17 @@ def update_time_series(plot_against, restrs, db_name, table):
             return dgms.time_series(db_name=db_name, table=table)
         else:
             if db_name and table:
-                return dgms.time_series(restrs=process_multiselect(restrs), db_name=db_name, table=table)
+                return dgms.time_series(
+                    restrs=process_multiselect(restrs),
+                    db_name=db_name,
+                    table=table
+                    )
     else:
         if restrs:
-            return dgms.time_series(restrs=process_multiselect(restrs), custom=False)
+            return dgms.time_series(
+                restrs=process_multiselect(restrs),
+                custom=False
+                )
         else:
             return dgms.time_series(custom=False)
 
@@ -153,9 +176,16 @@ def update_time_series(plot_against, restrs, db_name, table):
 def update_correlation(restrs, db_name, table_name):
     if db_name and table_name:
         if not restrs:
-            return dgms.correlation(db_name=db_name, table_name=table_name)
+            return dgms.correlation(
+                db_name=db_name,
+                table_name=table_name
+                )
         else:
-            return dgms.correlation(restrs=process_multiselect(restrs), db_name=db_name, table_name=table_name)
+            return dgms.correlation(
+                restrs=process_multiselect(restrs),
+                db_name=db_name,
+                table_name=table_name
+                )
     else:
         return no_update
 
@@ -181,7 +211,13 @@ def show_corr_graph(value):
     if value:
         return dict(), dict(), dict(), dict(), dict()
     else:
-        return dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none'), dict(display='none')
+        return (
+            dict(display='none'),
+            dict(display='none'),
+            dict(display='none'),
+            dict(display='none'),
+            dict(display='none')
+            )
 
 @callback(
     Output('select-table', 'style'),
@@ -205,9 +241,12 @@ def show_table_select(value):
 def show_llm_resp(prompt, click, restrs, db_name, table_name):
     if click > 0:
         restrs = restrs or []
-        m = Model(restrs, db_name, table_name)
-        meta=f"The correlation coefficient between the number of lockdown restriction and {table_name} is {m.get_correlation()}."
+        model= Model(restrs, db_name, table_name)
+        meta=f"""The correlation coefficient between the
+            number of lockdown restriction and {table_name}
+            is {model.get_correlation()}.
+            """
         resp = get_resp(meta + prompt)
         return resp
     return no_update
-    
+

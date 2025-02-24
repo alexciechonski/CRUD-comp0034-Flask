@@ -1,10 +1,10 @@
-from dash import dcc, html, Dash, Input, Output, no_update, callback, register_page
-from src.frontend.diagrams import Diagrams
-import dash_daq as daq
 from sqlite3 import DatabaseError
 from datetime import date
+from dash import dcc, html, Input, Output, callback, register_page
+import dash_daq as daq
 import plotly.graph_objects as go
 from src.config import PATHS
+from src.frontend.diagrams import Diagrams
 
 
 dgms = Diagrams(
@@ -36,7 +36,7 @@ layout = [
                 children=[
                     daq.NumericInput(
                         id="input-day",
-                        value=14,    
+                        value=14,
                     ),
                     html.Span(" / ", className="slash"),
                     daq.NumericInput(
@@ -71,9 +71,9 @@ def query_date(day, month, year):
             return dgms.restr_distr(final_date)
         else:
             return go.Figure()
-    except ValueError as val_err:
+    except ValueError as _:
         pass
-    except DatabaseError as db_err:
+    except DatabaseError as _:
         pass
     return go.Figure(
         data=[],

@@ -24,7 +24,9 @@ disable=[
   'unsupported-assignment-operation',
   'unsubscriptable-object',
   'unsubscriptable-object',
-  'dangerous-default-value'
+  'dangerous-default-value',
+  'unused-argument',
+  'not-callable'
 ]
 
 [tool.pytest.ini_options]

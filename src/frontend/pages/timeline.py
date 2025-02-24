@@ -1,9 +1,7 @@
-from dash import dcc, html, Dash, Input, Output, no_update, register_page, callback
-from src.frontend.diagrams import Diagrams
-import dash_daq as daq
+from dash import dcc, html, Input, Output, register_page, callback
 import dash
+from src.frontend.diagrams import Diagrams
 from src.config import PATHS
-
 
 dgms = Diagrams(
     PATHS["covid.db"],
@@ -29,10 +27,10 @@ layout = [
     Output('url', 'href'),
     Input('timeline-graph', 'clickData')
 )
-def redirect_on_click(clickData):
-    if clickData is None:
+def redirect_on_click(click_data):
+    if click_data is None:
         raise dash.exceptions.PreventUpdate
     else:
-        clicked_point = clickData['points'][0]
+        clicked_point = click_data['points'][0]
         redirect_url = clicked_point['customdata']
-        return redirect_url 
+        return redirect_url
