@@ -23,7 +23,8 @@ disable=[
   'redefined-outer-name',
   'unsupported-assignment-operation',
   'unsubscriptable-object',
-  'unsubscriptable-object'
+  'unsubscriptable-object',
+  'dangerous-default-value'
 ]
 
 [tool.pytest.ini_options]

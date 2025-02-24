@@ -1,5 +1,3 @@
-from typing import Optional, Any
-import sqlite3
 from src.utils import query_db, get_table_info, convert_to_date
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
@@ -10,7 +8,7 @@ class DataServer:
         self._graph = graph_path
         self._custom = custom_path
 
-    def serve_erd(self, graph_id):        
+    def serve_erd(self, graph_id):
         erd = Visualizer(self._graph)
         return erd.get_adj_list(graph_id)
 
@@ -27,7 +25,7 @@ class DataServer:
                     GROUP BY Date.date;
                     """
             return query_db(query, self._db)
-        
+
         placeholders = ', '.join(['?'] * len(restrs))
         query = f"""
             SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
@@ -79,8 +77,3 @@ class DataServer:
         except ValueError:
             processed_data = [(row[0], row[1]) for row in raw_data]
         return processed_data
-
-if __name__ == "__main__":
-    server = DataServer("src/backend/data/covid.db", "src/backend/data/graph.db", 'src/backend/data/custom.db')
-    print(server.serve_second_series("custom.db", "MHCareCluster"))
-

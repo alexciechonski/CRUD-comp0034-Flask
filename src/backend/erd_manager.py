@@ -1,10 +1,8 @@
 import sqlite3
-import pandas as pd
-from src.utils import *
+from typing import Any
 from collections import defaultdict
-import io
-import base64
-import json
+from src.utils import create_table, delete_table, query_db
+from src.config import PATHS
 
 class Visualizer:
     def __init__(self, graph_db_path) -> None:
@@ -36,7 +34,10 @@ class Visualizer:
     def add_graph(self, graph_id, graph_name):
         with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO Graphs (graph_id, graph_name) VALUES (?, ?)", (graph_id, graph_name))
+            cursor.execute(
+                "INSERT INTO Graphs (graph_id, graph_name) VALUES (?, ?)",
+                (graph_id, graph_name)
+                )
             conn.commit()
 
     def delete_graph(self, graph_id):
@@ -46,7 +47,6 @@ class Visualizer:
             cursor.execute("DELETE FROM Nodes WHERE graph_id = ?;", (graph_id,))
             conn.commit()
 
-
 class CRUD:
     def __init__(self, db_name) -> None:
         self.db_name = db_name
@@ -55,13 +55,20 @@ class CRUD:
         self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
 
     def add_table(self, table_name: str, graph_id) -> None:
-        cols = {"id": "INTEGER PRIMARY KEY", "time":"TEXT NOT NULL", "measured_value":"INTEGER NOT NULL"}
+        cols = {
+            "id": "INTEGER PRIMARY KEY",
+            "time":"TEXT NOT NULL",
+            "measured_value":"INTEGER NOT NULL"
+            }
         create_table(self._db, table_name, cols)
         # add node to graph db
         self.last_node_id += 1
         with sqlite3.connect(self._graph) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO Nodes (node_id, node_name, graph_id) VALUES (?, ?, ?)", (self.last_node_id, table_name, graph_id))
+            cursor.execute(
+                "INSERT INTO Nodes (node_id, node_name, graph_id) VALUES (?, ?, ?)",
+                (self.last_node_id, table_name, graph_id)
+                )
             conn.commit()
 
     def insert_data(self, table_name: str, data: list[tuple[Any, ...]]) -> None:
@@ -81,8 +88,8 @@ class CRUD:
                 for row in data:
                     cursor.execute(insert_sql, row)
                 print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
-            except sqlite3.Error as e:
-                print(f"An error occurred: {e}")
+            except sqlite3.Error as err:
+                print(f"An error occurred: {err}")
             finally:
                 conn.commit()
 
