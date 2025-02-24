@@ -160,7 +160,12 @@ layout = [
     Input('select-db', 'value'),
     Input('select-table', 'value')
 )
-def update_time_series(plot_against: bool, restrs: List[str], db_name: str, table: str) -> Dict[str, Any]:
+def update_time_series(
+    plot_against: bool,
+    restrs: List[str],
+    db_name: str,
+    table: str
+    ) -> Dict[str, Any]:
     """
     Updates the time series graph based on selected restrictions and optional custom datasets.
 
