@@ -3,22 +3,6 @@ Automated UI Tests for Timeline Navigation.
 
 This module contains Playwright-based tests to verify the timeline navigation workflow.
 It ensures that clicking on specific timeline events redirects to the expected URLs.
-
-Dependencies:
-- `pytest`: For test execution and parameterization.
-- `sync_playwright`: For browser automation.
-- `Page`: Represents a browser page instance in Playwright.
-
-Example Usage:
-    Run all tests:
-    ```sh
-    pytest
-    ```
-
-    Run a specific test:
-    ```sh
-    pytest -k "test_timeline_navigation"
-    ```
 """
 from playwright.sync_api import sync_playwright, Page
 import pytest

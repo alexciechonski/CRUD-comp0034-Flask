@@ -3,23 +3,6 @@ Automated UI Tests for Navigation Flow.
 
 This module contains Playwright-based tests for verifying the navigation flow
 between different sections of the web application.
-
-Dependencies:
-- `pytest`: For test execution and parameterization.
-- `sync_playwright`: For browser automation.
-- `Page`: Represents a browser page instance in Playwright.
-- `BASE_URL`: Defines the base URL of the application.
-
-Example Usage:
-    Run all tests:
-    ```sh
-    pytest
-    ```
-
-    Run a specific test:
-    ```sh
-    pytest -k "test_navigation"
-    ```
 """
 import pytest
 from playwright.sync_api import sync_playwright, Page

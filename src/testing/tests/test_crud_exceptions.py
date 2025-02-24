@@ -3,23 +3,6 @@ Automated UI Tests for the Dataset Management System.
 
 This module contains Playwright-based tests for verifying table creation, deletion,
 and data insertion functionalities within the web application.
-
-Dependencies:
-- `pytest`: For test execution and parameterization.
-- `pandas` (pd): For handling test data validation.
-- `sync_playwright`: For browser automation.
-- `show_tables`: Retrieves a list of tables from the database.
-- `query_db`: Executes SQL queries for data verification.
-- `PATHS`: Defines database locations.
-- `fillout_form`, `dropdown_select`, `upload_data`, `load_all`: Helper functions
-  for UI interactions.
-
-Example Usage:
-    Run all tests:
-    pytest
-
-    Run a specific test:
-    pytest -k "test_create_table"
 """
 
 import pytest

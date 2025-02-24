@@ -6,22 +6,6 @@ This module provides two classes:
    node tracing for visualization.
 2. `Diagrams`: Manages the visualization of ERD diagrams, tables, time series,
    correlation plots, restriction distributions, and event timelines.
-
-Dependencies:
-- NetworkX (nx) for graph representation.
-- Matplotlib and Plotly for visualization.
-- SQLite for data retrieval via `DataServer`.
-- `Model` from `src.prediction.pred` for predictive modeling.
-- Utility functions from `src.utils`.
-
-Example Usage:
-    dgms = Diagrams(
-        "src/backend/data/covid.db",
-        "src/backend/data/graph.db",
-        "src/backend/data/custom.db"
-    )
-    fig = dgms.erd(graph_id=2)
-    fig.show()
 """
 from typing import Any, Tuple, Dict, List
 import io
@@ -135,7 +119,7 @@ class GraphVisualizer:
     def create_node_trace(
         pos: Dict[Any, Tuple[float, float]],
         graph: nx.Graph, labels: Dict[Any, str]
-        ):
+        ) -> go.Scatter:
         """
         Creates a node trace for visualization.
 
@@ -372,7 +356,7 @@ class Diagrams:
         restrs: List[str] = [],
         db_name: str = "custom.db",
         table_name: str = "MHCareCluster"
-        ):
+        ) -> Dict[str, Any]:
         """
         Generates a correlation plot between restrictions and predicted values.
 

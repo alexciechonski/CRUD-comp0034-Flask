@@ -4,16 +4,6 @@ Module for validating database operations.
 This module provides the `Validator` class, which includes static methods
 to validate table creation, deletion, data insertion, and schema compliance
 based on predefined database constraints.
-
-Dependencies:
-- `IMMUTABLE` (from `src.config`): A dictionary defining tables that cannot be modified.
-- `SCHEMA` (from `src.config`): The expected schema structure for data validation.
-- `show_tables` (from `src.utils`): A function to list available tables in a database.
-
-Example Usage:
-    is_valid = Validator.val_create_table("covid.db", "NewTable")
-    can_delete = Validator.val_delete_table("covid.db", "Date")
-    is_schema_valid = Validator.val_schema(dataframe)
 """
 import pandas as pd
 from src.config import IMMUTABLE, SCHEMA
@@ -74,7 +64,7 @@ class Validator:
         return True
 
     @staticmethod
-    def val_schema(contents_df: pd.DataFrame):
+    def val_schema(contents_df: pd.DataFrame) -> bool:
         """
         Validates if a DataFrame's schema matches the expected schema.
 

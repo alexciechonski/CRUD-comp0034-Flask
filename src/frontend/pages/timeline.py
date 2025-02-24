@@ -5,12 +5,8 @@ This module defines the layout and callbacks for the timeline page in the Dash w
 It allows users to:
 - View an interactive timeline of significant events.
 - Click on timeline events to be redirected to external sources for further information.
-
-Dependencies:
-- `dash`: Used for layout components, callbacks, and UI interactions.
-- `Diagrams`: Handles timeline visualization.
-- `PATHS`: Stores database file paths.
 """
+from typing import Any, Dict
 from dash import dcc, html, Input, Output, register_page, callback
 import dash
 from src.frontend.diagrams import Diagrams
@@ -40,7 +36,7 @@ layout = [
     Output('url', 'href'),
     Input('timeline-graph', 'clickData')
 )
-def redirect_on_click(click_data):
+def redirect_on_click(click_data: Dict[Any, Any]):
     """
     Redirects the user to an external URL when clicking on a timeline event.
 

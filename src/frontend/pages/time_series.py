@@ -9,17 +9,8 @@ It allows users to:
 - Compare restrictions against a custom dataset.
 - Generate correlation graphs and analyze data relationships.
 - Use an AI model to generate insights on correlations.
-
-Dependencies:
-- `dash`: Used for layout components, callbacks, and UI interactions.
-- `plotly.graph_objects`: Generates interactive graphs.
-- `Diagrams`: Handles time series visualization and correlation analysis.
-- `Model`: Computes statistical correlations between datasets.
-- `process_multiselect`, `show_tables`, `get_databases`, `select_graphable_tables`:
-    Utility functions for data processing.
-- `get_resp`: Calls an AI model to generate insights.
-- `PATHS`: Stores database file paths.
 """
+from typing import List, Dict, Any
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
 from src.utils import process_multiselect, show_tables
@@ -169,7 +160,7 @@ layout = [
     Input('select-db', 'value'),
     Input('select-table', 'value')
 )
-def update_time_series(plot_against, restrs, db_name, table):
+def update_time_series(plot_against: bool, restrs: List[str], db_name: str, table: str) -> Dict[str, Any]:
     """
     Updates the time series graph based on selected restrictions and optional custom datasets.
 
@@ -179,7 +170,7 @@ def update_time_series(plot_against, restrs, db_name, table):
     - Calls the `Diagrams` module to generate the appropriate figure.
 
     Args:
-        plot_against (list[bool]): Whether to plot against a custom dataset.
+        plot_against (bool]): Whether to plot against a custom dataset.
         restrs (list[str]): Selected restrictions.
         db_name (str): Name of the selected database.
         table (str): Name of the selected table.
@@ -212,7 +203,7 @@ def update_time_series(plot_against, restrs, db_name, table):
     Input('select-db', 'value'),
     Input('select-table', 'value')
 )
-def update_correlation(restrs, db_name, table_name):
+def update_correlation(restrs: List[str], db_name: str, table_name: str):
     """
     Updates the correlation graph based on the selected restrictions and custom dataset.
 
@@ -248,7 +239,7 @@ def update_correlation(restrs, db_name, table_name):
     Output('select-db', 'style'),
     Input('plot-against', 'value')
 )
-def show_menu(value):
+def show_menu(value: List[bool]) -> Dict[Any, Any]:
     """
     Displays the database selection dropdown when plotting against a custom dataset.
 
@@ -271,7 +262,7 @@ def show_menu(value):
     Output('corr-title', 'style'),
     Input('select-table', 'value')
 )
-def show_corr_graph(value):
+def show_corr_graph(value: str) -> tuple[Dict[Any, Any]]:
     """
     Shows or hides the correlation graph and input fields when a custom dataset is selected.
 
@@ -297,7 +288,7 @@ def show_corr_graph(value):
     Output('select-table', 'options'),
     Input('select-db', 'value')
 )
-def show_table_select(value):
+def show_table_select(value: str) -> tuple[Any]:
     """
     Displays the table selection dropdown when a database is selected.
 
@@ -320,7 +311,7 @@ def show_table_select(value):
     State('select-table', 'value'),
     prevent_initial_call=True
 )
-def show_llm_resp(prompt, click, restrs, db_name, table_name):
+def show_llm_resp(prompt: str, click: int, restrs: List[str], db_name: str, table_name: str) -> str:
     """
     Generates an AI response analyzing the correlation between restrictions and a custom dataset.
 

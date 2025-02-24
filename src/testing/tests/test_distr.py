@@ -4,23 +4,6 @@ Automated UI Tests for Date Selection in Restriction Distribution.
 This module contains Playwright-based tests for verifying the date selection workflow
 within the web application. The tests interact with year, month, and day selectors
 to simulate user input and validate the expected output.
-
-Dependencies:
-- `pytest`: For test execution and parameterization.
-- `sync_playwright`: For browser automation.
-- `Page`: Represents a browser page instance in Playwright.
-- `SELECTORS`: A dictionary of XPath selectors for date input fields.
-
-Example Usage:
-    Run all tests:
-    ```sh
-    pytest
-    ```
-
-    Run a specific test:
-    ```sh
-    pytest -k "test_workflow"
-    ```
 """
 import pytest
 from playwright.sync_api import sync_playwright, Page

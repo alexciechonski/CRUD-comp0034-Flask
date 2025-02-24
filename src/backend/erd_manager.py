@@ -6,21 +6,6 @@ This module provides two classes:
    and managing graph entities in an SQLite database.
 2. `CRUD`: Provides basic database operations, including table creation, data insertion,
    and table deletion, with integration into a graph database.
-
-Dependencies:
-- sqlite3: For database connections and operations.
-- typing.Any: For handling dynamic data types.
-- collections.defaultdict: For managing adjacency lists.
-- src.utils: Contains helper functions `create_table`, `delete_table`, and `query_db`.
-- src.config: Contains database path mappings in `PATHS`.
-
-Example Usage:
-    visualizer = Visualizer(PATHS["graph.db"])
-    adjacency_list = visualizer.get_adj_list(graph_id=1)
-
-    crud = CRUD(db_name="covid.db")
-    crud.add_table("new_table", graph_id=1)
-    crud.insert_data("new_table", [(1, "2023-01-01", 42)])
 """
 import sqlite3
 from typing import Any
@@ -44,7 +29,7 @@ class Visualizer:
         """
         self._db = graph_db_path
 
-    def get_adj_list(self, graph_id: int):
+    def get_adj_list(self, graph_id: int) -> None:
         """
         Retrieves the adjacency list representation of a graph.
 
@@ -77,7 +62,7 @@ class Visualizer:
             adj[start].append([end, typ])
         return adj
 
-    def add_graph(self, graph_id: int, graph_name: str):
+    def add_graph(self, graph_id: int, graph_name: str) -> None:
         """
         Adds a new graph entry to the database.
 
@@ -93,7 +78,7 @@ class Visualizer:
                 )
             conn.commit()
 
-    def delete_graph(self, graph_id: int):
+    def delete_graph(self, graph_id: int) -> None:
         """
         Deletes a graph and its associated nodes from the database.
 
@@ -176,7 +161,7 @@ class CRUD:
                 conn.commit()
 
     @staticmethod
-    def remove_table(db_name: str, table: str):
+    def remove_table(db_name: str, table: str) -> None:
         """
         Removes a table from the database and deletes its corresponding node
         from the graph database.

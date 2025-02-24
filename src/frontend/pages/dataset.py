@@ -7,16 +7,8 @@ a Dash web application. It allows users to:
 - Create and delete database tables.
 - Insert data from CSV files.
 - Validate table creation, deletion, and insertion actions.
-
-Dependencies:
-- `dash`: Used for layout components, callbacks, and UI interactions.
-- `Diagrams`: Handles ERD visualization and database interactions.
-- `Validator`: Validates user actions for dataset modifications.
-- `CRUD`: Performs Create, Read, Update, and Delete operations.
-- `show_tables`, `get_databases`: Utility functions for fetching database information.
-- `parse_csv_contents`: Processes uploaded CSV files.
-- `PATHS`: Stores database file paths.
 """
+from typing import Any, Dict
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
@@ -223,9 +215,9 @@ layout = [
     ]
 )
 def update_erd_chart(
-    select_db, click_data,
+    select_db: str, click_data: Dict[Any, Any],
     back_btn, create_btn, delete_btn,
-    new_table, delete_input
+    new_table: str, delete_input: str
     ):
     """
     Updates the ERD chart and manages table creation, deletion, and navigation.
@@ -367,7 +359,7 @@ def update_erd_chart(
     Input('submit-insert', 'n_clicks'),
     State('insert-to-table', 'value')
 )
-def insert_df(contents, db_name, submit, table):
+def insert_df(contents: str, db_name: str, submit: int, table: str) -> tuple[Any]:
     """
     Inserts data from a CSV file into the selected table.
 

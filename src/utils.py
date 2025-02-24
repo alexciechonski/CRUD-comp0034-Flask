@@ -10,20 +10,12 @@ Functions include:
 - Fetching database metadata (e.g., table information, existing databases).
 - Processing user inputs (e.g., formatting multiselect values, parsing CSV content).
 - Interacting with AI models for generating responses.
-
-Dependencies:
-- `sqlite3`: For database operations.
-- `pandas`: For CSV processing.
-- `ollama`: AI model interaction (not covered in course material).
-- `base64`, `io`, `os`: For file handling.
-- `datetime`: For date formatting.
-- `PATHS`, `NON_GRAPHABLE`, `BASE_PATH`: Configuration constants.
 """
 import io
 import os
 import base64
 import sqlite3
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
 import pandas as pd
 import ollama # ollama has not been covered in the couse: https://github.com/ollama/ollama
@@ -111,7 +103,7 @@ def delete_table(db_name, table_name: str) -> None:
         except sqlite3.DatabaseError as db_err:
             print(f"Database error occurred: {db_err}")
 
-def get_table_info(table, db_path):
+def get_table_info(table, db_path) -> List[tuple[str]]:
     """
     Retrieves metadata about a table in the database.
 
@@ -164,7 +156,7 @@ def table_not_empty(db_name: str, table_name: str) -> bool:
         row_count = cursor.fetchone()[0]
     return row_count > 0
 
-def process_multiselect(selections):
+def process_multiselect(selections) -> List[str]:
     """
     Converts a list of user-selected restriction names into lowercase with underscores.
 
@@ -188,7 +180,7 @@ def convert_to_date(date_str):
     """
     return datetime.strptime(date_str, '%m/%Y').strftime('%Y-%m-%d')
 
-def get_databases():
+def get_databases() -> List[str]:
     """
     Retrieves all available database files except `graph.db`.
 
@@ -205,7 +197,7 @@ def get_databases():
 
     return [{'label': db, 'value': db} for db in files]
 
-def parse_csv_contents(contents):
+def parse_csv_contents(contents) -> tuple[List[tuple], pd.DataFrame]:
     """
     Parses and decodes a CSV file from Base64 format.
 
@@ -224,7 +216,7 @@ def parse_csv_contents(contents):
         print('THERE WAS AN ERROR PROCESSING THE CSV', val_err)
         return
 
-def dynamic_name_id():
+def dynamic_name_id() -> List[tuple]:
     """
     Retrieves a mapping of graph names to their corresponding IDs.
 
@@ -240,7 +232,7 @@ def dynamic_name_id():
             res[name] = graph_id
         return res
 
-def select_graphable_tables(tables):
+def select_graphable_tables(tables) -> List[str]:
     """
     Filters out non-graphable tables from a given list.
 
@@ -253,7 +245,7 @@ def select_graphable_tables(tables):
     non_graphable = set(NON_GRAPHABLE)
     return [table for table in tables if table not in non_graphable]
 
-def get_resp(prompt):
+def get_resp(prompt: str) -> str:
     """
     Generates a response from an AI model using the `ollama` library.
 

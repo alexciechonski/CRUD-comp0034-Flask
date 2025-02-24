@@ -4,14 +4,6 @@ Restriction Distribution Page for Dash Application.
 This module defines the layout and callback for the restriction distribution
 page in the Dash web application. It allows users to visualize restriction
 distribution data and filter it by a specified date.
-
-Dependencies:
-- `dash`: Used for layout components, callbacks, and UI interactions.
-- `dash_daq`: Provides numerical input components.
-- `plotly.graph_objects`: Generates interactive graphs.
-- `date`: Handles date-based filtering.
-- `DatabaseError`: Catches potential database errors.
-- `Diagrams`: Manages database queries and visualization generation.
 """
 from sqlite3 import DatabaseError
 from datetime import date
@@ -79,7 +71,7 @@ layout = [
         Input(component_id='input-year', component_property='value')
     ]
 )
-def query_date(day, month, year):
+def query_date(day: int, month: int, year: int) -> go.Figure:
     """
     Updates the restriction distribution graph based on the selected date.
 

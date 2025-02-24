@@ -4,18 +4,6 @@ Module for predictive modeling using linear regression.
 This module defines the `Model` class, which processes time series data,
 trains a linear regression model, and calculates correlations between
 restrictions and custom data.
-
-Dependencies:
-- `LinearRegression` (from `sklearn.linear_model`): Used for predictive modeling.
-- `numpy` (np): Used for numerical computations.
-- `pandas` (pd): Used for data manipulation.
-- `DataServer`: Fetches time series and custom data.
-- `PATHS`: Defines database locations.
-
-Example Usage:
-    model = Model(["Lockdown", "Curfew"], "custom.db", "Deaths")
-    df = model.train_linear()
-    correlation = model.get_correlation()
 """
 from sklearn.linear_model import LinearRegression
 import numpy as np
@@ -46,7 +34,7 @@ class Model:
         self.db_name = db_name
         self.table_name = table_name
 
-    def prepare(self):
+    def prepare(self) -> pd.DataFrame:
         """
         Prepares and merges restriction and custom time series data.
 
@@ -78,7 +66,7 @@ class Model:
         return merged_df.groupby('restr_value', as_index=False)['custom_value'].mean()
 
 
-    def train_linear(self):
+    def train_linear(self) -> pd.DataFrame:
         """
         Trains a linear regression model to predict custom values based on restriction values.
 
@@ -95,7 +83,7 @@ class Model:
         train_df['predicted'] = model.predict(train_df[['restr_value']])
         return train_df
 
-    def get_correlation(self):
+    def get_correlation(self) -> float:
         """
         Computes the Pearson correlation coefficient between restriction values
         and custom values.

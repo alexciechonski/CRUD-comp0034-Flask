@@ -4,22 +4,6 @@ Automated UI Tests for Time Series Analysis.
 This module contains Playwright-based tests for verifying the workflow of
 selecting restrictions, querying a database table, and generating an explanation
 within the time series analysis section of the web application.
-
-Dependencies:
-- `pytest`: For test execution.
-- `sync_playwright`: For browser automation.
-- `dropdown_select`, `fillout_form`: Helper functions for UI interactions.
-
-Example Usage:
-    Run all tests:
-    ```sh
-    pytest
-    ```
-
-    Run a specific test:
-    ```sh
-    pytest -k "test_series_flow"
-    ```
 """
 from playwright.sync_api import sync_playwright, Page
 import pytest

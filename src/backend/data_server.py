@@ -4,20 +4,8 @@ Module for serving database queries and ERD visualizations.
 This module defines the `DataServer` class, which acts as a backend service
 to fetch ERD structures, table information, time series data, restriction distributions,
 timelines, and other relevant data from an SQLite database.
-
-Dependencies:
-- `query_db`: Executes SQL queries on the database.
-- `get_table_info`: Retrieves schema information for a given table.
-- `convert_to_date`: Converts time values into date format.
-- `Visualizer`: Manages ERD (Entity-Relationship Diagram) data.
-- `PATHS`: Stores database file paths.
-
-Example Usage:
-    server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["custom.db"])
-    erd_data = server.serve_erd(graph_id=1)
-    table_info = server.serve_table("covid", "Date")
-    time_series_data = server.serve_time_series(["Lockdown", "Curfew"])
 """
+from typing import List, Dict
 from src.utils import query_db, get_table_info, convert_to_date
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
@@ -44,7 +32,7 @@ class DataServer:
         self._graph = graph_path
         self._custom = custom_path
 
-    def serve_erd(self, graph_id: int) -> dict:
+    def serve_erd(self, graph_id: int) -> Dict:
         """
         Retrieves the adjacency list for a given graph from the ERD manager.
 
@@ -57,7 +45,7 @@ class DataServer:
         erd = Visualizer(self._graph)
         return erd.get_adj_list(graph_id)
 
-    def serve_table(self, db_name: str, table: str) ->list[tuple]:
+    def serve_table(self, db_name: str, table: str) ->List[tuple]:
         """
         Fetches schema details for a specified table.
 
@@ -68,7 +56,7 @@ class DataServer:
         db_path = PATHS[db_name]
         return get_table_info(table, db_path)
 
-    def serve_time_series(self, restrs: list[str] = []) -> list[str]:
+    def serve_time_series(self, restrs: List[str] = []) -> List[str]:
         """
         Retrieves time-series data of restrictions applied over time.
 
@@ -99,7 +87,7 @@ class DataServer:
         """
         return query_db(query, self._db, restrs)
 
-    def serve_restr_distr(self, end_date: str = None) -> list[tuple[str]]:
+    def serve_restr_distr(self, end_date: str = None) -> List[tuple[str]]:
         """
         Fetches the distribution of restrictions up to a specific date.
 
@@ -128,12 +116,12 @@ class DataServer:
                     """
             return query_db(query, self._db)
 
-    def serve_timeline(self) -> list[tuple[str]]:
+    def serve_timeline(self) -> List[tuple[str]]:
         """
         Retrieves a timeline of restrictions along with their data sources.
 
         Returns:
-            list[tuple]: List of tuples with (date, source name, source URL).
+            List[tuple]: List of tuples with (date, source name, source URL).
         """
         query = """
                 SELECT DISTINCT 
@@ -147,7 +135,7 @@ class DataServer:
         return query_db(query, self._db)
 
     @staticmethod
-    def serve_second_series(db_name: str, table_name: str) -> list[str]:
+    def serve_second_series(db_name: str, table_name: str) -> List[str]:
         """
         Fetches time series data from a specific table and converts time values.
 
@@ -156,7 +144,7 @@ class DataServer:
             table_name (str): Name of the table containing time series data.
 
         Returns:
-            list[tuple]: Processed time series data as (converted_date, measured_value).
+            List[tuple]: Processed time series data as (converted_date, measured_value).
         """
         query = f"SELECT time, measured_value FROM {table_name};"
         raw_data = query_db(query, PATHS[db_name])
