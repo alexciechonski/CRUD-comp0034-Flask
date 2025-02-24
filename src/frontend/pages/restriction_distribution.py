@@ -1,3 +1,18 @@
+"""
+Restriction Distribution Page for Dash Application.
+
+This module defines the layout and callback for the restriction distribution
+page in the Dash web application. It allows users to visualize restriction
+distribution data and filter it by a specified date.
+
+Dependencies:
+- `dash`: Used for layout components, callbacks, and UI interactions.
+- `dash_daq`: Provides numerical input components.
+- `plotly.graph_objects`: Generates interactive graphs.
+- `date`: Handles date-based filtering.
+- `DatabaseError`: Catches potential database errors.
+- `Diagrams`: Manages database queries and visualization generation.
+"""
 from sqlite3 import DatabaseError
 from datetime import date
 from dash import dcc, html, Input, Output, callback, register_page
@@ -65,6 +80,23 @@ layout = [
     ]
 )
 def query_date(day, month, year):
+    """
+    Updates the restriction distribution graph based on the selected date.
+
+    Steps:
+    - Constructs a `date` object from user input.
+    - If the date is before January 15, 2024, queries the database for restriction data.
+    - Handles invalid dates and database errors gracefully.
+    - Returns an empty graph with an error message if an exception occurs.
+
+    Args:
+        day (int): Selected day.
+        month (int): Selected month.
+        year (int): Selected year.
+
+    Returns:
+        go.Figure: The updated restriction distribution graph or an error message.
+    """
     try:
         final_date = date(year, month, day)
         if final_date < date(2024, 1, 15):

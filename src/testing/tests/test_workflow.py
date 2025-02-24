@@ -1,3 +1,16 @@
+"""
+Automated UI Tests for Dataset Workflow.
+
+This module contains Playwright-based tests to verify the end-to-end workflow
+of dataset creation, data insertion, correlation analysis, and deletion
+within the web application.
+
+Dependencies:
+- `pytest`: For test execution.
+- `sync_playwright`: For browser automation.
+- `load_all`, `dropdown_select`, `fillout_form`, `upload_data`:
+    Helper functions for UI interactions.
+"""
 from playwright.sync_api import sync_playwright, Page
 import pytest
 from testing.helpers.crud_actions import load_all
@@ -87,4 +100,3 @@ def test_workflow(browser):
     browser.locator('#submit-delete-button').click()
 
     assert res, "Explanation missing"
-

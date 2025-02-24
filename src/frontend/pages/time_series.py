@@ -1,3 +1,25 @@
+"""
+Time Series Analysis Page for Dash Application.
+
+This module defines the layout and callbacks for the time series analysis page
+in the Dash web application.
+
+It allows users to:
+- Select restrictions and view their impact over time.
+- Compare restrictions against a custom dataset.
+- Generate correlation graphs and analyze data relationships.
+- Use an AI model to generate insights on correlations.
+
+Dependencies:
+- `dash`: Used for layout components, callbacks, and UI interactions.
+- `plotly.graph_objects`: Generates interactive graphs.
+- `Diagrams`: Handles time series visualization and correlation analysis.
+- `Model`: Computes statistical correlations between datasets.
+- `process_multiselect`, `show_tables`, `get_databases`, `select_graphable_tables`:
+    Utility functions for data processing.
+- `get_resp`: Calls an AI model to generate insights.
+- `PATHS`: Stores database file paths.
+"""
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State
 from src.frontend.diagrams import Diagrams
 from src.utils import process_multiselect, show_tables
@@ -148,6 +170,23 @@ layout = [
     Input('select-table', 'value')
 )
 def update_time_series(plot_against, restrs, db_name, table):
+    """
+    Updates the time series graph based on selected restrictions and optional custom datasets.
+
+    Steps:
+    - If a custom dataset is selected, plots it against the restrictions.
+    - If no dataset is selected, only plots the restrictions.
+    - Calls the `Diagrams` module to generate the appropriate figure.
+
+    Args:
+        plot_against (list[bool]): Whether to plot against a custom dataset.
+        restrs (list[str]): Selected restrictions.
+        db_name (str): Name of the selected database.
+        table (str): Name of the selected table.
+
+    Returns:
+        go.Figure: The updated time series graph.
+    """
     if plot_against and db_name and table:
         if not restrs:
             return dgms.time_series(db_name=db_name, table=table)
@@ -174,6 +213,22 @@ def update_time_series(plot_against, restrs, db_name, table):
     Input('select-table', 'value')
 )
 def update_correlation(restrs, db_name, table_name):
+    """
+    Updates the correlation graph based on the selected restrictions and custom dataset.
+
+    Steps:
+    - If a database and table are selected, generates a correlation graph.
+    - If restrictions are chosen, filters the correlation graph accordingly.
+    - Calls the `Diagrams` module for visualization.
+
+    Args:
+        restrs (list[str]): Selected restrictions.
+        db_name (str): Name of the selected database.
+        table_name (str): Name of the selected table.
+
+    Returns:
+        go.Figure | no_update: The updated correlation graph or no update if no input is provided.
+    """
     if db_name and table_name:
         if not restrs:
             return dgms.correlation(
@@ -194,6 +249,15 @@ def update_correlation(restrs, db_name, table_name):
     Input('plot-against', 'value')
 )
 def show_menu(value):
+    """
+    Displays the database selection dropdown when plotting against a custom dataset.
+
+    Args:
+        value (list[bool]): Whether the user has enabled the plot option.
+
+    Returns:
+        dict: Style properties for showing or hiding the dropdown.
+    """
     if value:
         return dict()
     else:
@@ -208,6 +272,15 @@ def show_menu(value):
     Input('select-table', 'value')
 )
 def show_corr_graph(value):
+    """
+    Shows or hides the correlation graph and input fields when a custom dataset is selected.
+
+    Args:
+        value (str): Selected table name.
+
+    Returns:
+        tuple[dict, dict, dict, dict, dict]: Style properties for different UI elements.
+    """
     if value:
         return dict(), dict(), dict(), dict(), dict()
     else:
@@ -225,6 +298,15 @@ def show_corr_graph(value):
     Input('select-db', 'value')
 )
 def show_table_select(value):
+    """
+    Displays the table selection dropdown when a database is selected.
+
+    Args:
+        value (str): Selected database name.
+
+    Returns:
+        tuple[dict, list[str]]: Style properties and table options.
+    """
     if value:
         return dict(), select_graphable_tables(show_tables(value))
     return no_update, no_update
@@ -239,6 +321,24 @@ def show_table_select(value):
     prevent_initial_call=True
 )
 def show_llm_resp(prompt, click, restrs, db_name, table_name):
+    """
+    Generates an AI response analyzing the correlation between restrictions and a custom dataset.
+
+    Steps:
+    - Checks if the submit button was clicked.
+    - Retrieves correlation information from the `Model` class.
+    - Calls an AI model via `get_resp()` to generate an explanation.
+
+    Args:
+        prompt (str): User input for AI analysis.
+        click (int): Number of times the submit button was clicked.
+        restrs (list[str]): Selected restrictions.
+        db_name (str): Name of the selected database.
+        table_name (str): Name of the selected table.
+
+    Returns:
+        str | no_update: AI-generated response or no update if conditions are not met.
+    """
     if click > 0:
         restrs = restrs or []
         model= Model(restrs, db_name, table_name)
@@ -249,4 +349,3 @@ def show_llm_resp(prompt, click, restrs, db_name, table_name):
         resp = get_resp(meta + prompt)
         return resp
     return no_update
-

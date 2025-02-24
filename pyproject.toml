@@ -27,7 +27,8 @@ disable=[
   'dangerous-default-value',
   'unused-argument',
   'not-callable',
-  'unsupported-membership-test'
+  'unsupported-membership-test',
+  'redefined-builtin'
 ]
 
 [tool.pytest.ini_options]

@@ -1,3 +1,22 @@
+"""
+Dataset Management Page for Dash Application.
+
+This module defines the layout and callbacks for managing datasets within
+a Dash web application. It allows users to:
+- View and interact with an ERD (Entity-Relationship Diagram).
+- Create and delete database tables.
+- Insert data from CSV files.
+- Validate table creation, deletion, and insertion actions.
+
+Dependencies:
+- `dash`: Used for layout components, callbacks, and UI interactions.
+- `Diagrams`: Handles ERD visualization and database interactions.
+- `Validator`: Validates user actions for dataset modifications.
+- `CRUD`: Performs Create, Read, Update, and Delete operations.
+- `show_tables`, `get_databases`: Utility functions for fetching database information.
+- `parse_csv_contents`: Processes uploaded CSV files.
+- `PATHS`: Stores database file paths.
+"""
 from dash import dcc, html, Input, Output, no_update, register_page, callback, State, ctx
 from src.frontend.diagrams import Diagrams
 from src.utils import get_databases, show_tables, parse_csv_contents, dynamic_name_id
@@ -208,6 +227,28 @@ def update_erd_chart(
     back_btn, create_btn, delete_btn,
     new_table, delete_input
     ):
+    """
+    Updates the ERD chart and manages table creation, deletion, and navigation.
+
+    Steps:
+    - Handles back button clicks to reset the ERD view.
+    - Updates ERD visualization when a table is clicked.
+    - Creates a new table if validation passes.
+    - Deletes a table if validation passes.
+
+    Args:
+        select_db (str): Selected database name.
+        click_data (dict): Click event data from the ERD chart.
+        back_btn (int): Number of times the back button was clicked.
+        create_btn (int): Number of times the create table button was clicked.
+        delete_btn (int): Number of times the delete table button was clicked.
+        new_table (str): Name of the new table to create.
+        delete_input (str): Name of the table to delete.
+
+    Returns:
+        tuple: Updated outputs for the ERD chart, button styles, database selection,
+               validation messages, and table options.
+    """
 
     trigger_id = ctx.triggered_id
 
@@ -327,6 +368,24 @@ def update_erd_chart(
     State('insert-to-table', 'value')
 )
 def insert_df(contents, db_name, submit, table):
+    """
+    Inserts data from a CSV file into the selected table.
+
+    Steps:
+    - Parses the uploaded CSV file.
+    - Validates whether data can be inserted into the table.
+    - Checks if the schema matches the expected format.
+    - Inserts the data into the database if validation passes.
+
+    Args:
+        contents (str): Base64-encoded CSV file contents.
+        db_name (str): Name of the selected database.
+        submit (int): Number of times the insert button was clicked.
+        table (str): Name of the table to insert data into.
+
+    Returns:
+        tuple: Updated outputs for dummy storage, file upload contents, and validation messages.
+    """
     if contents and submit:
         data, contents_df = parse_csv_contents(contents)
         if not v.val_insert(db_name, table):
