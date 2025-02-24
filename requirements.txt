@@ -1,9 +1,7 @@
 pandas
 matplotlib
-sqlalchemy
 pytest
 pytest-cov
-pydantic
 dash
 dash-daq
 dash-extensions
