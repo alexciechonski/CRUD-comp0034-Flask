@@ -1,5 +1,4 @@
-from playwright.sync_api import Page, sync_playwright
-import pytest
+from playwright.sync_api import Page
 
 def dropdown_select(page: Page, dropdown_id, selection):
     page.wait_for_selector(dropdown_id, timeout=5000)
@@ -20,5 +19,7 @@ def upload_data(page: Page, filepath):
     file_chooser.set_files(filepath)
 
 def load_all(page: Page):
-    page.wait_for_function("document.querySelector('#select_db').getAttribute('data-dash-is-loading') === null")
+    page.wait_for_function(
+        "document.querySelector('#select_db').getAttribute('data-dash-is-loading') === null"
+        )
     

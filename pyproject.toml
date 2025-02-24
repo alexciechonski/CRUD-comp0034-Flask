@@ -20,7 +20,10 @@ where = ["src"]
 [tool.pylint.'MESSAGES CONTROL']
 disable=[
   'no-name-in-module',
-  'redefined-outer-name'
+  'redefined-outer-name',
+  'unsupported-assignment-operation',
+  'unsubscriptable-object',
+  'unsubscriptable-object'
 ]
 
 [tool.pytest.ini_options]
