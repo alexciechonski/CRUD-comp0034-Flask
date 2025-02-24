@@ -18,7 +18,7 @@ def browser():
         yield page
         browser.close()
 
-def dropdown_select(page: Page, dropdown_id, selection):
+def dropdown_select(page: Page, dropdown_id: str, selection: str):
     """
     select a given value from dropdown
     """
@@ -29,7 +29,7 @@ def dropdown_select(page: Page, dropdown_id, selection):
     custom_db = dropdown.get_by_text(selection)
     custom_db.click()
 
-def fillout_form(page: Page, input_id, button_id, user_input):
+def fillout_form(page: Page, input_id: str, button_id: str, user_input: str):
     """
     fillout a form consisting of text input and submit button
     """
@@ -45,7 +45,7 @@ def upload_data(page: Page, filepath):
     file_chooser = fc_info.value
     file_chooser.set_files(filepath)
 
-def test_workflow(browser):
+def test_workflow(browser: Page):
     """
     Test the complete workflow
     """

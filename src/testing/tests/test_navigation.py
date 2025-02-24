@@ -24,7 +24,7 @@ def browser():
     ("Restriction Distribution", f"{BASE_URL}/restriction-distribution"),
     ("Timeline", f"{BASE_URL}/timeline"),
 ])
-def test_navigation(browser: Page, link_text, expected_url):
+def test_navigation(browser: Page, link_text: str, expected_url: str):
     """Test navigation flow for different sections."""
     browser.goto(BASE_URL)
     browser.get_by_text(link_text).click()

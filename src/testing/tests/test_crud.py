@@ -103,7 +103,7 @@ def test_view_table(browser: Page, table_name: str, expected_data: list[str]):
     go_back(browser)
     assert extracted_data == expected_data, f"Data mismatch for {table_name}"
 
-def test_add(browser):
+def test_add(browser: Page):
     """
     Tests adding a new table through the UI.
 
@@ -126,7 +126,7 @@ def test_add(browser):
     fillout_form(browser, "#table-name-input", "#submit-create-button", "Test")
     assert 'Test' in show_tables('custom.db')
 
-def test_insert(browser):
+def test_insert(browser: Page):
     """
     Tests inserting data into a newly created table.
 
@@ -154,7 +154,7 @@ def test_insert(browser):
     actual = query_db("SELECT * FROM Test", PATHS['custom.db'])
     assert expected == actual, "Wrong or missing data"
 
-def test_delete(browser):
+def test_delete(browser: Page):
     """
     Tests deleting a table through the UI.
 

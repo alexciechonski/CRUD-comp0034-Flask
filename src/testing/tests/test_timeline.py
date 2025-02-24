@@ -21,7 +21,7 @@ def browser():
         yield page
         browser.close()
 
-def click_timeline(page: Page, node_name):
+def click_timeline(page: Page, node_name: str):
     """
     Clicks on a timeline event and retrieves the resulting URL.
 
@@ -55,7 +55,7 @@ def click_timeline(page: Page, node_name):
                        "schools-colleges-and-early-years-settings-to-close"),
     ],
 )
-def test_timeline_navigation(browser, node_name, expected_url):
+def test_timeline_navigation(browser: Page, node_name: str, expected_url: str):
     """
     Tests timeline event navigation for different scenarios.
 

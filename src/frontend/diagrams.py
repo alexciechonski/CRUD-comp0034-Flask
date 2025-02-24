@@ -446,7 +446,7 @@ class Diagrams:
                 y=[0] * len(date),
                 mode="lines",
                 line=dict(color="black", width=2),
-                showlegend=False  # Hide from legend
+                showlegend=False
             )
         )
 
@@ -459,7 +459,7 @@ class Diagrams:
                     mode="lines",
                     line=dict(color="black", width=1, dash="dot"),
                     opacity=0.3,
-                    showlegend=False  # Hide from legend
+                    showlegend=False
                 )
             )
 
@@ -473,7 +473,6 @@ class Diagrams:
         )
 
         return fig
-        # fig.show()
 
 
 if __name__ == "__main__":

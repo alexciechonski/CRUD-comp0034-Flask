@@ -42,11 +42,9 @@ def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple
                 cursor.execute(query)
             if query.strip().upper().startswith("SELECT"):
                 results = cursor.fetchall()
-                # print("SELECT query executed successfully.")
                 return results
             else:
                 conn.commit()
-                # print("Query executed successfully")
         except sqlite3.IntegrityError as int_err:
             raise sqlite3.IntegrityError("Database query failed") from int_err
         except sqlite3.DatabaseError as db_err:
@@ -86,7 +84,7 @@ def create_table(
         finally:
             conn.commit()
 
-def delete_table(db_name, table_name: str) -> None:
+def delete_table(db_name: str, table_name: str) -> None:
     """
     Deletes a table from the specified SQLite database.
 
@@ -103,7 +101,7 @@ def delete_table(db_name, table_name: str) -> None:
         except sqlite3.DatabaseError as db_err:
             print(f"Database error occurred: {db_err}")
 
-def get_table_info(table, db_path) -> List[tuple[str]]:
+def get_table_info(table: str, db_path: str) -> List[tuple[str]]:
     """
     Retrieves metadata about a table in the database.
 
@@ -125,7 +123,7 @@ def get_table_info(table, db_path) -> List[tuple[str]]:
         except sqlite3.DatabaseError as db_err:
             raise sqlite3.DatabaseError("Database query failed") from db_err
 
-def show_tables(db_name) -> None:
+def show_tables(db_name: str) -> None:
     """
     Retrieves a list of tables in the specified database.
 
@@ -156,7 +154,7 @@ def table_not_empty(db_name: str, table_name: str) -> bool:
         row_count = cursor.fetchone()[0]
     return row_count > 0
 
-def process_multiselect(selections) -> List[str]:
+def process_multiselect(selections: List[str]) -> List[str]:
     """
     Converts a list of user-selected restriction names into lowercase with underscores.
 
@@ -168,7 +166,7 @@ def process_multiselect(selections) -> List[str]:
     """
     return [sel.replace(" ", "_").lower() for sel in selections]
 
-def convert_to_date(date_str):
+def convert_to_date(date_str: str) -> str:
     """
     Converts a date string from "MM/YYYY" format to "YYYY-MM-DD".
 

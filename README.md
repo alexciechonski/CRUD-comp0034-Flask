@@ -6,8 +6,8 @@ the effects of enforcing restrictions on chosen variables.
 - [Functionality](#functionality)
 - [Project Structure](#project-structure)
 - [Setup and Installation](#setup-and-installation)
-- [#Dataset](#dataset)
-- [Project Limitations](#project-limitations)
+- [Dataset](#dataset)
+- [Project Limitations](#project-limitations-and-possible-improvements)
 - [Linting](#linting)
 
 # Functionality #
