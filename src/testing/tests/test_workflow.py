@@ -12,6 +12,9 @@ def browser():
         browser.close()
 
 def dropdown_select(page: Page, dropdown_id, selection):
+    """
+    select a given value from dropdown
+    """
     page.wait_for_selector(dropdown_id, timeout=5000)
     dropdown = page.locator(dropdown_id)
     dropdown.click()
@@ -20,16 +23,25 @@ def dropdown_select(page: Page, dropdown_id, selection):
     custom_db.click()
 
 def fillout_form(page: Page, input_id, button_id, user_input):
+    """
+    fillout a form consisting of text input and submit button
+    """
     page.locator(input_id).fill(user_input)
     page.locator(button_id).click()
 
 def upload_data(page: Page, filepath):
+    """
+    upload data
+    """
     with page.expect_file_chooser() as fc_info:
         page.locator('#upload-data').click()
     file_chooser = fc_info.value
     file_chooser.set_files(filepath)
 
 def test_workflow(browser):
+    """
+    Test the complete workflow
+    """
     res = ""
     browser.goto("http://127.0.0.1:8050/dataset")
     browser.wait_for_load_state("networkidle")

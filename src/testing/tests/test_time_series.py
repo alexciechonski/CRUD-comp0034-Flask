@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Page
 import pytest
 from testing.helpers.crud_actions import dropdown_select, fillout_form
 
@@ -11,7 +11,10 @@ def browser():
         yield page
         browser.close()
 
-def test_series_flow(browser):
+def test_series_flow(browser: Page):
+    """
+    Automation to test the time series flow
+    """
     res = ""
     browser.goto("http://127.0.0.1:8050/time-series")
     browser.wait_for_load_state("networkidle")
