@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from playwright.sync_api import sync_playwright, Page
+from playwright.sync_api import sync_playwright
 from src.utils import show_tables, query_db
 from src.config import PATHS
 from testing.helpers.crud_actions import fillout_form, dropdown_select, upload_data, load_all
@@ -8,10 +8,10 @@ from testing.helpers.crud_actions import fillout_form, dropdown_select, upload_d
 @pytest.fixture(scope="function")
 def browser():
     """Setup and teardown Playwright browser instance."""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch(headless=True)
         page = browser.new_page()
-        yield page 
+        yield page
         browser.close()
 
 @pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
@@ -33,7 +33,7 @@ def test_delete_immutable_table(browser, url):
     dropdown_select(browser, "#delete-input", "Date")
     browser.locator("#submit-delete-button").click()
 
-    assert "Date" in show_tables("covid.db"), "❌ Deleted an immutable table"
+    assert "Date" in show_tables("covid.db"), "Deleted an immutable table"
 
 @pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
 def test_insert_immutable_table(browser, url):
@@ -44,8 +44,10 @@ def test_insert_immutable_table(browser, url):
     upload_data(browser, "src/testing/resources/test.csv")
     dropdown_select(browser, "#insert-to-table", "Date")
 
-    df = pd.read_csv("src/testing/resources/test.csv")
-    assert query_db("SELECT * FROM Date", PATHS["covid.db"]) != list(df.itertuples(index=False, name=None)), "❌ Inserted into an immutable table"
+    test_df = pd.read_csv("src/testing/resources/test.csv")
+    actual = query_db("SELECT * FROM Date", PATHS["covid.db"])
+    expected = list(test_df.itertuples(index=False, name=None))
+    assert actual != expected, "Inserted into an immutable table"
 
 @pytest.mark.parametrize("url", ["http://127.0.0.1:8050/dataset"])
 def test_insert_bad_schema(browser, url):
@@ -68,4 +70,3 @@ def test_insert_bad_schema(browser, url):
     browser.locator('#submit-delete-button').click()
 
     assert not data, "Inserted Bad Schema"
-

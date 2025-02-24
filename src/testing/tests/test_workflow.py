@@ -1,13 +1,12 @@
 from playwright.sync_api import sync_playwright, Page
-import time
-from testing.helpers.crud_actions import load_all
 import pytest
+from testing.helpers.crud_actions import load_all
 
 @pytest.fixture(scope="function")
 def browser():
     """Setup and teardown Playwright browser instance."""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch(headless=True)
         page = browser.new_page()
         yield page
         browser.close()
@@ -59,7 +58,8 @@ def test_workflow(browser):
     fillout_form(browser, "#user-prompt", "#submit-prompt", "Explain the relationship")
 
     browser.wait_for_function(
-        "document.querySelector('#llm-response') && document.querySelector('#llm-response').innerText.length > 0",
+        """document.querySelector('#llm-response')
+        && document.querySelector('#llm-response').innerText.length > 0""",
         timeout=30000
     )
     res += str(browser.locator('#llm-response').inner_text())
@@ -75,5 +75,4 @@ def test_workflow(browser):
     browser.locator('#submit-delete-button').click()
 
     assert res, "Explanation missing"
-
 

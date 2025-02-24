@@ -6,8 +6,8 @@ BASE_URL = "http://127.0.0.1:8050"
 @pytest.fixture(scope="function")
 def browser():
     """Setup and teardown Playwright browser instance."""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch(headless=True)
         page = browser.new_page()
         yield page
         browser.close()

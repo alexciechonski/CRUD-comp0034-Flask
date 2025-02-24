@@ -19,7 +19,8 @@ where = ["src"]
 
 [tool.pylint.'MESSAGES CONTROL']
 disable=[
-  'no-name-in-module'
+  'no-name-in-module',
+  'redefined-outer-name'
 ]
 
 [tool.pytest.ini_options]

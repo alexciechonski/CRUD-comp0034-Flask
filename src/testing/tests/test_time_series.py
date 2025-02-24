@@ -1,15 +1,14 @@
 from playwright.sync_api import sync_playwright
-import time
-from testing.helpers.crud_actions import dropdown_select, fillout_form
 import pytest
+from testing.helpers.crud_actions import dropdown_select, fillout_form
 
 @pytest.fixture(scope="function")
 def browser():
     """Setup and teardown Playwright browser instance."""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch(headless=True)
         page = browser.new_page()
-        yield page 
+        yield page
         browser.close()
 
 def test_series_flow(browser):

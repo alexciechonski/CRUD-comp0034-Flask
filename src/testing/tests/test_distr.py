@@ -17,8 +17,8 @@ SELECTORS = {
 @pytest.fixture(scope="function")
 def browser():
     """Fixture to set up Playwright and browser instance."""
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch(headless=True)
         page = browser.new_page()
         yield page
         browser.close()
