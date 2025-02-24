@@ -175,7 +175,7 @@ layout = [
     [
         Output('erd-chart', 'figure'),
         Output('back-btn', 'style'),
-        Output('back-btn', 'n_clicks'), # this can be deleted
+        Output('back-btn', 'n_clicks'),
         Output('erd-chart', 'clickData'),
 
         Output('select_db', 'value'),
@@ -318,7 +318,6 @@ def update_erd_chart(
 @callback(
     Output('csv-dummy', 'data'),
     Output('upload-data', 'contents'),
-    # Output('insert-to-table', 'options'),
     Output('insert-val', 'displayed'),
     Output('schema-val', 'displayed'),
 

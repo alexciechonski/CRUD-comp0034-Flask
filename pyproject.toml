@@ -26,7 +26,8 @@ disable=[
   'unsubscriptable-object',
   'dangerous-default-value',
   'unused-argument',
-  'not-callable'
+  'not-callable',
+  'unsupported-membership-test'
 ]
 
 [tool.pytest.ini_options]

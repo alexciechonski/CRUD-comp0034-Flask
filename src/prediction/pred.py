@@ -1,3 +1,22 @@
+"""
+Module for predictive modeling using linear regression.
+
+This module defines the `Model` class, which processes time series data,
+trains a linear regression model, and calculates correlations between
+restrictions and custom data.
+
+Dependencies:
+- `LinearRegression` (from `sklearn.linear_model`): Used for predictive modeling.
+- `numpy` (np): Used for numerical computations.
+- `pandas` (pd): Used for data manipulation.
+- `DataServer`: Fetches time series and custom data.
+- `PATHS`: Defines database locations.
+
+Example Usage:
+    model = Model(["Lockdown", "Curfew"], "custom.db", "Deaths")
+    df = model.train_linear()
+    correlation = model.get_correlation()
+"""
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import pandas as pd
@@ -5,12 +24,40 @@ from src.backend.data_server import DataServer
 from src.config import PATHS
 
 class Model:
-    def __init__(self, restrs, db_name, table_name) -> None:
+    """
+    A class for training predictive models based on restrictions and
+    custom time series data.
+
+    Attributes:
+        restrs (list[str]): List of restrictions to include in the analysis.
+        db_name (str): Name of the database containing custom data.
+        table_name (str): Name of the table storing custom data.
+    """
+    def __init__(self, restrs: str, db_name: str, table_name: str) -> None:
+        """
+        Initializes the Model with restrictions, database name, and table name.
+
+        Args:
+            restrs (list[str]): List of restrictions to analyze.
+            db_name (str): Database name containing custom data.
+            table_name (str): Table name storing custom time series data.
+        """
         self.restrs = restrs
         self.db_name = db_name
         self.table_name = table_name
 
     def prepare(self):
+        """
+        Prepares and merges restriction and custom time series data.
+
+        - Retrieves time series data from the DataServer.
+        - Converts dates to datetime format.
+        - Merges datasets based on the nearest date match.
+        - Interpolates missing values and calculates mean per restriction level.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing `restr_value` and `custom_value`.
+        """
         server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["custom.db"])
         time_series_data = server.serve_time_series(self.restrs)
         second_series_data = server.serve_second_series(self.db_name, self.table_name)
@@ -32,6 +79,12 @@ class Model:
 
 
     def train_linear(self):
+        """
+        Trains a linear regression model to predict custom values based on restriction values.
+
+        Returns:
+            pd.DataFrame: The DataFrame with predicted values added under the column `predicted`.
+        """
         train_df= self.prepare()
         if train_df.empty:
             return train_df
@@ -43,6 +96,13 @@ class Model:
         return train_df
 
     def get_correlation(self):
+        """
+        Computes the Pearson correlation coefficient between restriction values
+        and custom values.
+
+        Returns:
+            float: Correlation coefficient (between -1 and 1).
+        """
         data = self.prepare()
         x_vals = np.array(data['restr_value'].tolist())
         y_vals = np.array(data['custom_value'].tolist())

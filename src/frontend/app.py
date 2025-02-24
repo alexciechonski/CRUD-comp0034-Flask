@@ -1,3 +1,14 @@
+"""
+Main entry point for the Dash web application.
+
+This module initializes and configures a Dash app, setting up its layout
+and server instance. It also enables page-based navigation and suppresses
+callback exceptions for dynamic callbacks.
+
+Dependencies:
+- Dash: Web framework for building interactive dashboards.
+- frontend.index: Contains the main application layout.
+"""
 from dash import Dash
 import frontend.index
 

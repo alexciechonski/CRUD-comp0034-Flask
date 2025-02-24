@@ -1,3 +1,29 @@
+"""
+Module for visualizing graphs and serving ERD-related diagrams.
+
+This module provides two classes:
+1. `GraphVisualizer`: Handles graph layout generation, edge creation, and
+   node tracing for visualization.
+2. `Diagrams`: Manages the visualization of ERD diagrams, tables, time series,
+   correlation plots, restriction distributions, and event timelines.
+
+Dependencies:
+- NetworkX (nx) for graph representation.
+- Matplotlib and Plotly for visualization.
+- SQLite for data retrieval via `DataServer`.
+- `Model` from `src.prediction.pred` for predictive modeling.
+- Utility functions from `src.utils`.
+
+Example Usage:
+    dgms = Diagrams(
+        "src/backend/data/covid.db",
+        "src/backend/data/graph.db",
+        "src/backend/data/custom.db"
+    )
+    fig = dgms.erd(graph_id=2)
+    fig.show()
+"""
+from typing import Any, Tuple, Dict, List
 import io
 import base64
 import pandas as pd
@@ -9,17 +35,40 @@ import matplotlib
 from backend.data_server import DataServer
 from src.prediction.pred import Model
 from src.utils import table_not_empty
+
 matplotlib.use('Agg')
 
 class GraphVisualizer:
+    """
+    Provides methods for generating graph layouts, adding edges,
+    and creating edge and node traces for visualization.
+    """
     @staticmethod
-    def generate_pos(graph):
+    def generate_pos(graph: nx.Graph) -> dict[Any, tuple[float, float]]:
+        """
+        Generates a node position dictionary for visualization.
+
+        Args:
+            graph (nx.Graph): The graph to generate positions for.
+
+        Returns:
+            Dict[Any, Tuple[float, float]]: A dictionary mapping nodes to (x, y) positions.
+        """
         graph.graph['overlap'] = 'false'
         graph.graph['mode'] = 'KK'
         return nx.nx_pydot.graphviz_layout(graph, prog='neato')
 
     @staticmethod
-    def add_edges(graph, adj, connection_types):
+    def add_edges(graph: nx.Graph, adj:dict, connection_types:list[str]) -> None:
+        """
+        Adds edges to a graph based on adjacency data and allowed connection types.
+
+        Args:
+            graph (nx.Graph): The graph object to modify.
+            adj (dict): Dictionary where keys are nodes, and values are lists of tuples
+                        (neighbor, connection_type).
+            connection_types (list): List of allowed connection types.
+        """
         for node, neighbors in adj.items():
             if node is None:
                 continue
@@ -31,7 +80,22 @@ class GraphVisualizer:
                     graph.add_edge(node, neighbor, connection_type=connection_type)
 
     @staticmethod
-    def create_edge_traces(graph, pos, legend):
+    def create_edge_traces(
+        graph: nx.Graph,
+        pos:dict[Any, tuple[float, float]],
+        legend: dict[str, str]
+        ) -> Tuple[List[go.Scatter], List[Dict[str, Any]]]:
+        """
+        Creates edge traces and annotations for visualization.
+
+        Args:
+            graph (nx.Graph): The graph object.
+            pos (dict): Node positions.
+            legend (dict): Mapping of connection types to colors.
+
+        Returns:
+            Tuple[List[go.Scatter], List[Dict[str, Any]]]: Edge traces and arrow annotations.
+        """
         edge_traces = []
         annotations = []
 
@@ -68,7 +132,21 @@ class GraphVisualizer:
         return edge_traces, annotations
 
     @staticmethod
-    def create_node_trace(pos, graph, labels):
+    def create_node_trace(
+        pos: Dict[Any, Tuple[float, float]],
+        graph: nx.Graph, labels: Dict[Any, str]
+        ):
+        """
+        Creates a node trace for visualization.
+
+        Args:
+            pos (dict): Node positions.
+            graph (nx.Graph): The graph object.
+            labels (dict): Node labels.
+
+        Returns:
+            go.Scatter: A Scatter plot representing nodes.
+        """
         node_trace = go.Scatter(
             x=[], y=[],
             text=[],
@@ -96,11 +174,32 @@ class GraphVisualizer:
         return node_trace
 
 class Diagrams:
-    def __init__(self, db_path, graph_path, custom_path) -> None:
+    """
+    Handles ERD visualization, table rendering, time series plots, and
+    restriction data visualizations.
+    """
+    def __init__(self, db_path: str, graph_path: str, custom_path: str) -> None:
+        """
+        Initializes the Diagrams class with paths to relevant databases.
+
+        Args:
+            db_path (str): Path to the main database.
+            graph_path (str): Path to the graph database.
+            custom_path (str): Path to a custom database.
+        """
         self.server = DataServer(db_path, graph_path, custom_path)
 
     @staticmethod
-    def create_legend_base64(legend):
+    def create_legend_base64(legend: Dict[str, str]) -> str:
+        """
+        Generates a legend image as a base64-encoded string.
+
+        Args:
+            legend (dict): Mapping of connection types to colors.
+
+        Returns:
+            str: Base64-encoded PNG legend.
+        """
         fig, axis = plt.subplots(figsize=(2, 1))
         axis.axis('off')
         legend_handles = [
@@ -122,7 +221,16 @@ class Diagrams:
         buffer.close()
         return f"data:image/png;base64,{base64_image}"
 
-    def erd(self, graph_id):
+    def erd(self, graph_id: int) -> go.Figure:
+        """
+        Generates an ERD diagram for a given graph ID.
+
+        Args:
+            graph_id (int): The ID of the graph.
+
+        Returns:
+            go.Figure: A Plotly figure representing the ERD.
+        """
         adj = self.server.serve_erd(graph_id)
         legend = {"one-n": "salmon", "zero-one": "black", "zero-n": "darkblue", "one-only": "lime"}
         legend_image_base64 = self.create_legend_base64(legend)
@@ -159,7 +267,17 @@ class Diagrams:
         )
         return fig
 
-    def get_table(self, db_name, table_name):
+    def get_table(self, db_name: str, table_name: str) -> go.Figure:
+        """
+        Fetches and visualizes table metadata as a table figure.
+
+        Args:
+            db_name (str): Name of the database.
+            table_name (str): Name of the table.
+
+        Returns:
+            go.Figure: A Plotly table figure.
+        """
         data = self.server.serve_table(db_name, table_name)
         table_df = pd.DataFrame(
             data,
@@ -176,7 +294,25 @@ class Diagrams:
             align='left'))]
             )
 
-    def time_series(self, restrs = [], db_name = "custom.db", table = 'MHCareCluster', custom=True):
+    def time_series(
+        self,
+        restrs: list[str] = [],
+        db_name: str = "custom.db",
+        table: str = 'MHCareCluster',
+        custom: bool = True
+        ) -> Dict[str, Any]:
+        """
+        Generates a time series plot of restrictions with optional custom data.
+
+        Args:
+            restrs (list, optional): List of restrictions to include. Defaults to [].
+            db_name (str, optional): Database name. Defaults to "custom.db".
+            table (str, optional): Table name for custom data. Defaults to 'MHCareCluster'.
+            custom (bool, optional): Whether to include custom data. Defaults to True.
+
+        Returns:
+            dict: A dictionary defining the plot data and layout.
+        """
         sql = self.server.serve_time_series(restrs)
         x_line, y_line = zip(*sql)
 
@@ -231,7 +367,23 @@ class Diagrams:
             }
         }
 
-    def correlation(self, restrs = [], db_name = "custom.db", table_name= "MHCareCluster"):
+    def correlation(
+        self,
+        restrs: List[str] = [],
+        db_name: str = "custom.db",
+        table_name: str = "MHCareCluster"
+        ):
+        """
+        Generates a correlation plot between restrictions and predicted values.
+
+        Args:
+            restrs (list, optional): List of restrictions to include. Defaults to [].
+            db_name (str, optional): Database name. Defaults to "custom.db".
+            table_name (str, optional): Table name for analysis. Defaults to "MHCareCluster".
+
+        Returns:
+            dict: A dictionary defining the plot data and layout.
+        """
         if not table_not_empty(db_name, table_name):
             return {"data": [], "layout": {"title": "Time Series Plot"}}
 
@@ -258,11 +410,26 @@ class Diagrams:
             }
         }
 
-    def restr_distr(self, final_date=None):
+    def restr_distr(self, final_date: str = None) -> go.Figure:
+        """
+        Generates a bar chart of restriction distributions.
+
+        Args:
+            final_date (str, optional): The last date to consider for restriction distribution.
+
+        Returns:
+            go.Figure: A Plotly bar chart.
+        """
         restr, val = zip(*self.server.serve_restr_distr(final_date))
         return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
 
-    def timeline(self):
+    def timeline(self) -> go.Figure:
+        """
+        Creates a timeline visualization of events.
+
+        Returns:
+            go.Figure: A Plotly scatter plot with events.
+        """
         sql = self.server.serve_timeline()
         date, event, url = zip(*sql)
 
