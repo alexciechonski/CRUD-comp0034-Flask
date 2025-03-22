@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Time Series - COVID-19 Insights{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Time Series Analysis</h2>
+    <p>This visualization shows the number of active COVID-19 restrictions over time. Select specific restrictions to see their combined total, or leave unselected to see all restrictions.</p>
+    
+    <div class="time-series-container">
+        <div class="controls-section">
+            <div class="database-controls">
+                <div class="select-container">
+                    <label for="databaseSelect">Select Database:</label>
+                    <select id="databaseSelect" class="database-select">
+                        <option value="">Choose a database...</option>
+                        <option value="covid.db">COVID-19 Database</option>
+                        <option value="custom.db">Custom Database</option>
+                    </select>
+                </div>
+                <div class="select-container">
+                    <label for="tableSelect">Select Table:</label>
+                    <select id="tableSelect" class="table-select" disabled>
+                        <option value="">Choose a table...</option>
+                    </select>
+                    <small class="error-message" id="tableError" style="display: none;">Selected table cannot be graphed</small>
+                </div>
+            </div>
+
+            <div class="select-container">
+                <label for="restrictionSelect">Select Restrictions:</label>
+                <select id="restrictionSelect" multiple="multiple" class="restriction-select">
+                    <option value="" disabled>Loading restrictions...</option>
+                </select>
+                <small class="select-help">Hold Ctrl (Windows) or Cmd (Mac) to select multiple restrictions</small>
+            </div>
+            <div class="button-container">
+                <button id="selectAll" class="control-button">Select All</button>
+                <button id="clearAll" class="control-button">Clear All</button>
+            </div>
+        </div>
+
+        <div class="time-series-section">
+            <h3>Active COVID-19 Restrictions Over Time</h3>
+            <div id="loadingIndicator" class="loading-indicator">
+                <div class="spinner"></div>
+                <p>Loading time series data...</p>
+            </div>
+            <div id="chartContainer" class="chart-container" style="display: none;">
+                <canvas id="timeSeriesChart"></canvas>
+            </div>
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <p>Error loading time series data. Please try again later.</p>
+            </div>
+            <div id="statsContainer" class="stats-container" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Peak Restrictions</h4>
+                        <p id="peakValue">-</p>
+                        <small id="peakDate">-</small>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Average Restrictions</h4>
+                        <p id="avgValue">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .controls-section {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin: 1rem 0 2rem 0;
+    }
+
+    .select-container {
+        margin-bottom: 1rem;
+    }
+
+    .select-container label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .select-container small {
+        display: block;
+        margin-top: 0.5rem;
+        color: #666;
+        font-style: italic;
+    }
+
+    .restriction-select {
+        width: 100%;
+        min-height: 150px;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: white;
+    }
+
+    .restriction-select option {
+        padding: 0.5rem;
+        margin: 2px 0;
+        cursor: pointer;
+    }
+
+    .restriction-select option:hover {
+        background-color: #f5f5f5;
+    }
+
+    .restriction-select option:checked {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .button-container {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .control-button {
+        padding: 0.5rem 1rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+    }
+
+    .control-button:hover {
+        background-color: #3a8f8f;
+    }
+
+    .chart-container {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-top: 1rem;
+        height: 400px;
+    }
+
+    .loading-indicator {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+        color: #dc3545;
+        text-align: center;
+        padding: 1rem;
+        background-color: #f8d7da;
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
+
+    .stats-container {
+        margin-top: 2rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .stat-card {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .stat-card h4 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .stat-card p {
+        margin: 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .stat-card small {
+        color: #666;
+        font-size: 0.875rem;
+    }
+
+    .database-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .database-select,
+    .table-select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        background-color: white;
+    }
+
+    .table-select:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 0.8rem;
+        margin-top: 0.3rem;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const chartContainer = document.getElementById('chartContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const statsContainer = document.getElementById('statsContainer');
+        const restrictionSelect = document.getElementById('restrictionSelect');
+        const selectAllBtn = document.getElementById('selectAll');
+        const clearAllBtn = document.getElementById('clearAll');
+        const databaseSelect = document.getElementById('databaseSelect');
+        const tableSelect = document.getElementById('tableSelect');
+        const tableError = document.getElementById('tableError');
+        let chart = null;
+        let loadingTimeout = null;
+
+        // Non-graphable tables from config
+        const NON_GRAPHABLE = ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"];
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Show loading state after a delay
+        function showLoadingState() {
+            loadingTimeout = setTimeout(() => {
+                loadingIndicator.style.display = 'block';
+                chartContainer.style.display = 'none';
+            }, 200); // Only show loading if it takes more than 200ms
+        }
+
+        // Hide loading state
+        function hideLoadingState() {
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+            loadingIndicator.style.display = 'none';
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-GB', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatRestrictionName(name) {
+            return name
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        function updateStats(dates, restrictions) {
+            const peakValue = Math.max(...restrictions);
+            const peakIndex = restrictions.indexOf(peakValue);
+            const peakDate = dates[peakIndex];
+            const avgValue = (restrictions.reduce((a, b) => a + b, 0) / restrictions.length).toFixed(1);
+
+            document.getElementById('peakValue').textContent = peakValue;
+            document.getElementById('peakDate').textContent = `on ${formatDate(peakDate)}`;
+            document.getElementById('avgValue').textContent = avgValue;
+            statsContainer.style.display = 'block';
+        }
+
+        async function loadRestrictions() {
+            try {
+                const response = await fetch('/api/restrictions');
+                if (!response.ok) throw new Error('Failed to load restrictions');
+                const restrictions = await response.json();
+                
+                restrictionSelect.innerHTML = '';
+                restrictions.forEach(restriction => {
+                    const option = document.createElement('option');
+                    option.value = restriction;
+                    option.textContent = formatRestrictionName(restriction);
+                    restrictionSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading restrictions:', error);
+                restrictionSelect.innerHTML = '<option value="" disabled>Error loading restrictions</option>';
+            }
+        }
+
+        const debouncedLoadTimeSeriesData = debounce(async function() {
+            try {
+                if (!databaseSelect.value || !tableSelect.value) {
+                    hideLoadingState();
+                    chartContainer.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    statsContainer.style.display = 'none';
+                    return;
+                }
+
+                showLoadingState();
+                errorMessage.style.display = 'none';
+                statsContainer.style.display = 'none';
+
+                const selectedDb = databaseSelect.value;
+                const selectedTable = tableSelect.value;
+                const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(option => option.value);
+                
+                if (NON_GRAPHABLE.includes(selectedTable)) {
+                    throw new Error('Invalid selection');
+                }
+
+                const url = new URL('/api/time-series', window.location.origin);
+                url.searchParams.append('database', selectedDb);
+                url.searchParams.append('table', selectedTable);
+                
+                if (selectedRestrictions.length > 0) {
+                    selectedRestrictions.forEach(restriction => {
+                        url.searchParams.append('restrictions[]', restriction);
+                    });
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load time series data');
+                const timeSeriesData = await response.json();
+                
+                if (!timeSeriesData || timeSeriesData.length === 0) {
+                    throw new Error('No data available');
+                }
+
+                const dates = timeSeriesData.map(item => item[0]);
+                const restrictions = timeSeriesData.map(item => item[1]);
+
+                updateStats(dates, restrictions);
+
+                if (chart) {
+                    chart.destroy();
+                }
+
+                const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(formatDate),
+                        datasets: [{
+                            label: 'Active Restrictions',
+                            data: restrictions,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 0 // Disable animation for faster rendering
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Active Restrictions'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: selectedRestrictions.length > 0 
+                                    ? 'Selected COVID-19 Restrictions Over Time'
+                                    : 'All COVID-19 Restrictions Over Time'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return formatDate(context[0].label);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                hideLoadingState();
+                chartContainer.style.display = 'block';
+                errorMessage.style.display = 'none';
+            } catch (error) {
+                console.error('Error loading time series data:', error);
+                hideLoadingState();
+                errorMessage.style.display = 'block';
+                chartContainer.style.display = 'none';
+                statsContainer.style.display = 'none';
+            }
+        }, 300); // Debounce for 300ms
+
+        // Event listeners
+        restrictionSelect.addEventListener('change', debouncedLoadTimeSeriesData);
+
+        selectAllBtn.addEventListener('click', function() {
+            Array.from(restrictionSelect.options).forEach(option => option.selected = true);
+            debouncedLoadTimeSeriesData();
+        });
+
+        clearAllBtn.addEventListener('click', function() {
+            Array.from(restrictionSelect.options).forEach(option => option.selected = false);
+            debouncedLoadTimeSeriesData();
+        });
+
+        // Initial load with default values
+        loadRestrictions().then(() => {
+            databaseSelect.value = 'covid.db';
+            databaseSelect.dispatchEvent(new Event('change'));
+        });
+
+        // Database selection handler
+        databaseSelect.addEventListener('change', async function() {
+            const selectedDb = this.value;
+            tableSelect.disabled = !selectedDb;
+            tableSelect.innerHTML = '<option value="">Choose a table...</option>';
+            tableError.style.display = 'none';
+            
+            if (selectedDb) {
+                try {
+                    const response = await fetch(`/api/tables/${selectedDb}`);
+                    if (!response.ok) throw new Error('Failed to fetch tables');
+                    const tables = await response.json();
+                    
+                    const graphableTables = tables.filter(table => !NON_GRAPHABLE.includes(table));
+                    
+                    graphableTables.forEach(table => {
+                        const option = document.createElement('option');
+                        option.value = table;
+                        option.textContent = table;
+                        tableSelect.appendChild(option);
+                    });
+
+                    if (selectedDb === 'covid.db' && graphableTables.length > 0) {
+                        tableSelect.value = graphableTables[0];
+                        debouncedLoadTimeSeriesData();
+                    }
+                } catch (error) {
+                    console.error('Error loading tables:', error);
+                    tableSelect.innerHTML = '<option value="">Error loading tables</option>';
+                }
+            }
+        });
+
+        // Table selection handler
+        tableSelect.addEventListener('change', function() {
+            const selectedTable = this.value;
+            if (selectedTable && NON_GRAPHABLE.includes(selectedTable)) {
+                tableError.style.display = 'block';
+                debouncedLoadTimeSeriesData();
+            } else {
+                tableError.style.display = 'none';
+                if (selectedTable) {
+                    debouncedLoadTimeSeriesData();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

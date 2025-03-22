@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset - COVID-19 Insights{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>COVID-19 Dataset Overview</h2>
+    <p>This page will display the comprehensive COVID-19 dataset with detailed information about cases, deaths, and restrictions.</p>
+    
+    <div class="dataset-container">
+        <div class="dataset-section">
+            <h3>Dataset Statistics</h3>
+            {% if table_info %}
+                <div class="table-grid">
+                    {% for table_name, columns in table_info.items() %}
+                    <div class="table-card">
+                        <h4>{{ table_name }}</h4>
+                        <div class="column-list">
+                            <table class="column-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Type</th>
+                                        <th>Constraints</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for col in columns %}
+                                    <tr>
+                                        <td>{{ col[1] }}</td>
+                                        <td>{{ col[2] }}</td>
+                                        <td>{{ 'NOT NULL' if col[3] else '' }} {{ 'PRIMARY KEY' if col[5] else '' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No dataset information available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .table-card {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-card h4 {
+        margin: 0 0 1rem 0;
+        color: var(--primary-color);
+        text-align: center;
+    }
+    
+    .column-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    
+    .column-table th,
+    .column-table td {
+        padding: 0.5rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .column-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .column-table tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %} 

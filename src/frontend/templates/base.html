@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}COVID-19 Insights{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <h1 class="centered-item">COVID-19 Insights</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dataset') }}">Dataset</a></li>
+                <li><a href="{{ url_for('time_series') }}">Time Series</a></li>
+                <li><a href="{{ url_for('restriction_distribution') }}">Restriction Distribution</a></li>
+                <li><a href="{{ url_for('timeline') }}">Timeline</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 COVID-19 Insights</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 
