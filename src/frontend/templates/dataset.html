@@ -27,8 +27,21 @@
 
     <div id="crud-menu">
         <h3>CRUD Operations</h3>
-        <input type="text" id="table-name-input" placeholder="Enter table name">
-        <button id="create-table-btn" class="btn btn-primary">Create Table</button>
+        <div class="crud-section">
+            <h4>Create a new table</h4>
+            <input type="text" id="table-name-input" placeholder="Enter table name">
+            <button id="create-table-btn" class="btn btn-primary">Create Table</button>
+        </div>
+        <div class="crud-section">
+            <h4>Delete a table</h4>
+            <select id="delete-table-select" class="form-control">
+                <option value="">Select a table to delete...</option>
+                {% for table_name in table_info.keys() %}
+                <option value="{{ table_name }}">{{ table_name }}</option>
+                {% endfor %}
+            </select>
+            <button id="delete-table-btn" class="btn btn-danger">Delete Table</button>
+        </div>
     </div>
     
     <div class="tables-container">
@@ -167,7 +180,21 @@
 
     #crud-menu h3 {
         color: var(--primary-color);
+        margin-bottom: 1.5rem;
+    }
+
+    #crud-menu h4 {
+        color: var(--primary-color);
         margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .crud-section {
+        margin-bottom: 2rem;
+    }
+
+    .crud-section:last-child {
+        margin-bottom: 0;
     }
 
     #table-name-input {
@@ -212,6 +239,31 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
+
+    #delete-table-select {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        background-color: white;
+    }
+
+    #delete-table-btn {
+        width: 100%;
+        padding: 0.5rem;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        background-color: #dc3545;
+    }
+
+    #delete-table-btn:hover {
+        background-color: #c82333;
+    }
 </style>
 {% endblock %}
 
@@ -221,9 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const databaseSelect = document.getElementById('databaseSelect');
     const tableNameInput = document.getElementById('table-name-input');
     const createTableBtn = document.getElementById('create-table-btn');
+    const deleteTableBtn = document.getElementById('delete-table-btn');
+    const deleteTableSelect = document.getElementById('delete-table-select');
     const crudMenu = document.getElementById('crud-menu');
     
-    // Add message div for table creation feedback
+    // Add message div for feedback
     const messageDiv = document.createElement('div');
     messageDiv.id = 'create-table-message';
     crudMenu.appendChild(messageDiv);
@@ -314,6 +368,55 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error creating table:', error);
             showMessage('Failed to create table: ' + error.message, true);
+        }
+    });
+
+    // Handle table deletion
+    deleteTableBtn.addEventListener('click', async function() {
+        const selectedDb = databaseSelect.value;
+        const selectedTable = deleteTableSelect.value;
+
+        if (!selectedDb) {
+            showMessage('Please select a database first', true);
+            return;
+        }
+
+        if (!selectedTable) {
+            showMessage('Please select a table to delete', true);
+            return;
+        }
+
+        // Ask for confirmation before deleting
+        if (!confirm(`Are you sure you want to delete the table "${selectedTable}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/delete-table', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    database: selectedDb,
+                    table_name: selectedTable
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('Table deleted successfully!');
+                // Reload the page after a short delay to update the table list
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error || 'Failed to delete table', true);
+            }
+        } catch (error) {
+            console.error('Error deleting table:', error);
+            showMessage('Failed to delete table: ' + error.message, true);
         }
     });
 

@@ -327,5 +327,29 @@ def create_table_endpoint():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/delete-table', methods=['POST'])
+def delete_table_endpoint():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        database = data.get('database')
+        table_name = data.get('table_name')
+
+        if not database or not table_name:
+            return jsonify({'error': 'Database and table name are required'}), 400
+
+        # Create a CRUD instance with the database name
+        crud = CRUD(database)
+
+        # Delete the table using the CRUD remove_table method
+        crud.remove_table(database, table_name)
+
+        return jsonify({'message': f'Table {table_name} deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
