@@ -56,36 +56,53 @@ class DataServer:
         db_path = PATHS[db_name]
         return get_table_info(table, db_path)
 
-    def serve_time_series(self, restrs: List[str] = []) -> List[str]:
+    def serve_time_series(self, restrs: List[str] = [], database: str = 'covid.db', table: str = None) -> List[str]:
         """
-        Retrieves time-series data of restrictions applied over time.
+        Retrieves time-series data from the specified database and table.
 
         Args:
             restrs (list[str], optional): List of specific restrictions to filter by.
-                                          Defaults to an empty list (fetch all restrictions).
+            database (str, optional): Name of the database to query. Defaults to 'covid.db'.
+            table (str, optional): Name of the table to query. If None, uses default COVID tables.
 
         Returns:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
-        if not restrs:
-            query = """
-                    SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
-                    FROM DailyRestriction
-                    JOIN Date ON DailyRestriction.date_id = Date.date_id
-                    GROUP BY Date.date;
-                    """
-            return query_db(query, self._db)
+        db_path = PATHS.get(database)
+        if not db_path:
+            return []
 
-        placeholders = ', '.join(['?'] * len(restrs))
-        query = f"""
-            SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
-            FROM DailyRestriction
-            JOIN Date ON DailyRestriction.date_id = Date.date_id
-            JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
-            WHERE Restriction.restriction IN ({placeholders})
-            GROUP BY Date.date;
-        """
-        return query_db(query, self._db, restrs)
+        if database == 'covid.db' and not table:
+            # Use the original COVID-19 database queries
+            if not restrs:
+                query = """
+                        SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
+                        FROM DailyRestriction
+                        JOIN Date ON DailyRestriction.date_id = Date.date_id
+                        GROUP BY Date.date;
+                        """
+                return query_db(query, db_path)
+
+            placeholders = ', '.join(['?'] * len(restrs))
+            query = f"""
+                SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
+                FROM DailyRestriction
+                JOIN Date ON DailyRestriction.date_id = Date.date_id
+                JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
+                WHERE Restriction.restriction IN ({placeholders})
+                GROUP BY Date.date;
+            """
+            return query_db(query, db_path, restrs)
+        elif table:
+            # For other databases or specific tables, use a simple time series query
+            query = f"""
+                SELECT time, measured_value
+                FROM {table}
+                ORDER BY time;
+            """
+            return query_db(query, db_path)
+        
+        return []
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple[str]]:
         """

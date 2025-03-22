@@ -253,49 +253,26 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const databaseSelect = document.getElementById('databaseSelect');
+        const tableSelect = document.getElementById('tableSelect');
+        const restrictionSelect = document.getElementById('restrictionSelect');
+        const selectAllBtn = document.getElementById('selectAll');
+        const clearAllBtn = document.getElementById('clearAll');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const chartContainer = document.getElementById('chartContainer');
         const errorMessage = document.getElementById('errorMessage');
         const statsContainer = document.getElementById('statsContainer');
-        const restrictionSelect = document.getElementById('restrictionSelect');
-        const selectAllBtn = document.getElementById('selectAll');
-        const clearAllBtn = document.getElementById('clearAll');
-        const databaseSelect = document.getElementById('databaseSelect');
-        const tableSelect = document.getElementById('tableSelect');
-        const tableError = document.getElementById('tableError');
         let chart = null;
-        let loadingTimeout = null;
 
-        // Non-graphable tables from config
-        const NON_GRAPHABLE = ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"];
+        // Constants
+        const NON_GRAPHABLE = ['Date', 'Week', 'Source', 'Restriction', 'SummaryRestriction', 'DailyRestriction', 'WeeklyRestriction'];
 
-        // Debounce function
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // Show loading state after a delay
         function showLoadingState() {
-            loadingTimeout = setTimeout(() => {
-                loadingIndicator.style.display = 'block';
-                chartContainer.style.display = 'none';
-            }, 200); // Only show loading if it takes more than 200ms
+            loadingIndicator.style.display = 'flex';
+            chartContainer.style.display = 'none';
         }
 
-        // Hide loading state
         function hideLoadingState() {
-            if (loadingTimeout) {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = null;
-            }
             loadingIndicator.style.display = 'none';
         }
 
@@ -315,16 +292,39 @@
                 .join(' ');
         }
 
-        function updateStats(dates, restrictions) {
-            const peakValue = Math.max(...restrictions);
-            const peakIndex = restrictions.indexOf(peakValue);
+        function updateStats(dates, values) {
+            const peakValue = Math.max(...values);
+            const peakIndex = values.indexOf(peakValue);
             const peakDate = dates[peakIndex];
-            const avgValue = (restrictions.reduce((a, b) => a + b, 0) / restrictions.length).toFixed(1);
+            const avgValue = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
 
             document.getElementById('peakValue').textContent = peakValue;
             document.getElementById('peakDate').textContent = `on ${formatDate(peakDate)}`;
             document.getElementById('avgValue').textContent = avgValue;
             statsContainer.style.display = 'block';
+        }
+
+        async function loadTables(database) {
+            try {
+                const response = await fetch(`/api/tables/${database}`);
+                if (!response.ok) throw new Error('Failed to load tables');
+                const tables = await response.json();
+                
+                tableSelect.innerHTML = '<option value="">Choose a table...</option>';
+                tables.forEach(table => {
+                    if (!NON_GRAPHABLE.includes(table)) {
+                        const option = document.createElement('option');
+                        option.value = table;
+                        option.textContent = table;
+                        tableSelect.appendChild(option);
+                    }
+                });
+                tableSelect.disabled = false;
+            } catch (error) {
+                console.error('Error loading tables:', error);
+                tableSelect.innerHTML = '<option value="">Error loading tables</option>';
+                tableSelect.disabled = true;
+            }
         }
 
         async function loadRestrictions() {
@@ -387,9 +387,9 @@
                 }
 
                 const dates = timeSeriesData.map(item => item[0]);
-                const restrictions = timeSeriesData.map(item => item[1]);
+                const values = timeSeriesData.map(item => item[1]);
 
-                updateStats(dates, restrictions);
+                updateStats(dates, values);
 
                 if (chart) {
                     chart.destroy();
@@ -401,68 +401,76 @@
                     data: {
                         labels: dates.map(formatDate),
                         datasets: [{
-                            label: 'Active Restrictions',
-                            data: restrictions,
+                            label: selectedDb === 'covid.db' ? 'Active Restrictions' : 'Measured Values',
+                            data: values,
                             borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
                             tension: 0.1,
-                            fill: true
+                            fill: false
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: {
-                            duration: 0 // Disable animation for faster rendering
-                        },
                         scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
                             y: {
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: 'Number of Active Restrictions'
-                                }
-                            },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Date'
+                                    text: selectedDb === 'covid.db' ? 'Number of Active Restrictions' : 'Value'
                                 }
                             }
                         },
                         plugins: {
                             title: {
                                 display: true,
-                                text: selectedRestrictions.length > 0 
-                                    ? 'Selected COVID-19 Restrictions Over Time'
-                                    : 'All COVID-19 Restrictions Over Time'
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                                callbacks: {
-                                    title: function(context) {
-                                        return formatDate(context[0].label);
-                                    }
-                                }
+                                text: selectedDb === 'covid.db' ? 'Active COVID-19 Restrictions Over Time' : 'Time Series Data'
                             }
                         }
                     }
                 });
 
-                hideLoadingState();
                 chartContainer.style.display = 'block';
-                errorMessage.style.display = 'none';
-            } catch (error) {
-                console.error('Error loading time series data:', error);
                 hideLoadingState();
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoadingState();
+                errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';
                 chartContainer.style.display = 'none';
                 statsContainer.style.display = 'none';
             }
-        }, 300); // Debounce for 300ms
+        }, 500);
 
-        // Event listeners
+        // Event Listeners
+        databaseSelect.addEventListener('change', function() {
+            const selectedDb = this.value;
+            if (selectedDb) {
+                loadTables(selectedDb);
+                if (selectedDb === 'covid.db') {
+                    loadRestrictions();
+                    restrictionSelect.parentElement.style.display = 'block';
+                    document.querySelector('.button-container').style.display = 'flex';
+                } else {
+                    restrictionSelect.parentElement.style.display = 'none';
+                    document.querySelector('.button-container').style.display = 'none';
+                }
+            } else {
+                tableSelect.innerHTML = '<option value="">Choose a table...</option>';
+                tableSelect.disabled = true;
+            }
+        });
+
+        tableSelect.addEventListener('change', debouncedLoadTimeSeriesData);
         restrictionSelect.addEventListener('change', debouncedLoadTimeSeriesData);
 
         selectAllBtn.addEventListener('click', function() {
@@ -475,58 +483,18 @@
             debouncedLoadTimeSeriesData();
         });
 
-        // Initial load with default values
-        loadRestrictions().then(() => {
-            databaseSelect.value = 'covid.db';
-            databaseSelect.dispatchEvent(new Event('change'));
-        });
-
-        // Database selection handler
-        databaseSelect.addEventListener('change', async function() {
-            const selectedDb = this.value;
-            tableSelect.disabled = !selectedDb;
-            tableSelect.innerHTML = '<option value="">Choose a table...</option>';
-            tableError.style.display = 'none';
-            
-            if (selectedDb) {
-                try {
-                    const response = await fetch(`/api/tables/${selectedDb}`);
-                    if (!response.ok) throw new Error('Failed to fetch tables');
-                    const tables = await response.json();
-                    
-                    const graphableTables = tables.filter(table => !NON_GRAPHABLE.includes(table));
-                    
-                    graphableTables.forEach(table => {
-                        const option = document.createElement('option');
-                        option.value = table;
-                        option.textContent = table;
-                        tableSelect.appendChild(option);
-                    });
-
-                    if (selectedDb === 'covid.db' && graphableTables.length > 0) {
-                        tableSelect.value = graphableTables[0];
-                        debouncedLoadTimeSeriesData();
-                    }
-                } catch (error) {
-                    console.error('Error loading tables:', error);
-                    tableSelect.innerHTML = '<option value="">Error loading tables</option>';
-                }
-            }
-        });
-
-        // Table selection handler
-        tableSelect.addEventListener('change', function() {
-            const selectedTable = this.value;
-            if (selectedTable && NON_GRAPHABLE.includes(selectedTable)) {
-                tableError.style.display = 'block';
-                debouncedLoadTimeSeriesData();
-            } else {
-                tableError.style.display = 'none';
-                if (selectedTable) {
-                    debouncedLoadTimeSeriesData();
-                }
-            }
-        });
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
     });
 </script>
 {% endblock %} 

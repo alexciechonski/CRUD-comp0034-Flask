@@ -26,8 +26,8 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from flask import Flask, render_template, url_for, jsonify
 from src.backend.data_server import DataServer
 from src.config import PATHS
-from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases
-from src.backend.erd_manager import Visualizer
+from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases, create_table
+from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
 
 # Debug: Print the paths
@@ -297,6 +297,33 @@ def get_tables(database):
     try:
         tables = show_tables(database)
         return jsonify(tables)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/create-table', methods=['POST'])
+def create_table_endpoint():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        database = data.get('database')
+        table_name = data.get('table_name')
+
+        if not database or not table_name:
+            return jsonify({'error': 'Database and table name are required'}), 400
+
+        # Create a CRUD instance with the database name (not path)
+        crud = CRUD(database)
+
+        # Generate a unique graph_id based on the number of databases
+        graph_id = len(show_tables(database)) + 1
+
+        # Create the table using the CRUD add_table method
+        crud.add_table(table_name, graph_id)
+
+        return jsonify({'message': f'Table {table_name} created successfully'}), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

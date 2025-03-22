@@ -24,6 +24,12 @@
         {{ erd_html | safe }}
     </div>
     {% endif %}
+
+    <div id="crud-menu">
+        <h3>CRUD Operations</h3>
+        <input type="text" id="table-name-input" placeholder="Enter table name">
+        <button id="create-table-btn" class="btn btn-primary">Create Table</button>
+    </div>
     
     <div class="tables-container">
         {% for table_name, schema in table_info.items() %}
@@ -150,6 +156,62 @@
         text-align: center;
         margin-bottom: 1rem;
     }
+
+    #crud-menu {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    #crud-menu h3 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    #table-name-input {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    #create-table-btn {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    #create-table-btn:hover {
+        background-color: #3a8f8f;
+    }
+
+    #create-table-message {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        display: none;
+    }
+
+    .message-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .message-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
 </style>
 {% endblock %}
 
@@ -157,7 +219,24 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const databaseSelect = document.getElementById('databaseSelect');
+    const tableNameInput = document.getElementById('table-name-input');
+    const createTableBtn = document.getElementById('create-table-btn');
+    const crudMenu = document.getElementById('crud-menu');
     
+    // Add message div for table creation feedback
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'create-table-message';
+    crudMenu.appendChild(messageDiv);
+
+    function showMessage(message, isError = false) {
+        messageDiv.textContent = message;
+        messageDiv.className = isError ? 'message-error' : 'message-success';
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+
     // Load available databases
     async function loadDatabases() {
         try {
@@ -171,10 +250,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add database options
             databases.forEach(db => {
                 const option = document.createElement('option');
-                option.value = db.name;
-                option.textContent = db.name.replace('.db', '').toUpperCase();  // Format display name
+                option.value = db.value;
+                option.textContent = db.label.replace('.db', '').toUpperCase();  // Format display name
                 // Set selected if it matches the current database
-                if (db.name === '{{ selected_db }}') {
+                if (db.value === '{{ selected_db }}') {
                     option.selected = true;
                 }
                 databaseSelect.appendChild(option);
@@ -190,6 +269,51 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedDb = this.value;
         if (selectedDb) {
             window.location.href = `/dataset?database=${selectedDb}`;
+        }
+    });
+
+    // Handle table creation
+    createTableBtn.addEventListener('click', async function() {
+        const selectedDb = databaseSelect.value;
+        const tableName = tableNameInput.value.trim();
+
+        if (!selectedDb) {
+            showMessage('Please select a database first', true);
+            return;
+        }
+
+        if (!tableName) {
+            showMessage('Please enter a table name', true);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/create-table', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    database: selectedDb,
+                    table_name: tableName
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('Table created successfully!');
+                tableNameInput.value = '';
+                // Reload the page after a short delay to show the new table
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error || 'Failed to create table', true);
+            }
+        } catch (error) {
+            console.error('Error creating table:', error);
+            showMessage('Failed to create table: ' + error.message, true);
         }
     });
 
