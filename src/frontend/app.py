@@ -14,6 +14,11 @@ import sys
 from pathlib import Path
 from flask import request
 from functools import lru_cache
+import networkx as nx
+import matplotlib.pyplot as plt
+import io
+import base64
+import sqlite3
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -21,7 +26,9 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from flask import Flask, render_template, url_for, jsonify
 from src.backend.data_server import DataServer
 from src.config import PATHS
-from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables
+from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases
+from src.backend.erd_manager import Visualizer
+from src.frontend.diagrams import Diagrams
 
 # Debug: Print the paths
 print("Database paths:")
@@ -33,8 +40,14 @@ app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
 
-# Initialize DataServer
+# Initialize DataServer and Diagrams
 data_server = DataServer(
+    db_path=PATHS['covid.db'],
+    graph_path=PATHS['graph.db'],
+    custom_path=PATHS['custom.db']
+)
+
+diagrams = Diagrams(
     db_path=PATHS['covid.db'],
     graph_path=PATHS['graph.db'],
     custom_path=PATHS['custom.db']
@@ -52,12 +65,166 @@ def get_cached_time_series(database, table, restrictions_key):
 def index():
     return render_template('index.html')
 
+@app.route('/api/databases')
+def fetch_databases():
+    """Get list of available databases excluding graph.db"""
+    return get_databases()
+
 @app.route('/dataset')
 def dataset():
-    # Get table information for the dataset overview
-    tables = ['Date', 'Restriction', 'DailyRestriction', 'Source']
-    table_info = {table: data_server.serve_table('covid.db', table) for table in tables}
-    return render_template('dataset.html', table_info=table_info)
+    # Get selected database from query parameters, default to covid.db
+    selected_db = request.args.get('database', 'covid.db')
+    
+    try:
+        # Get all tables for the selected database
+        tables = show_tables(selected_db)
+        
+        # Get table info and format it properly
+        table_info = {}
+        for table in tables:
+            try:
+                # Get table schema information using get_table_info
+                schema_info = get_table_info(table, PATHS[selected_db])
+                if schema_info:
+                    # Format schema info into a list of dictionaries
+                    formatted_info = [{
+                        'Column Name': col[1],  # name
+                        'Type': col[2],         # type
+                        'Constraints': ' '.join(filter(None, [
+                            'NOT NULL' if col[3] else '',  # notnull
+                            'PRIMARY KEY' if col[5] else '' # pk
+                        ]))
+                    } for col in schema_info]
+                    table_info[table] = formatted_info
+                else:
+                    table_info[table] = []
+            except Exception as table_error:
+                print(f"Error getting schema for table {table}: {str(table_error)}")
+                table_info[table] = []
+
+        # Get ERD visualization
+        try:
+            # Create a NetworkX graph from the database structure
+            G = nx.DiGraph()
+            
+            # Create a case-insensitive mapping of table names
+            table_map = {table.lower(): table for table in tables}
+            
+            # Add nodes (tables)
+            for table in tables:
+                G.add_node(table)
+            
+            # Get foreign key relationships
+            with sqlite3.connect(PATHS[selected_db]) as conn:
+                cursor = conn.cursor()
+                
+                # Enable foreign keys and set to full foreign key checks
+                cursor.execute("PRAGMA foreign_keys = ON")
+                
+                # Debug: Print database being analyzed
+                print(f"\nAnalyzing database: {selected_db}")
+                print(f"Tables found: {tables}")
+                
+                # Add edges based on foreign key relationships
+                for table in tables:
+                    print(f"\nChecking foreign keys for table: {table}")
+                    
+                    # Get foreign key information
+                    cursor.execute(f"PRAGMA foreign_key_list('{table}')")
+                    foreign_keys = cursor.fetchall()
+                    
+                    if foreign_keys:
+                        print(f"Found {len(foreign_keys)} foreign key(s) in {table}")
+                        for fk in foreign_keys:
+                            # fk[0] is id, fk[1] is seq, fk[2] is table, fk[3] is from, fk[4] is to
+                            referenced_table = fk[2]
+                            from_col = fk[3]
+                            to_col = fk[4]
+                            print(f"Found relationship: {table}.{to_col} -> {referenced_table}.{from_col}")
+                            
+                            # Look up the actual table name using case-insensitive comparison
+                            referenced_table_actual = table_map.get(referenced_table.lower())
+                            if referenced_table_actual:
+                                G.add_edge(table, referenced_table_actual)
+                                print(f"Added edge: {table} -> {referenced_table_actual}")
+                            else:
+                                print(f"Warning: Referenced table {referenced_table} not found in table list")
+            
+            edge_count = len(G.edges())
+            print(f"\nTotal edges found: {edge_count}")
+            print(f"Graph edges: {list(G.edges())}")
+            
+            # Always create visualization, even if there are no edges
+            # Create the plot with a more appropriate figure size
+            plt.figure(figsize=(10, 8))
+            
+            # Use spring layout with optimized parameters for better distribution
+            # If there are no edges, arrange nodes in a circle
+            if edge_count > 0:
+                pos = nx.spring_layout(G, k=1.5, iterations=50)
+            else:
+                pos = nx.circular_layout(G)
+            
+            # Draw edges with arrows (if any exist)
+            if edge_count > 0:
+                nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
+                                     arrowsize=20, width=1.5)
+            
+            # Draw nodes with better visibility
+            nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
+                                 node_size=3000, alpha=0.7)
+            
+            # Draw labels with better font size
+            nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
+            
+            # Add padding around the graph
+            plt.margins(0.2)
+            
+            # Convert plot to image with higher DPI for better quality
+            img = io.BytesIO()
+            plt.savefig(img, format='png', bbox_inches='tight', dpi=200)
+            img.seek(0)
+            plt.close()
+            
+            # Convert to base64 for embedding in HTML
+            if edge_count > 0:
+                title = "Entity Relationship Diagram"
+                desc = "Showing tables and their relationships"
+            else:
+                title = "Database Tables Overview"
+                desc = ""
+                
+            erd_html = f'''
+                <div class="erd-container">
+                    <h4 class="text-center mb-3">{title}</h4>
+                    <p class="text-muted text-center mb-3">{desc}</p>
+                    <img src="data:image/png;base64,{base64.b64encode(img.getvalue()).decode()}" 
+                         class="img-fluid" 
+                         style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                </div>
+            '''
+            
+            if edge_count == 0:
+                print("No relationships between tables")
+        except Exception as e:
+            print(f"Error generating ERD: {str(e)}")
+            erd_html = f'''
+                <div class="alert alert-danger">
+                    <h4 class="alert-heading">Error Generating ERD</h4>
+                    <p>{str(e)}</p>
+                    <hr>
+                    <p class="mb-0">Please check the database connection and schema.</p>
+                </div>
+            '''
+
+        return render_template('dataset.html', 
+                             table_info=table_info,
+                             selected_db=selected_db,
+                             erd_html=erd_html)
+    except Exception as e:
+        return render_template('dataset.html', 
+                             error=str(e),
+                             selected_db=selected_db)
 
 @app.route('/time-series')
 def time_series():

@@ -1,93 +1,200 @@
 {% extends "base.html" %}
 
-{% block title %}Dataset - COVID-19 Insights{% endblock %}
+{% block title %}Dataset Overview - COVID-19 Insights{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>COVID-19 Dataset Overview</h2>
-    <p>This page will display the comprehensive COVID-19 dataset with detailed information about cases, deaths, and restrictions.</p>
+    <h2>Dataset Overview</h2>
     
-    <div class="dataset-container">
-        <div class="dataset-section">
-            <h3>Dataset Statistics</h3>
-            {% if table_info %}
-                <div class="table-grid">
-                    {% for table_name, columns in table_info.items() %}
-                    <div class="table-card">
-                        <h4>{{ table_name }}</h4>
-                        <div class="column-list">
-                            <table class="column-table">
-                                <thead>
-                                    <tr>
-                                        <th>Column</th>
-                                        <th>Type</th>
-                                        <th>Constraints</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for col in columns %}
-                                    <tr>
-                                        <td>{{ col[1] }}</td>
-                                        <td>{{ col[2] }}</td>
-                                        <td>{{ 'NOT NULL' if col[3] else '' }} {{ 'PRIMARY KEY' if col[5] else '' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+    <div class="database-selector">
+        <label for="databaseSelect">Select Database:</label>
+        <select id="databaseSelect" class="form-control">
+            <option value="">Loading databases...</option>
+        </select>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+    {% else %}
+    {% if erd_html %}
+    <div class="erd-container">
+        <h3>Entity Relationship Diagram</h3>
+        {{ erd_html | safe }}
+    </div>
+    {% endif %}
+    
+    <div class="tables-container">
+        {% for table_name, schema in table_info.items() %}
+        <div class="table-section">
+            <h3>{{ table_name }}</h3>
+            {% if schema %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Type</th>
+                            <th>Constraints</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for column in schema %}
+                        <tr>
+                            <td>{{ column['Column Name'] }}</td>
+                            <td>{{ column['Type'] }}</td>
+                            <td>{{ column['Constraints'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <p>No dataset information available.</p>
+            <p>No schema information available for this table.</p>
             {% endif %}
         </div>
+        {% endfor %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-    .table-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
-    
-    .table-card {
+    .database-selector {
         background-color: white;
-        padding: 1rem;
+        padding: 1.5rem;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin: 1rem 0 2rem 0;
     }
-    
-    .table-card h4 {
-        margin: 0 0 1rem 0;
+
+    .database-selector label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
         color: var(--primary-color);
-        text-align: center;
     }
-    
-    .column-table {
+
+    .database-selector select {
         width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-    }
-    
-    .column-table th,
-    .column-table td {
         padding: 0.5rem;
-        text-align: left;
-        border-bottom: 1px solid #eee;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        background-color: white;
     }
-    
-    .column-table th {
+
+    .table-section {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .table-section h3 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .table-responsive {
+        margin-top: 1rem;
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        background-color: transparent;
+    }
+
+    .table th {
         background-color: #f8f9fa;
         font-weight: bold;
+        padding: 0.75rem;
+        border-bottom: 2px solid #dee2e6;
     }
-    
-    .column-table tr:hover {
-        background-color: #f8f9fa;
+
+    .table td {
+        padding: 0.75rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    .erd-container {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .erd-container h3 {
+        text-align: center;
+        margin-bottom: 1rem;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const databaseSelect = document.getElementById('databaseSelect');
+    
+    // Load available databases
+    async function loadDatabases() {
+        try {
+            const response = await fetch('/api/databases');
+            if (!response.ok) throw new Error('Failed to load databases');
+            const databases = await response.json();
+            
+            // Clear loading option
+            databaseSelect.innerHTML = '<option value="">Choose a database...</option>';
+            
+            // Add database options
+            databases.forEach(db => {
+                const option = document.createElement('option');
+                option.value = db.name;
+                option.textContent = db.name.replace('.db', '').toUpperCase();  // Format display name
+                // Set selected if it matches the current database
+                if (db.name === '{{ selected_db }}') {
+                    option.selected = true;
+                }
+                databaseSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading databases:', error);
+            databaseSelect.innerHTML = '<option value="">Error loading databases</option>';
+        }
+    }
+
+    // Handle database selection change
+    databaseSelect.addEventListener('change', function() {
+        const selectedDb = this.value;
+        if (selectedDb) {
+            window.location.href = `/dataset?database=${selectedDb}`;
+        }
+    });
+
+    // Initial load of databases
+    loadDatabases();
+});
+</script>
 {% endblock %} 
