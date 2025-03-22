@@ -42,6 +42,21 @@
             </select>
             <button id="delete-table-btn" class="btn btn-danger">Delete Table</button>
         </div>
+        <div class="crud-section">
+            <h4>Insert data into a table</h4>
+            <select id="insert-table-select" class="form-control mb-3">
+                <option value="">Select a table...</option>
+                {% for table_name in table_info.keys() %}
+                <option value="{{ table_name }}">{{ table_name }}</option>
+                {% endfor %}
+            </select>
+            <div class="csv-upload-container mb-3">
+                <label for="csv-file" class="form-label">Choose CSV file:</label>
+                <input type="file" id="csv-file" class="form-control" accept=".csv">
+            </div>
+            <button id="insert-table-button" class="btn btn-success w-100">Upload and Insert Data</button>
+            <div id="insert-message" class="mt-3" style="display: none;"></div>
+        </div>
     </div>
     
     <div class="tables-container">
@@ -264,6 +279,66 @@
     #delete-table-btn:hover {
         background-color: #c82333;
     }
+
+    #insert-table-select, #csv-file {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        background-color: white;
+    }
+
+    .csv-upload-container {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        border: 1px dashed #dee2e6;
+    }
+
+    .csv-upload-container:hover {
+        border-color: var(--primary-color);
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    #insert-table-button {
+        width: 100%;
+        padding: 0.5rem;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        background-color: #28a745;
+    }
+
+    #insert-table-button:hover {
+        background-color: #218838;
+    }
+
+    #insert-message {
+        padding: 0.75rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    #insert-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    #insert-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
 </style>
 {% endblock %}
 
@@ -422,6 +497,81 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial load of databases
     loadDatabases();
+
+    // Handle CSV file upload and data insertion
+    const insertTableSelect = document.getElementById('insert-table-select');
+    const csvFileInput = document.getElementById('csv-file');
+    const insertTableButton = document.getElementById('insert-table-button');
+    const insertMessage = document.getElementById('insert-message');
+
+    function showInsertMessage(message, isError = false) {
+        insertMessage.textContent = message;
+        insertMessage.className = isError ? 'error' : 'success';
+        insertMessage.style.display = 'block';
+        setTimeout(() => {
+            insertMessage.style.display = 'none';
+        }, 5000);
+    }
+
+    insertTableButton.addEventListener('click', async function() {
+        const selectedDb = databaseSelect.value;
+        const selectedTable = insertTableSelect.value;
+        const file = csvFileInput.files[0];
+
+        if (!selectedDb) {
+            showInsertMessage('Please select a database first', true);
+            return;
+        }
+
+        if (!selectedTable) {
+            showInsertMessage('Please select a table', true);
+            return;
+        }
+
+        if (!file) {
+            showInsertMessage('Please select a CSV file', true);
+            return;
+        }
+
+        if (!file.name.endsWith('.csv')) {
+            showInsertMessage('Please select a valid CSV file', true);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('database', selectedDb);
+        formData.append('table_name', selectedTable);
+        formData.append('csv_file', file);
+
+        try {
+            insertTableButton.disabled = true;
+            insertTableButton.textContent = 'Uploading...';
+
+            const response = await fetch('/api/insert-data', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showInsertMessage('Data inserted successfully!');
+                csvFileInput.value = ''; // Clear the file input
+                // Reload the page after a short delay to show the updated data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showInsertMessage(data.error || 'Failed to insert data', true);
+            }
+        } catch (error) {
+            console.error('Error inserting data:', error);
+            showInsertMessage('Failed to insert data: ' + error.message, true);
+        } finally {
+            insertTableButton.disabled = false;
+            insertTableButton.textContent = 'Upload and Insert Data';
+        }
+    });
 });
 </script>
 {% endblock %} 

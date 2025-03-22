@@ -351,5 +351,94 @@ def delete_table_endpoint():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/insert-data', methods=['POST'])
+def insert_data_endpoint():
+    try:
+        if 'csv_file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+            
+        file = request.files['csv_file']
+        database = request.form.get('database')
+        table_name = request.form.get('table_name')
+        
+        if not file or not database or not table_name:
+            return jsonify({'error': 'Missing required parameters'}), 400
+            
+        if not file.filename.endswith('.csv'):
+            return jsonify({'error': 'File must be a CSV'}), 400
+
+        # Create a temporary file to store the uploaded CSV
+        import tempfile
+        import pandas as pd
+        
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as temp_file:
+            file.save(temp_file.name)
+            # Read CSV file using pandas
+            try:
+                df = pd.read_csv(temp_file.name)
+                print(f"Successfully read CSV with {len(df)} rows")
+                print(f"Columns: {df.columns.tolist()}")
+                print(f"First row: {df.iloc[0].to_dict()}")
+            except Exception as e:
+                return jsonify({'error': f'Error reading CSV file: {str(e)}'}), 400
+
+        # Get the correct database path
+        db_path = PATHS.get(database)
+        if not db_path:
+            return jsonify({'error': f'Database {database} not found'}), 400
+
+        print(f"Using database path: {db_path}")
+        
+        try:
+            # Connect directly to the database for insertion
+            with sqlite3.connect(db_path) as conn:
+                # Convert DataFrame to list of dictionaries
+                data_to_insert = df.to_dict('records')
+                
+                # Get column names from the first row
+                if not data_to_insert:
+                    return jsonify({'error': 'No data to insert'}), 400
+                    
+                columns = list(data_to_insert[0].keys())
+                placeholders = ','.join(['?' for _ in columns])
+                columns_str = ','.join(columns)
+                
+                # Prepare the insert query
+                query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+                print(f"Insert query: {query}")
+                
+                # Insert the data
+                cursor = conn.cursor()
+                for row in data_to_insert:
+                    values = [row[col] for col in columns]
+                    try:
+                        cursor.execute(query, values)
+                        print(f"Inserted row: {values}")
+                    except Exception as e:
+                        print(f"Error inserting row {values}: {str(e)}")
+                        raise
+                
+                # Commit the transaction
+                conn.commit()
+                print(f"Committed {len(data_to_insert)} rows to database")
+            
+            return jsonify({
+                'message': f'Successfully inserted {len(data_to_insert)} records into {table_name}',
+                'rows_inserted': len(data_to_insert)
+            }), 200
+            
+        except Exception as e:
+            print(f"Error during database operation: {str(e)}")
+            return jsonify({'error': f'Error inserting data: {str(e)}'}), 500
+            
+        finally:
+            # Clean up the temporary file
+            import os
+            os.unlink(temp_file.name)
+            
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
