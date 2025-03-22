@@ -52,7 +52,7 @@
             <form action="/api/create-table" method="POST">
                 <input type="hidden" name="database" value="{{ selected_db }}">
                 <input type="text" id="table-name-input" name="table_name" placeholder="Enter table name" required>
-                <button type="submit" class="btn btn-primary w-100">Create Table</button>
+                <button type="submit" class="btn btn-primary">Create Table</button>
             </form>
         </div>
 
@@ -66,7 +66,7 @@
                     <option value="{{ table_name }}">{{ table_name }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="btn btn-danger w-100">Delete Table</button>
+                <button type="submit" class="btn btn-danger">Delete Table</button>
             </form>
         </div>
 
@@ -84,15 +84,16 @@
                     <label for="csv-file" class="form-label">Choose CSV file:</label>
                     <input type="file" id="csv-file" name="csv_file" class="form-control" accept=".csv" required>
                 </div>
-                <button type="submit" class="btn btn-success w-100">Upload and Insert Data</button>
+                <button type="submit" class="btn btn-success">Upload and Insert Data</button>
             </form>
         </div>
     </div>
     
     <div class="tables-container">
+        <h3>Table Schemas</h3>
         {% for table_name, schema in table_info.items() %}
         <div class="table-section">
-            <h3>{{ table_name }}</h3>
+            <h4>{{ table_name }}</h4>
             {% if schema %}
             <div class="table-responsive">
                 <table class="table table-striped">
@@ -240,6 +241,57 @@
 
     .crud-section:last-child {
         margin-bottom: 0;
+    }
+
+    .crud-section button {
+        width: 100%;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .crud-section button.btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .crud-section button.btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .crud-section button.btn-success {
+        background-color: #198754;
+        color: white;
+    }
+
+    .crud-section button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .crud-section button.btn-primary:hover {
+        background-color: #0b5ed7;
+    }
+
+    .crud-section button.btn-danger:hover {
+        background-color: #bb2d3b;
+    }
+
+    .crud-section button.btn-success:hover {
+        background-color: #157347;
+    }
+
+    .crud-section button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     #table-name-input {
@@ -398,12 +450,23 @@
         margin-top: 0.5rem;
         display: none;
     }
+
+    .tables-container {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .tables-container h3 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Only keep minimal JavaScript for Bootstrap alerts auto-dismiss
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-dismiss alerts after 5 seconds
     const alerts = document.querySelectorAll('.alert');

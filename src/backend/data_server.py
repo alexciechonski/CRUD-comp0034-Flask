@@ -5,7 +5,7 @@ This module defines the `DataServer` class, which acts as a backend service
 to fetch ERD structures, table information, time series data, restriction distributions,
 timelines, and other relevant data from an SQLite database.
 """
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from src.utils import query_db, get_table_info, convert_to_date
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
@@ -170,3 +170,30 @@ class DataServer:
         except ValueError:
             processed_data = [(row[0], row[1]) for row in raw_data]
         return processed_data
+
+    def get_restrictions(self) -> List[str]:
+        """
+        Retrieves a list of all available restrictions.
+
+        Returns:
+            List[str]: List of restriction names.
+        """
+        query = "SELECT restriction FROM Restriction ORDER BY restriction;"
+        result = query_db(query, self._db)
+        return [r[0] for r in result] if result else []
+
+    def get_date_range(self) -> Tuple[str, str]:
+        """
+        Retrieves the earliest and latest dates from the Date table.
+
+        Returns:
+            Tuple[str, str]: A tuple containing (earliest_date, latest_date).
+        """
+        query = """
+            SELECT MIN(date), MAX(date)
+            FROM Date;
+        """
+        result = query_db(query, self._db)
+        if result and result[0]:
+            return result[0]
+        return ('', '')  # Return empty strings if no dates found
