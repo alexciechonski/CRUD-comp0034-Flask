@@ -27,6 +27,23 @@
 
     <div id="crud-menu">
         <h3>CRUD Operations</h3>
+        
+        <!-- Validation Messages -->
+        <div id="validation-alerts" class="mb-4">
+            <div id="create-validation-alert" class="alert alert-warning alert-dismissible fade show" role="alert" style="display: none;">
+                <strong>Warning!</strong> <span class="message"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div id="delete-validation-alert" class="alert alert-warning alert-dismissible fade show" role="alert" style="display: none;">
+                <strong>Warning!</strong> <span class="message"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div id="insert-validation-alert" class="alert alert-warning alert-dismissible fade show" role="alert" style="display: none;">
+                <strong>Warning!</strong> <span class="message"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+
         <div class="crud-section">
             <h4>Create a new table</h4>
             <input type="text" id="table-name-input" placeholder="Enter table name">
@@ -339,6 +356,35 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
+
+    .alert {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffecb5;
+        color: #664d03;
+    }
+
+    .alert-dismissible {
+        padding-right: 3rem;
+    }
+
+    .alert .btn-close {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 1.25rem 1rem;
+    }
+
+    .validation-message {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
 </style>
 {% endblock %}
 
@@ -364,6 +410,19 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             messageDiv.style.display = 'none';
         }, 5000);
+    }
+
+    function showValidationAlert(type, message) {
+        const alertId = `${type}-validation-alert`;
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.querySelector('.message').textContent = message;
+            alertElement.style.display = 'block';
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
     }
 
     // Load available databases
@@ -407,12 +466,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableName = tableNameInput.value.trim();
 
         if (!selectedDb) {
-            showMessage('Please select a database first', true);
+            showValidationAlert('create', 'Please select a database first');
             return;
         }
 
         if (!tableName) {
-            showMessage('Please enter a table name', true);
+            showValidationAlert('create', 'Please enter a table name');
             return;
         }
 
@@ -433,16 +492,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 showMessage('Table created successfully!');
                 tableNameInput.value = '';
-                // Reload the page after a short delay to show the new table
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                showMessage(data.error || 'Failed to create table', true);
+                showValidationAlert('create', data.error || 'Failed to create table');
             }
         } catch (error) {
             console.error('Error creating table:', error);
-            showMessage('Failed to create table: ' + error.message, true);
+            showValidationAlert('create', 'Failed to create table: ' + error.message);
         }
     });
 
@@ -452,16 +510,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedTable = deleteTableSelect.value;
 
         if (!selectedDb) {
-            showMessage('Please select a database first', true);
+            showValidationAlert('delete', 'Please select a database first');
             return;
         }
 
         if (!selectedTable) {
-            showMessage('Please select a table to delete', true);
+            showValidationAlert('delete', 'Please select a table to delete');
             return;
         }
 
-        // Ask for confirmation before deleting
         if (!confirm(`Are you sure you want to delete the table "${selectedTable}"? This action cannot be undone.`)) {
             return;
         }
@@ -482,16 +539,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (response.ok) {
                 showMessage('Table deleted successfully!');
-                // Reload the page after a short delay to update the table list
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                showMessage(data.error || 'Failed to delete table', true);
+                showValidationAlert('delete', data.error || 'Failed to delete table');
             }
         } catch (error) {
             console.error('Error deleting table:', error);
-            showMessage('Failed to delete table: ' + error.message, true);
+            showValidationAlert('delete', 'Failed to delete table: ' + error.message);
         }
     });
 
@@ -519,22 +575,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = csvFileInput.files[0];
 
         if (!selectedDb) {
-            showInsertMessage('Please select a database first', true);
+            showValidationAlert('insert', 'Please select a database first');
             return;
         }
 
         if (!selectedTable) {
-            showInsertMessage('Please select a table', true);
+            showValidationAlert('insert', 'Please select a table');
             return;
         }
 
         if (!file) {
-            showInsertMessage('Please select a CSV file', true);
+            showValidationAlert('insert', 'Please select a CSV file');
             return;
         }
 
         if (!file.name.endsWith('.csv')) {
-            showInsertMessage('Please select a valid CSV file', true);
+            showValidationAlert('insert', 'Please select a valid CSV file');
             return;
         }
 
@@ -555,18 +611,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.ok) {
-                showInsertMessage('Data inserted successfully!');
-                csvFileInput.value = ''; // Clear the file input
-                // Reload the page after a short delay to show the updated data
+                showMessage('Data inserted successfully!');
+                csvFileInput.value = '';
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                showInsertMessage(data.error || 'Failed to insert data', true);
+                showValidationAlert('insert', data.error || 'Failed to insert data');
             }
         } catch (error) {
             console.error('Error inserting data:', error);
-            showInsertMessage('Failed to insert data: ' + error.message, true);
+            showValidationAlert('insert', 'Failed to insert data: ' + error.message);
         } finally {
             insertTableButton.disabled = false;
             insertTableButton.textContent = 'Upload and Insert Data';

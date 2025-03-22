@@ -29,6 +29,7 @@ from src.config import PATHS
 from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases, create_table
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
+from src.frontend.input_validation import Validator as v
 
 # Debug: Print the paths
 print("Database paths:")
@@ -313,6 +314,10 @@ def create_table_endpoint():
         if not database or not table_name:
             return jsonify({'error': 'Database and table name are required'}), 400
 
+        # Validate table creation
+        if not v.val_create_table(database, table_name):
+            return jsonify({'error': f'Table {table_name} already exists'}), 400
+
         # Create a CRUD instance with the database name (not path)
         crud = CRUD(database)
 
@@ -339,6 +344,10 @@ def delete_table_endpoint():
 
         if not database or not table_name:
             return jsonify({'error': 'Database and table name are required'}), 400
+
+        # Validate table deletion
+        if not v.val_delete_table(database, table_name):
+            return jsonify({'error': f'Table {table_name} cannot be deleted as it is immutable'}), 400
 
         # Create a CRUD instance with the database name
         crud = CRUD(database)
@@ -367,6 +376,10 @@ def insert_data_endpoint():
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'File must be a CSV'}), 400
 
+        # Validate if data can be inserted into this table
+        if not v.val_insert(database, table_name):
+            return jsonify({'error': f'Cannot insert data into table {table_name} as it is immutable'}), 400
+
         # Create a temporary file to store the uploaded CSV
         import tempfile
         import pandas as pd
@@ -379,6 +392,11 @@ def insert_data_endpoint():
                 print(f"Successfully read CSV with {len(df)} rows")
                 print(f"Columns: {df.columns.tolist()}")
                 print(f"First row: {df.iloc[0].to_dict()}")
+
+                # Validate schema
+                if not v.val_schema(df):
+                    return jsonify({'error': 'CSV schema does not match the required schema'}), 400
+
             except Exception as e:
                 return jsonify({'error': f'Error reading CSV file: {str(e)}'}), 400
 

@@ -12,6 +12,7 @@ from typing import Any
 from collections import defaultdict
 from src.utils import create_table, delete_table, query_db
 from src.config import PATHS
+from src.frontend.input_validation import Validator as v
 
 class Visualizer:
     """
@@ -121,12 +122,19 @@ class CRUD:
         Args:
             table_name (str): The name of the table to create.
             graph_id (int): The graph ID to associate with the table.
+
+        Raises:
+            ValueError: If table already exists or validation fails.
         """
+        # Validate table creation
+        if not v.val_create_table(self.db_name, table_name):
+            raise ValueError(f"Table {table_name} already exists")
+
         cols = {
             "id": "INTEGER PRIMARY KEY",
-            "time":"TEXT NOT NULL",
-            "measured_value":"INTEGER NOT NULL"
-            }
+            "time": "TEXT NOT NULL",
+            "measured_value": "INTEGER NOT NULL"
+        }
         create_table(self._db, table_name, cols)
         # add node to graph db
         self.last_node_id += 1
@@ -135,28 +143,53 @@ class CRUD:
             cursor.execute(
                 "INSERT INTO Nodes (node_id, node_name, graph_id) VALUES (?, ?, ?)",
                 (self.last_node_id, table_name, graph_id)
-                )
+            )
             conn.commit()
 
-    def insert_data(self, table_name: str, data: list[tuple[Any, ...]]) -> None:
+    def insert_data(self, table_name: str, data: list[dict]) -> None:
         """
         Inserts data into an SQLite table.
 
-        Parameters:
-        - table_name (str): Name of the table to insert data into.
-        - data (list of tuples): List of tuples, each tuple represents a row of data.
-                                Example: [(1, '2023-01-01'), (2, '2023-01-02')]
+        Args:
+            table_name (str): Name of the table to insert data into.
+            data (list[dict]): List of dictionaries, each representing a row of data.
+
+        Raises:
+            ValueError: If table is immutable or schema validation fails.
         """
+        # Validate if data can be inserted into this table
+        if not v.val_insert(self.db_name, table_name):
+            raise ValueError(f"Cannot insert data into table {table_name} as it is immutable")
+
+        # Convert data to DataFrame for schema validation
+        import pandas as pd
+        df = pd.DataFrame(data)
+        
+        # Validate schema
+        if not v.val_schema(df):
+            raise ValueError("Data schema does not match the required schema")
+
         with sqlite3.connect(self._db) as conn:
             cursor = conn.cursor()
-            placeholders = ', '.join(['?' for _ in data[0]])
-            insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+            if not data:
+                return
+
+            # Get column names from the first row
+            columns = list(data[0].keys())
+            placeholders = ','.join(['?' for _ in columns])
+            columns_str = ','.join(columns)
+            
+            # Prepare the insert query
+            insert_sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+            
             try:
                 for row in data:
-                    cursor.execute(insert_sql, row)
+                    values = [row[col] for col in columns]
+                    cursor.execute(insert_sql, values)
                 print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
             except sqlite3.Error as err:
                 print(f"An error occurred: {err}")
+                raise
             finally:
                 conn.commit()
 
@@ -169,7 +202,14 @@ class CRUD:
         Args:
             db_name (str): The name of the database.
             table (str): The name of the table to be removed.
+
+        Raises:
+            ValueError: If table is immutable or validation fails.
         """
+        # Validate table deletion
+        if not v.val_delete_table(db_name, table):
+            raise ValueError(f"Table {table} cannot be deleted as it is immutable")
+
         delete_table(db_name, table)
         with sqlite3.connect(PATHS["graph.db"]) as conn:
             cursor = conn.cursor()
