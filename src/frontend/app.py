@@ -12,7 +12,7 @@ Dependencies:
 import os
 import sys
 from pathlib import Path
-from flask import request
+from flask import request, redirect, flash
 from functools import lru_cache
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -40,6 +40,9 @@ for key, path in PATHS.items():
 app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
+
+# Set a secret key for flash messages
+app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
 
 # Initialize DataServer and Diagrams
 data_server = DataServer(
@@ -77,6 +80,9 @@ def dataset():
     selected_db = request.args.get('database', 'covid.db')
     
     try:
+        # Get list of available databases using get_databases() function
+        databases = get_databases()
+        
         # Get all tables for the selected database
         tables = show_tables(selected_db)
         
@@ -221,11 +227,13 @@ def dataset():
         return render_template('dataset.html', 
                              table_info=table_info,
                              selected_db=selected_db,
+                             databases=databases,
                              erd_html=erd_html)
     except Exception as e:
         return render_template('dataset.html', 
                              error=str(e),
-                             selected_db=selected_db)
+                             selected_db=selected_db,
+                             databases=databases)
 
 @app.route('/time-series')
 def time_series():
@@ -304,19 +312,18 @@ def get_tables(database):
 @app.route('/api/create-table', methods=['POST'])
 def create_table_endpoint():
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        database = data.get('database')
-        table_name = data.get('table_name')
+        # Get data from form instead of JSON
+        database = request.form.get('database')
+        table_name = request.form.get('table_name')
 
         if not database or not table_name:
-            return jsonify({'error': 'Database and table name are required'}), 400
+            flash('Database and table name are required', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Validate table creation
         if not v.val_create_table(database, table_name):
-            return jsonify({'error': f'Table {table_name} already exists'}), 400
+            flash(f'Table {table_name} already exists', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Create a CRUD instance with the database name (not path)
         crud = CRUD(database)
@@ -327,27 +334,28 @@ def create_table_endpoint():
         # Create the table using the CRUD add_table method
         crud.add_table(table_name, graph_id)
 
-        return jsonify({'message': f'Table {table_name} created successfully'}), 200
+        flash(f'Table {table_name} created successfully', 'success')
+        return redirect(url_for('dataset', database=database))
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        flash(str(e), 'error')
+        return redirect(url_for('dataset', database=database))
 
 @app.route('/api/delete-table', methods=['POST'])
 def delete_table_endpoint():
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        database = data.get('database')
-        table_name = data.get('table_name')
+        # Get data from form instead of JSON
+        database = request.form.get('database')
+        table_name = request.form.get('table_name')
 
         if not database or not table_name:
-            return jsonify({'error': 'Database and table name are required'}), 400
+            flash('Database and table name are required', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Validate table deletion
         if not v.val_delete_table(database, table_name):
-            return jsonify({'error': f'Table {table_name} cannot be deleted as it is immutable'}), 400
+            flash(f'Table {table_name} cannot be deleted as it is immutable', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Create a CRUD instance with the database name
         crud = CRUD(database)
@@ -355,30 +363,36 @@ def delete_table_endpoint():
         # Delete the table using the CRUD remove_table method
         crud.remove_table(database, table_name)
 
-        return jsonify({'message': f'Table {table_name} deleted successfully'}), 200
+        flash(f'Table {table_name} deleted successfully', 'success')
+        return redirect(url_for('dataset', database=database))
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        flash(str(e), 'error')
+        return redirect(url_for('dataset', database=database))
 
 @app.route('/api/insert-data', methods=['POST'])
 def insert_data_endpoint():
     try:
         if 'csv_file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
+            flash('No file uploaded', 'error')
+            return redirect(url_for('dataset', database=request.form.get('database')))
             
         file = request.files['csv_file']
         database = request.form.get('database')
         table_name = request.form.get('table_name')
         
         if not file or not database or not table_name:
-            return jsonify({'error': 'Missing required parameters'}), 400
+            flash('Missing required parameters', 'error')
+            return redirect(url_for('dataset', database=database))
             
         if not file.filename.endswith('.csv'):
-            return jsonify({'error': 'File must be a CSV'}), 400
+            flash('File must be a CSV', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Validate if data can be inserted into this table
         if not v.val_insert(database, table_name):
-            return jsonify({'error': f'Cannot insert data into table {table_name} as it is immutable'}), 400
+            flash(f'Cannot insert data into table {table_name} as it is immutable', 'error')
+            return redirect(url_for('dataset', database=database))
 
         # Create a temporary file to store the uploaded CSV
         import tempfile
@@ -395,15 +409,18 @@ def insert_data_endpoint():
 
                 # Validate schema
                 if not v.val_schema(df):
-                    return jsonify({'error': 'CSV schema does not match the required schema'}), 400
+                    flash('CSV schema does not match the required schema', 'error')
+                    return redirect(url_for('dataset', database=database))
 
             except Exception as e:
-                return jsonify({'error': f'Error reading CSV file: {str(e)}'}), 400
+                flash(f'Error reading CSV file: {str(e)}', 'error')
+                return redirect(url_for('dataset', database=database))
 
         # Get the correct database path
         db_path = PATHS.get(database)
         if not db_path:
-            return jsonify({'error': f'Database {database} not found'}), 400
+            flash(f'Database {database} not found', 'error')
+            return redirect(url_for('dataset', database=database))
 
         print(f"Using database path: {db_path}")
         
@@ -415,7 +432,8 @@ def insert_data_endpoint():
                 
                 # Get column names from the first row
                 if not data_to_insert:
-                    return jsonify({'error': 'No data to insert'}), 400
+                    flash('No data to insert', 'error')
+                    return redirect(url_for('dataset', database=database))
                     
                 columns = list(data_to_insert[0].keys())
                 placeholders = ','.join(['?' for _ in columns])
@@ -427,10 +445,12 @@ def insert_data_endpoint():
                 
                 # Insert the data
                 cursor = conn.cursor()
+                rows_inserted = 0
                 for row in data_to_insert:
                     values = [row[col] for col in columns]
                     try:
                         cursor.execute(query, values)
+                        rows_inserted += 1
                         print(f"Inserted row: {values}")
                     except Exception as e:
                         print(f"Error inserting row {values}: {str(e)}")
@@ -438,16 +458,15 @@ def insert_data_endpoint():
                 
                 # Commit the transaction
                 conn.commit()
-                print(f"Committed {len(data_to_insert)} rows to database")
-            
-            return jsonify({
-                'message': f'Successfully inserted {len(data_to_insert)} records into {table_name}',
-                'rows_inserted': len(data_to_insert)
-            }), 200
+                print(f"Committed {rows_inserted} rows to database")
+                
+                flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
+                return redirect(url_for('dataset', database=database))
             
         except Exception as e:
             print(f"Error during database operation: {str(e)}")
-            return jsonify({'error': f'Error inserting data: {str(e)}'}), 500
+            flash(f'Error inserting data: {str(e)}', 'error')
+            return redirect(url_for('dataset', database=database))
             
         finally:
             # Clean up the temporary file
@@ -456,7 +475,8 @@ def insert_data_endpoint():
             
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        flash(str(e), 'error')
+        return redirect(url_for('dataset', database=database))
 
 if __name__ == '__main__':
     app.run(debug=True)
