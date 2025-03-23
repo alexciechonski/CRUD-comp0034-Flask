@@ -15,11 +15,14 @@ import io
 import os
 import base64
 import sqlite3
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict, Tuple
 from datetime import datetime
 import pandas as pd
 import ollama # ollama has not been covered in the couse: https://github.com/ollama/ollama
+from sqlalchemy import create_engine, inspect, MetaData, Table
+from sqlalchemy.orm import sessionmaker
 from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
+from src.backend.models import init_db, Base
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -101,58 +104,74 @@ def delete_table(db_name: str, table_name: str) -> None:
         except sqlite3.DatabaseError as db_err:
             print(f"Database error occurred: {db_err}")
 
-def get_table_info(table: str, db_path: str) -> List[tuple[str]]:
+def get_table_info(table: str, db_path: str) -> List[Tuple]:
     """
-    Retrieves metadata about a table in the database.
+    Get table schema information using SQLAlchemy.
 
     Args:
         table (str): Name of the table.
-        db_path (str): Path to the SQLite database.
+        db_path (str): Path to the database.
 
     Returns:
-        list[tuple]: Table metadata (column names, data types, constraints).
+        List[Tuple]: List of column information tuples.
     """
-    with sqlite3.connect(db_path) as conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute(f"PRAGMA table_info('{table}');")
-            res = cursor.fetchall()
-            return res
-        except sqlite3.IntegrityError as int_err:
-            raise sqlite3.IntegrityError("Database query failed") from int_err
-        except sqlite3.DatabaseError as db_err:
-            raise sqlite3.DatabaseError("Database query failed") from db_err
+    engine = create_engine(f'sqlite:///{db_path}')
+    inspector = inspect(engine)
+    
+    try:
+        columns = inspector.get_columns(table)
+        result = []
+        for i, col in enumerate(columns):
+            result.append((
+                i,  # cid
+                col['name'],  # name
+                col['type'].__str__(),  # type
+                not col.get('nullable', True),  # notnull
+                col.get('default', None),  # dflt_value
+                col.get('primary_key', False)  # pk
+            ))
+        return result
+    finally:
+        engine.dispose()
 
-def show_tables(db_name: str) -> None:
+def show_tables(database: str) -> List[str]:
     """
-    Retrieves a list of tables in the specified database.
+    Get list of tables in a database using SQLAlchemy.
 
     Args:
-        db_name (str): Name of the database (key from PATHS).
+        database (str): Name of the database.
 
     Returns:
-        list[str]: List of table names.
+        List[str]: List of table names.
     """
-    tables = query_db("SELECT name FROM sqlite_master WHERE type='table';", PATHS[db_name])
-    return [row[0] for row in tables or []]
+    engine = create_engine(f'sqlite:///{PATHS[database]}')
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    engine.dispose()
+    return tables
 
-def table_not_empty(db_name: str, table_name: str) -> bool:
+def table_not_empty(db_name: str, table: str) -> bool:
     """
-    Checks whether a table contains any data.
+    Check if a table has any rows using SQLAlchemy.
 
     Args:
         db_name (str): Name of the database.
-        table_name (str): Name of the table.
+        table (str): Name of the table.
 
     Returns:
-        bool: True if the table has data, False otherwise.
+        bool: True if table has rows, False otherwise.
     """
-    query = f"SELECT COUNT(*) FROM {table_name};"
-    with sqlite3.connect(PATHS[db_name]) as conn:
-        cursor = conn.cursor()
-        cursor.execute(query)
-        row_count = cursor.fetchone()[0]
-    return row_count > 0
+    engine = create_engine(f'sqlite:///{PATHS[db_name]}')
+    metadata = MetaData()
+    table_obj = Table(table, metadata, autoload_with=engine)
+    
+    session = sessionmaker(bind=engine)()
+    try:
+        result = session.query(table_obj).first() is not None
+        return result
+    finally:
+        session.close()
+        engine.dispose()
 
 def process_multiselect(selections: List[str]) -> List[str]:
     """
@@ -168,32 +187,37 @@ def process_multiselect(selections: List[str]) -> List[str]:
 
 def convert_to_date(date_str: str) -> str:
     """
-    Converts a date string from "MM/YYYY" format to "YYYY-MM-DD".
+    Convert various date formats to a standardized format.
 
     Args:
-        date_str (str): Date string in "MM/YYYY" format.
+        date_str (str): Date string to convert.
 
     Returns:
-        str: Reformatted date string in "YYYY-MM-DD" format.
+        str: Standardized date string.
     """
-    return datetime.strptime(date_str, '%m/%Y').strftime('%Y-%m-%d')
+    try:
+        # Try parsing with various formats
+        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d']:
+            try:
+                return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+        raise ValueError(f"Unable to parse date: {date_str}")
+    except:
+        return date_str
 
-def get_databases() -> List[str]:
+def get_databases() -> List[Dict[str, str]]:
     """
-    Retrieves all available database files except `graph.db`.
+    Get list of available databases with their labels.
 
     Returns:
-        list[dict[str, str]]: List of dictionaries containing database labels and values.
+        List[Dict[str, str]]: List of dictionaries with database info.
     """
-    data_folder = BASE_PATH
-    files = [
-        file for file in os.listdir(data_folder) if os.path.isfile(os.path.join(data_folder, file))
-        ]
-
-    if "graph.db" in files:
-        files.remove("graph.db")  # Avoid KeyError if "graph.db" is missing
-
-    return [{'label': db, 'value': db} for db in files]
+    return [
+        {"label": db_name, "value": db_name}
+        for db_name in PATHS.keys()
+        if db_name != "graph.db"
+    ]
 
 def parse_csv_contents(contents) -> tuple[List[tuple], pd.DataFrame]:
     """
@@ -230,18 +254,28 @@ def dynamic_name_id() -> List[tuple]:
             res[name] = graph_id
         return res
 
-def select_graphable_tables(tables) -> List[str]:
+def select_graphable_tables(database: str) -> List[str]:
     """
-    Filters out non-graphable tables from a given list.
+    Get list of tables that can be graphed using SQLAlchemy.
 
     Args:
-        tables (list[str]): List of table names.
+        database (str): Name of the database.
 
     Returns:
-        list[str]: List of graphable table names.
+        List[str]: List of table names that can be graphed.
     """
-    non_graphable = set(NON_GRAPHABLE)
-    return [table for table in tables if table not in non_graphable]
+    tables = show_tables(database)
+    engine = create_engine(f'sqlite:///{PATHS[database]}')
+    inspector = inspect(engine)
+    
+    graphable = []
+    for table in tables:
+        columns = {col['name'] for col in inspector.get_columns(table)}
+        if 'time' in columns and 'measured_value' in columns:
+            graphable.append(table)
+    
+    engine.dispose()
+    return graphable
 
 def get_resp(prompt: str) -> str:
     """

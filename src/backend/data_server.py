@@ -3,10 +3,12 @@ Module for serving database queries and ERD visualizations.
 
 This module defines the `DataServer` class, which acts as a backend service
 to fetch ERD structures, table information, time series data, restriction distributions,
-timelines, and other relevant data from an SQLite database.
+timelines, and other relevant data using SQLAlchemy.
 """
 from typing import List, Dict, Tuple
-from src.utils import query_db, get_table_info, convert_to_date
+from sqlalchemy import func, desc
+from sqlalchemy.orm import Session
+from src.backend.models import init_db, Date, Restriction, DailyRestriction, Source, SummaryRestriction
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
 
@@ -15,22 +17,22 @@ class DataServer:
     Backend service for querying ERD structures, table metadata, and time series data.
 
     Attributes:
-        _db (str): Path to the main database.
-        _graph (str): Path to the graph database.
-        _custom (str): Path to a custom database (if applicable).
+        _db_session: SQLAlchemy session for the main database
+        _graph_session: SQLAlchemy session for the graph database
+        _custom_session: SQLAlchemy session for the custom database
     """
     def __init__(self, db_path: str, graph_path: str, custom_path: str) -> None:
         """
-        Initializes the DataServer with database paths.
+        Initializes the DataServer with database sessions.
 
         Args:
             db_path (str): Path to the main database.
             graph_path (str): Path to the graph database.
             custom_path (str): Path to an additional database.
         """
-        self._db = db_path
-        self._graph = graph_path
-        self._custom = custom_path
+        self._db_session = init_db(f'sqlite:///{db_path}')()
+        self._graph_session = init_db(f'sqlite:///{graph_path}')()
+        self._custom_session = init_db(f'sqlite:///{custom_path}')()
 
     def serve_erd(self, graph_id: int) -> Dict:
         """
@@ -42,7 +44,7 @@ class DataServer:
         Returns:
             dict: Adjacency list of the graph.
         """
-        erd = Visualizer(self._graph)
+        erd = Visualizer(self._graph_session)
         return erd.get_adj_list(graph_id)
 
     def serve_table(self, db_name: str, table: str) ->List[tuple]:
@@ -56,100 +58,86 @@ class DataServer:
         db_path = PATHS[db_name]
         return get_table_info(table, db_path)
 
-    def serve_time_series(self, restrs: List[str] = [], database: str = 'covid.db', table: str = None) -> List[str]:
+    def serve_time_series(self, restrs: List[str] = [], database: str = 'covid.db', table: str = None) -> List[tuple]:
         """
-        Retrieves time-series data from the specified database and table.
+        Retrieves time-series data using SQLAlchemy.
 
         Args:
-            restrs (list[str], optional): List of specific restrictions to filter by.
-            database (str, optional): Name of the database to query. Defaults to 'covid.db'.
-            table (str, optional): Name of the table to query. If None, uses default COVID tables.
+            restrs (list[str]): List of specific restrictions to filter by.
+            database (str): Name of the database to query. Defaults to 'covid.db'.
+            table (str): Name of the table to query. If None, uses default COVID tables.
 
         Returns:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
-        db_path = PATHS.get(database)
-        if not db_path:
-            return []
-
         if database == 'covid.db' and not table:
-            # Use the original COVID-19 database queries
-            if not restrs:
-                query = """
-                        SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
-                        FROM DailyRestriction
-                        JOIN Date ON DailyRestriction.date_id = Date.date_id
-                        GROUP BY Date.date;
-                        """
-                return query_db(query, db_path)
+            query = self._db_session.query(
+                Date.date,
+                func.sum(DailyRestriction.in_place).label('total_restrictions')
+            ).join(DailyRestriction)
 
-            placeholders = ', '.join(['?'] * len(restrs))
-            query = f"""
-                SELECT Date.date, SUM(DailyRestriction.in_place) AS total_restrictions
-                FROM DailyRestriction
-                JOIN Date ON DailyRestriction.date_id = Date.date_id
-                JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
-                WHERE Restriction.restriction IN ({placeholders})
-                GROUP BY Date.date;
-            """
-            return query_db(query, db_path, restrs)
-        elif table:
-            # For other databases or specific tables, use a simple time series query
-            query = f"""
-                SELECT time, measured_value
-                FROM {table}
-                ORDER BY time;
-            """
-            return query_db(query, db_path)
+            if restrs:
+                query = query.join(DailyRestriction.restriction).filter(
+                    Restriction.restriction.in_(restrs)
+                )
+
+            return query.group_by(Date.date).all()
+        
+        elif table and database in PATHS:
+            session = init_db(f'sqlite:///{PATHS[database]}')()
+            # For custom tables, we need to use the table object dynamically
+            from sqlalchemy import Table, MetaData
+            metadata = MetaData()
+            table_obj = Table(table, metadata, autoload_with=session.bind)
+            
+            result = session.query(
+                table_obj.c.time,
+                table_obj.c.measured_value
+            ).order_by(table_obj.c.time).all()
+            
+            session.close()
+            return result
         
         return []
 
-    def serve_restr_distr(self, end_date: str = None) -> List[tuple[str]]:
+    def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """
-        Fetches the distribution of restrictions up to a specific date.
+        Fetches the distribution of restrictions using SQLAlchemy.
 
         Args:
-            end_date (str, optional): The latest date to include in the distribution.
-                                      If None, returns the full distribution.
+            end_date (str): The latest date to include in the distribution.
 
         Returns:
             list[tuple]: List of tuples containing restriction types and their frequency.
         """
-        if end_date is not None:
-            query = """
-                    SELECT Restriction.restriction AS restriction, SUM(DailyRestriction.in_place) AS total_restrictions
-                    FROM DailyRestriction
-                    JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
-                    WHERE date_id <= (SELECT date_id FROM Date WHERE date = ?)
-                    GROUP BY Restriction.restriction;
-                    """
-            return query_db(query, self._db, (end_date,))
-        else:
-            query = """
-                    SELECT Restriction.restriction AS restriction, SUM(DailyRestriction.in_place) AS total_restrictions
-                    FROM DailyRestriction
-                    JOIN Restriction ON DailyRestriction.restriction_id = Restriction.restriction_id
-                    GROUP BY Restriction.restriction;
-                    """
-            return query_db(query, self._db)
+        query = self._db_session.query(
+            Restriction.restriction,
+            func.sum(DailyRestriction.in_place).label('total_restrictions')
+        ).join(DailyRestriction)
 
-    def serve_timeline(self) -> List[tuple[str]]:
+        if end_date:
+            date_id = self._db_session.query(Date.date_id).filter(Date.date == end_date).scalar()
+            if date_id:
+                query = query.join(DailyRestriction.date).filter(Date.date_id <= date_id)
+
+        return query.group_by(Restriction.restriction).all()
+
+    def serve_timeline(self) -> List[tuple]:
         """
-        Retrieves a timeline of restrictions along with their data sources.
+        Retrieves a timeline of restrictions using SQLAlchemy.
 
         Returns:
             List[tuple]: List of tuples with (date, source name, source URL).
         """
-        query = """
-                SELECT DISTINCT 
-                    d.date AS date_value, 
-                    s.name AS source_name, 
-                    s.source AS source_url
-                FROM SummaryRestriction sr
-                JOIN Date d ON sr.date_id = d.date_id
-                JOIN Source s ON sr.source_id = s.source_id;
-                """
-        return query_db(query, self._db)
+        return self._db_session.query(
+            Date.date.label('date_value'),
+            Source.name.label('source_name'),
+            Source.source.label('source_url')
+        ).join(
+            SummaryRestriction, Date.date_id == SummaryRestriction.date_id
+        ).join(
+            Source, SummaryRestriction.source_id == Source.source_id
+        ).distinct().all()
 
     @staticmethod
     def serve_second_series(db_name: str, table_name: str) -> List[str]:
@@ -173,27 +161,33 @@ class DataServer:
 
     def get_restrictions(self) -> List[str]:
         """
-        Retrieves a list of all available restrictions.
+        Retrieves a list of all available restrictions using SQLAlchemy.
 
         Returns:
             List[str]: List of restriction names.
         """
-        query = "SELECT restriction FROM Restriction ORDER BY restriction;"
-        result = query_db(query, self._db)
-        return [r[0] for r in result] if result else []
+        return [r[0] for r in self._db_session.query(
+            Restriction.restriction
+        ).order_by(Restriction.restriction).all()]
 
     def get_date_range(self) -> Tuple[str, str]:
         """
-        Retrieves the earliest and latest dates from the Date table.
+        Retrieves the earliest and latest dates using SQLAlchemy.
 
         Returns:
             Tuple[str, str]: A tuple containing (earliest_date, latest_date).
         """
-        query = """
-            SELECT MIN(date), MAX(date)
-            FROM Date;
-        """
-        result = query_db(query, self._db)
+        result = self._db_session.query(
+            func.min(Date.date),
+            func.max(Date.date)
+        ).first()
+        
         if result and result[0]:
-            return result[0]
-        return ('', '')  # Return empty strings if no dates found
+            return result
+        return ('', '')
+
+    def __del__(self):
+        """Cleanup database sessions."""
+        self._db_session.close()
+        self._graph_session.close()
+        self._custom_session.close()

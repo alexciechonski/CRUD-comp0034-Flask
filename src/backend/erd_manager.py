@@ -8,11 +8,14 @@ This module provides two classes:
    and table deletion, with integration into a graph database.
 """
 import sqlite3
-from typing import Any
+from typing import Any, Dict, List
 from collections import defaultdict
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, inspect, Date
+from sqlalchemy.orm import sessionmaker
 from src.utils import create_table, delete_table, query_db
 from src.config import PATHS
 from src.frontend.input_validation import Validator as v
+from src.backend.models import Base, create_custom_table
 
 class Visualizer:
     """
@@ -94,70 +97,81 @@ class Visualizer:
 
 class CRUD:
     """
-    A class for performing Create, Read, Update, and Delete (CRUD) operations
-    on an SQLite database while maintaining a graph-based representation.
+    Handles Create, Read, Update, and Delete operations for database tables.
 
     Attributes:
-        db_name (str): The name of the database.
-        _db (str): Path to the main database.
-        _graph (str): Path to the graph database.
-        last_node_id (int): The last node ID used in the graph.
+        db_name (str): Name of the database to operate on.
+        engine: SQLAlchemy engine instance.
+        Session: SQLAlchemy session factory.
     """
     def __init__(self, db_name: str) -> None:
         """
-        Initializes the CRUD operations for a specific database.
+        Initializes CRUD with a database name.
 
         Args:
-            db_name (str): The name of the database being managed.
+            db_name (str): Name of the database to operate on.
         """
         self.db_name = db_name
-        self._db = PATHS[self.db_name]
-        self._graph = PATHS["graph.db"]
-        self.last_node_id = query_db("SELECT node_id FROM Nodes", self._graph)[-1][0]
+        self.engine = create_engine(f'sqlite:///{PATHS[db_name]}')
+        self.Session = sessionmaker(bind=self.engine)
 
     def add_table(self, table_name: str, graph_id: int) -> None:
         """
-        Creates a new table in the database and registers it as a node in the graph database.
+        Creates a new table in the database.
 
         Args:
-            table_name (str): The name of the table to create.
-            graph_id (int): The graph ID to associate with the table.
+            table_name (str): Name of the table to create.
+            graph_id (int): ID for the graph representation.
 
         Raises:
-            ValueError: If table already exists or validation fails.
+            ValueError: If table already exists.
         """
-        # Validate table creation
         if not v.val_create_table(self.db_name, table_name):
             raise ValueError(f"Table {table_name} already exists")
 
-        cols = {
-            "id": "INTEGER PRIMARY KEY",
-            "time": "TEXT NOT NULL",
-            "measured_value": "INTEGER NOT NULL"
-        }
-        create_table(self._db, table_name, cols)
-        # add node to graph db
-        self.last_node_id += 1
-        with sqlite3.connect(self._graph) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO Nodes (node_id, node_name, graph_id) VALUES (?, ?, ?)",
-                (self.last_node_id, table_name, graph_id)
-            )
-            conn.commit()
+        # Create a basic table model with id, time, and measured_value columns
+        columns = [
+            ('time', 'date', 'NOT NULL'),
+            ('measured_value', 'float', 'NOT NULL')
+        ]
+        
+        # Create the table model
+        table_model = create_custom_table(table_name, columns)
+        
+        # Create the table in the database
+        table_model.__table__.create(self.engine)
 
-    def insert_data(self, table_name: str, data: list[dict]) -> None:
+    def remove_table(self, database: str, table_name: str) -> None:
         """
-        Inserts data into an SQLite table.
+        Removes a table from the database.
+
+        Args:
+            database (str): Name of the database.
+            table_name (str): Name of the table to remove.
+
+        Raises:
+            ValueError: If table is immutable or doesn't exist.
+        """
+        if not v.val_delete_table(database, table_name):
+            raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
+
+        metadata = MetaData()
+        # Reflect the table
+        table = Table(table_name, metadata, autoload_with=self.engine)
+        # Drop the table
+        table.drop(self.engine)
+
+    def insert_data(self, table_name: str, data: List[Dict]) -> None:
+        """
+        Inserts data into a table using SQLAlchemy.
 
         Args:
             table_name (str): Name of the table to insert data into.
-            data (list[dict]): List of dictionaries, each representing a row of data.
+            data (List[Dict]): List of dictionaries containing the data to insert.
 
         Raises:
             ValueError: If table is immutable or schema validation fails.
         """
-        # Validate if data can be inserted into this table
         if not v.val_insert(self.db_name, table_name):
             raise ValueError(f"Cannot insert data into table {table_name} as it is immutable")
 
@@ -169,52 +183,35 @@ class CRUD:
         if not v.val_schema(df):
             raise ValueError("Data schema does not match the required schema")
 
-        with sqlite3.connect(self._db) as conn:
-            cursor = conn.cursor()
-            if not data:
-                return
-
-            # Get column names from the first row
-            columns = list(data[0].keys())
-            placeholders = ','.join(['?' for _ in columns])
-            columns_str = ','.join(columns)
+        session = self.Session()
+        try:
+            # Get table model
+            metadata = MetaData()
+            table = Table(table_name, metadata, autoload_with=self.engine)
             
-            # Prepare the insert query
-            insert_sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-            
-            try:
-                for row in data:
-                    values = [row[col] for col in columns]
-                    cursor.execute(insert_sql, values)
-                print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
-            except sqlite3.Error as err:
-                print(f"An error occurred: {err}")
-                raise
-            finally:
-                conn.commit()
+            # Insert data
+            session.execute(table.insert(), data)
+            session.commit()
+            print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
-    @staticmethod
-    def remove_table(db_name: str, table: str) -> None:
+    def get_tables(self) -> List[str]:
         """
-        Removes a table from the database and deletes its corresponding node
-        from the graph database.
+        Gets a list of all tables in the database.
 
-        Args:
-            db_name (str): The name of the database.
-            table (str): The name of the table to be removed.
-
-        Raises:
-            ValueError: If table is immutable or validation fails.
+        Returns:
+            List[str]: List of table names.
         """
-        # Validate table deletion
-        if not v.val_delete_table(db_name, table):
-            raise ValueError(f"Table {table} cannot be deleted as it is immutable")
+        inspector = inspect(self.engine)
+        return inspector.get_table_names()
 
-        delete_table(db_name, table)
-        with sqlite3.connect(PATHS["graph.db"]) as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM Nodes WHERE node_name = ?;", (table,))
-            conn.commit()
+    def __del__(self):
+        """Cleanup database connection."""
+        self.engine.dispose()
 
 if __name__ == "__main__":
     pass
