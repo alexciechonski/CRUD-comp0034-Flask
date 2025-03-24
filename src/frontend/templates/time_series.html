@@ -299,6 +299,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // COVID restrictions trace
             if (validCovidData.length > 0) {
+                // Sort COVID data by date
+                validCovidData.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+                
                 traces.push({
                     x: validCovidData.map(d => new Date(d[0])),
                     y: validCovidData.map(d => d[1]),
@@ -318,12 +321,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Custom data trace
             if (validCustomData.length > 0) {
+                // Process and sort custom data
+                const processedData = validCustomData
+                    .map(d => {
+                        let date;
+                        // Try to parse the date in different formats
+                        if (d[0].includes('/')) {
+                            // M/YYYY format (e.g., "3/2020")
+                            const [month, year] = d[0].split('/');
+                            date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                        } else {
+                            // ISO format or other standard format
+                            date = new Date(d[0]);
+                        }
+                        
+                        // Verify we have a valid date
+                        if (isNaN(date.getTime())) {
+                            console.error('Invalid date:', d[0]);
+                            return null;
+                        }
+                        
+                        return [date, d[1] / 1000];
+                    })
+                    .filter(d => d !== null) // Remove any invalid dates
+                    .sort((a, b) => a[0] - b[0]); // Sort by date
+
+                // Format table name for display
+                const formattedTableName = selectedTable
+                    .split(/(?=[A-Z])/)
+                    .join(' ')
+                    .replace(/^\w/, c => c.toUpperCase());
+
+                console.log('Processed custom data:', processedData);
+
                 traces.push({
-                    x: validCustomData.map(d => new Date(d[0])),
-                    y: validCustomData.map(d => d[1]),
+                    x: processedData.map(d => d[0]),
+                    y: processedData.map(d => d[1]),
                     type: 'scatter',
                     mode: 'lines+markers',
-                    name: `${selectedTable} Data`,
+                    name: `${formattedTableName} (thousands)`,
                     line: {
                         color: 'rgb(255, 99, 132)',
                         width: 2
@@ -337,28 +373,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const layout = {
                 title: {
-                    text: selectedDb === 'covid.db' ? 
-                        'COVID-19 Restrictions Over Time' :
-                        'Restrictions and Custom Data Over Time',
+                    text: validCustomData.length > 0 ? 
+                        'Restrictions and Custom Data Over Time' :
+                        'COVID-19 Restrictions Over Time',
                     font: { size: 18 }
                 },
-                height: 500,  // Increased height for better spacing
+                height: 500,
                 xaxis: {
                     title: 'Date',
                     tickangle: -45,
                     tickformat: '%b %Y',
                     type: 'date',
-                    tickfont: { size: 10 }  // Smaller tick font size
+                    tickfont: { size: 10 }
                 },
                 yaxis: {
                     title: 'Number of Active Restrictions',
-                    titlefont: { color: 'rgb(75, 192, 192)' },
+                    titlefont: { color: 'rgb(75, 192, 192)', size: 12 },
                     tickfont: { color: 'rgb(75, 192, 192)' },
-                    side: 'left',
-                    titlefont: { size: 12 }  // Adjusted title font size
+                    side: 'left'
                 },
                 yaxis2: validCustomData.length > 0 ? {
-                    title: 'Measured Value',
+                    title: `${selectedTable.split(/(?=[A-Z])/).join(' ')} (thousands)`,
                     titlefont: { color: 'rgb(255, 99, 132)', size: 12 },
                     tickfont: { color: 'rgb(255, 99, 132)' },
                     overlaying: 'y',
@@ -439,10 +474,23 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             tableSelect.innerHTML = '<option value="">Select a table...</option>';
             tableSelect.disabled = true;
+            // Clear the chart when no database is selected
+            Plotly.newPlot(plotlyChart, [], {
+                title: {
+                    text: 'Select a database and table to view data',
+                    font: { size: 16 }
+                },
+                height: 400
+            });
         }
     });
 
-    tableSelect.addEventListener('change', updateChart);
+    tableSelect.addEventListener('change', function() {
+        // Clear existing chart before updating
+        Plotly.purge(plotlyChart);
+        updateChart();
+    });
+    
     restrictionSelect.addEventListener('change', updateChart);
 });
 </script>

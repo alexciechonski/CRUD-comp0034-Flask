@@ -77,7 +77,7 @@ class DataServer:
                 # Base query joining Date and DailyRestriction
                 query = self._db_session.query(
                     Date.date,
-                    func.sum(DailyRestriction.in_place).label('total_restrictions')
+                    func.count(DailyRestriction.restriction_id).filter(DailyRestriction.in_place == 1).label('total_restrictions')
                 ).join(
                     DailyRestriction,
                     Date.date_id == DailyRestriction.date_id
