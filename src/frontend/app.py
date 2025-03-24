@@ -619,5 +619,53 @@ def regression_data():
             }
         }), 500
 
+@app.route('/api/analyze')
+def analyze_data():
+    try:
+        # Get parameters
+        prompt = request.args.get('prompt')
+        selected_restrictions = request.args.getlist('restrictions[]')
+        database = request.args.get('database', 'covid.db')
+        table = request.args.get('table')
+
+        if not prompt:
+            return jsonify({'error': 'Missing prompt parameter'}), 400
+        if not database:
+            return jsonify({'error': 'Missing database parameter'}), 400
+        if database != 'covid.db' and not table:
+            return jsonify({'error': 'Missing table parameter'}), 400
+
+        # Create Model instance and get correlation
+        try:
+            model = Model(selected_restrictions, database, table)
+            correlation = model.get_correlation()
+            
+            # Create system prompt with correlation information
+            variable = table if table else "restrictions"
+            system_prompt = f"The correlation between number of restrictions and {variable} is {correlation:.3f}. "
+            
+            # Get AI response
+            from src.utils import get_resp
+            response = get_resp(system_prompt + prompt)
+            
+            return jsonify({
+                'analysis': response,
+                'correlation': correlation
+            })
+
+        except Exception as model_error:
+            print(f"Model error: {str(model_error)}")
+            return jsonify({
+                'error': 'Failed to analyze data',
+                'details': str(model_error)
+            }), 500
+
+    except Exception as e:
+        print(f"Error in analyze_data: {str(e)}")
+        return jsonify({
+            'error': 'Failed to process analysis request',
+            'details': str(e)
+        }), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
