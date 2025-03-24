@@ -42,6 +42,7 @@
                 <p>Loading data...</p>
             </div>
             <div id="plotlyChart"></div>
+            <div id="regressionChart" style="margin-top: 2rem;"></div>
         </div>
     </div>
 </div>
@@ -138,7 +139,7 @@
         100% { transform: rotate(360deg); }
     }
 
-    #plotlyChart {
+    #plotlyChart, #regressionChart {
         width: 100%;
         height: 400px;
     }
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const restrictionSelect = document.getElementById('restrictionSelect');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const plotlyChart = document.getElementById('plotlyChart');
+    const regressionChart = document.getElementById('regressionChart');
 
     // Constants
     const NON_GRAPHABLE = ['Date', 'Week', 'Source', 'Restriction', 'SummaryRestriction', 'DailyRestriction', 'WeeklyRestriction'];
@@ -222,6 +224,112 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error:', error);
             restrictionSelect.innerHTML = '<option value="" disabled>Error loading restrictions</option>';
+        }
+    }
+
+    async function updateRegressionChart(selectedDb, selectedTable, selectedRestrictions) {
+        if (!selectedDb || (selectedDb !== 'covid.db' && !selectedTable)) return;
+
+        try {
+            const regressionUrl = new URL('/api/regression', window.location.origin);
+            regressionUrl.searchParams.append('database', selectedDb);
+            if (selectedTable) {
+                regressionUrl.searchParams.append('table', selectedTable);
+            }
+            if (selectedRestrictions.length > 0) {
+                selectedRestrictions.forEach(r => regressionUrl.searchParams.append('restrictions[]', r));
+            }
+
+            const response = await fetch(regressionUrl);
+            if (!response.ok) {
+                throw new Error('Failed to load regression data');
+            }
+
+            const data = await response.json();
+            if (!data || !data.points || data.points.length === 0) {
+                Plotly.newPlot(regressionChart, [], {
+                    title: {
+                        text: 'No regression data available',
+                        font: { size: 16 }
+                    },
+                    height: 400
+                });
+                return;
+            }
+
+            // Format table name for display
+            const formattedTableName = selectedTable
+                ? selectedTable.split(/(?=[A-Z])/).join(' ').replace(/^\w/, c => c.toUpperCase())
+                : 'Custom Data';
+
+            // Create scatter plot of actual points
+            const scatterTrace = {
+                x: data.points.map(p => p[0]),
+                y: data.points.map(p => p[1]),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Data Points',
+                marker: {
+                    color: 'rgb(70, 130, 180)',
+                    size: 8
+                }
+            };
+
+            // Create regression line
+            const regressionTrace = {
+                x: [Math.min(...data.points.map(p => p[0])), Math.max(...data.points.map(p => p[0]))],
+                y: [data.slope * Math.min(...data.points.map(p => p[0])) + data.intercept,
+                   data.slope * Math.max(...data.points.map(p => p[0])) + data.intercept],
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Regression Line',
+                line: {
+                    color: 'rgb(255, 99, 132)',
+                    width: 2
+                }
+            };
+
+            const layout = {
+                title: {
+                    text: `Regression Analysis (r = ${data.correlation.toFixed(3)})`,
+                    font: { size: 18 }
+                },
+                xaxis: {
+                    title: 'Number of Active Restrictions',
+                    titlefont: { size: 12 },
+                    tickfont: { size: 10 }
+                },
+                yaxis: {
+                    title: `${formattedTableName} Value (thousands)`,
+                    titlefont: { size: 12 },
+                    tickfont: { size: 10 }
+                },
+                showlegend: true,
+                legend: {
+                    x: 0.05,
+                    y: 0.95
+                },
+                hovermode: 'closest'
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['lasso2d', 'select2d']
+            };
+
+            Plotly.newPlot(regressionChart, [scatterTrace, regressionTrace], layout, config);
+
+        } catch (error) {
+            console.error('Error:', error);
+            Plotly.newPlot(regressionChart, [], {
+                title: {
+                    text: 'Error loading regression data: ' + error.message,
+                    font: { color: 'red', size: 16 }
+                },
+                height: 400
+            });
         }
     }
 
@@ -447,6 +555,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             Plotly.newPlot(plotlyChart, traces, layout, config);
 
+            // After updating the time series chart, update the regression chart
+            await updateRegressionChart(selectedDb, selectedTable, selectedRestrictions);
+
         } catch (error) {
             console.error('Error:', error);
             Plotly.newPlot(plotlyChart, [], {
@@ -462,19 +573,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Event Listeners
-    databaseSelect.addEventListener('change', function() {
+    databaseSelect.addEventListener('change', async function() {
         if (this.value) {
             if (this.value !== 'covid.db') {
-                loadTables(this.value);
+                await loadTables(this.value);
             } else {
                 tableSelect.innerHTML = '<option value="">No table needed for COVID database</option>';
                 tableSelect.disabled = true;
-                updateChart();  // Automatically update for COVID database
+                const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
+                await updateChart();  // Update time series chart
+                await updateRegressionChart(this.value, null, selectedRestrictions);  // Update regression chart
             }
         } else {
             tableSelect.innerHTML = '<option value="">Select a table...</option>';
             tableSelect.disabled = true;
-            // Clear the chart when no database is selected
+            // Clear both charts when no database is selected
             Plotly.newPlot(plotlyChart, [], {
                 title: {
                     text: 'Select a database and table to view data',
@@ -482,16 +595,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 height: 400
             });
+            Plotly.newPlot(regressionChart, [], {
+                title: {
+                    text: 'Select a database and table to view regression',
+                    font: { size: 16 }
+                },
+                height: 400
+            });
         }
     });
 
-    tableSelect.addEventListener('change', function() {
-        // Clear existing chart before updating
+    tableSelect.addEventListener('change', async function() {
+        // Clear existing charts before updating
         Plotly.purge(plotlyChart);
-        updateChart();
+        Plotly.purge(regressionChart);
+        
+        if (this.value) {
+            const selectedDb = databaseSelect.value;
+            const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
+            await updateChart();  // Update time series chart
+            await updateRegressionChart(selectedDb, this.value, selectedRestrictions);  // Update regression chart
+        }
     });
     
-    restrictionSelect.addEventListener('change', updateChart);
+    restrictionSelect.addEventListener('change', async function() {
+        const selectedDb = databaseSelect.value;
+        const selectedTable = tableSelect.value;
+        const selectedRestrictions = Array.from(this.selectedOptions).map(opt => opt.value);
+        await updateChart();  // Update time series chart
+        await updateRegressionChart(selectedDb, selectedTable, selectedRestrictions);  // Update regression chart
+    });
 });
 </script>
 {% endblock %} 

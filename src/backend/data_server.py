@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.backend.models import init_db, Date, Restriction, DailyRestriction, Source, SummaryRestriction
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
+import pandas as pd
 
 class DataServer:
     """
@@ -174,8 +175,7 @@ class DataServer:
             Source, SummaryRestriction.source_id == Source.source_id
         ).distinct().all()
 
-    @staticmethod
-    def serve_second_series(db_name: str, table_name: str) -> List[str]:
+    def serve_second_series(self, db_name: str, table_name: str) -> List[tuple]:
         """
         Fetches time series data from a specific table and converts time values.
 
@@ -186,9 +186,21 @@ class DataServer:
         Returns:
             List[tuple]: Processed time series data as (converted_date, measured_value).
         """
+        if not db_name or not table_name:
+            print("Missing database name or table name")
+            return []
+
         session = None
         try:
-            session = init_db(f'sqlite:///{PATHS[db_name]}')()
+            # Use the appropriate session based on the database
+            if db_name == 'covid.db':
+                session = self._db_session
+            elif db_name == 'custom.db':
+                session = self._custom_session
+            else:
+                print(f"Unknown database: {db_name}")
+                return []
+
             from sqlalchemy import Table, MetaData
             metadata = MetaData()
             table_obj = Table(table_name, metadata, autoload_with=session.bind)
@@ -198,19 +210,35 @@ class DataServer:
                 table_obj.c.measured_value
             ).order_by(table_obj.c.time).all()
             
-            try:
-                from src.utils import convert_to_date
-                processed_data = [(convert_to_date(row[0]), row[1]) for row in result]
-            except ValueError:
-                processed_data = [(row[0], row[1]) for row in result]
+            if not result:
+                print(f"No data found in table {table_name}")
+                return []
+
+            processed_data = []
+            for row in result:
+                try:
+                    # Handle different date formats
+                    date_str = str(row[0])
+                    if '/' in date_str:
+                        # M/YYYY format
+                        month, year = date_str.split('/')
+                        from datetime import datetime
+                        date = datetime(int(year), int(month), 1)
+                    else:
+                        # Try parsing as ISO format
+                        date = pd.to_datetime(date_str)
+                    
+                    value = float(row[1]) if row[1] is not None else 0
+                    processed_data.append((date, value))
+                except Exception as e:
+                    print(f"Error processing row {row}: {str(e)}")
+                    continue
             
-            return processed_data
+            return sorted(processed_data, key=lambda x: x[0])
+            
         except Exception as e:
             print(f"Error in serve_second_series: {str(e)}")
-            raise
-        finally:
-            if session:
-                session.close()
+            return []
 
     def get_restrictions(self) -> List[str]:
         """

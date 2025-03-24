@@ -21,17 +21,19 @@ import base64
 import sqlite3
 import plotly.express as px
 import plotly.io as pio
+import numpy as np
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from flask import Flask, render_template, url_for, jsonify
+from flask import Flask, render_template, url_for, jsonify, send_file
 from src.backend.data_server import DataServer
 from src.config import PATHS
 from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases, create_table
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
 from src.frontend.input_validation import Validator as v
+from src.prediction.pred import Model
 
 # Debug: Print the paths
 print("Database paths:")
@@ -546,6 +548,76 @@ def insert_data_endpoint():
         print(f"Unexpected error: {str(e)}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
+
+@app.route('/api/regression')
+def regression_data():
+    try:
+        # Get parameters
+        selected_restrictions = request.args.getlist('restrictions[]')
+        database = request.args.get('database', 'covid.db')
+        table = request.args.get('table')
+
+        print(f"Regression request with: database={database}, table={table}, restrictions={selected_restrictions}")
+
+        if not database:
+            return jsonify({'error': 'Missing database parameter'}), 400
+            
+        # Only require table parameter for non-COVID database
+        if database != 'covid.db' and not table:
+            return jsonify({'error': 'Missing table parameter'}), 400
+
+        # Create Model instance and get regression data
+        try:
+            model = Model(selected_restrictions, database, table)
+            df = model.prepare()
+            
+            if df.empty:
+                return jsonify({
+                    'error': 'No data available for regression analysis',
+                    'details': 'Could not find matching data points between restrictions and custom data'
+                }), 404
+
+            # Calculate regression line
+            x = df['restr_value'].values
+            y = df['custom_value'].values / 1000  # Convert to thousands
+            
+            if len(x) < 2:
+                return jsonify({
+                    'error': 'Insufficient data for regression analysis',
+                    'details': 'Need at least 2 data points to calculate regression'
+                }), 400
+            
+            # Calculate correlation coefficient
+            correlation = np.corrcoef(x, y)[0, 1]
+            
+            # Calculate regression line parameters
+            slope, intercept = np.polyfit(x, y, 1)
+            
+            return jsonify({
+                'points': list(zip(x.tolist(), y.tolist())),
+                'slope': float(slope),
+                'intercept': float(intercept),
+                'correlation': float(correlation)
+            })
+
+        except Exception as model_error:
+            print(f"Model error: {str(model_error)}")
+            return jsonify({
+                'error': 'Failed to calculate regression',
+                'details': str(model_error)
+            }), 500
+
+    except Exception as e:
+        print(f"Error in regression_data: {str(e)}")
+        return jsonify({
+            'error': 'Failed to process regression request',
+            'details': str(e),
+            'params': {
+                'database': database,
+                'table': table,
+                'restrictions': selected_restrictions
+            }
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
