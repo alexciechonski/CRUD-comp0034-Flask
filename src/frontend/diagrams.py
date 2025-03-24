@@ -171,7 +171,13 @@ class Diagrams:
             graph_path (str): Path to the graph database.
             custom_path (str): Path to a custom database.
         """
-        self.server = DataServer(db_path, graph_path, custom_path)
+        self.db_path = db_path
+        self.graph_path = graph_path
+        self.custom_path = custom_path
+
+    def get_data_server(self) -> DataServer:
+        """Create a new DataServer instance for each method call"""
+        return DataServer(self.db_path, self.graph_path, self.custom_path)
 
     @staticmethod
     def create_legend_base64(legend: Dict[str, str]) -> str:
@@ -215,7 +221,7 @@ class Diagrams:
         Returns:
             go.Figure: A Plotly figure representing the ERD.
         """
-        adj = self.server.serve_erd(graph_id)
+        adj = self.get_data_server().serve_erd(graph_id)
         legend = {"one-n": "salmon", "zero-one": "black", "zero-n": "darkblue", "one-only": "lime"}
         legend_image_base64 = self.create_legend_base64(legend)
 
@@ -262,7 +268,7 @@ class Diagrams:
         Returns:
             go.Figure: A Plotly table figure.
         """
-        data = self.server.serve_table(db_name, table_name)
+        data = self.get_data_server().serve_table(db_name, table_name)
         table_df = pd.DataFrame(
             data,
             columns=['Column ID', 'Field Name', 'Data Type', 'Not Null', 'Default', 'Primary Key']
@@ -297,59 +303,54 @@ class Diagrams:
         Returns:
             dict: A dictionary defining the plot data and layout.
         """
-        sql = self.server.serve_time_series(restrs)
-        x_line, y_line = zip(*sql)
+        data_server = self.get_data_server()
+        try:
+            sql = data_server.serve_time_series(restrs)
+            x_line, y_line = zip(*sql)
 
-        if custom:
-            if not table_not_empty(db_name, table):
-                x_scatter, y_scatter = [], []
+            if custom:
+                if not table_not_empty(db_name, table):
+                    x_scatter, y_scatter = [], []
+                else:
+                    custom_data = data_server.serve_second_series(db_name, table)
+                    x_scatter, y_scatter = zip(*custom_data)
             else:
-                custom_data = self.server.serve_second_series(db_name, table)
-                x_scatter, y_scatter = zip(*custom_data)
-        else:
-            x_scatter, y_scatter = [], []
+                x_scatter, y_scatter = [], []
 
-        return {
-            "data": [
-                {
-                    "x": x_line,
-                    "y": y_line,
-                    "type": "line",
-                    "name": "Restrictions",
-                    "yaxis": "y"
-                },
-                {
-                    "x": x_scatter,
-                    "y": y_scatter,
-                    "type": "scatter",
-                    "mode": "lines+markers",
-                    "name": "custom Series",
-                    "yaxis": "y2"
-                }
-            ],
-            "layout": {
-                "title": "Time Series Plot",
-                "yaxis": {
-                    "title": "Restriction Value",
-                    "side": "left"
-                },
-                "yaxis2": {
-                    "title": "custom Series Value",
-                    "overlaying": "y",
-                    "side": "right",
-                    "showgrid": False
-                },
-                "xaxis": {
-                    "title": "Time"
-                },
-                "legend": {
-                    "x": 1.05,
-                    "y": 1,
-                    "xanchor": "left",
-                    "yanchor": "top"
+            return {
+                "data": [
+                    {
+                        "x": x_line,
+                        "y": y_line,
+                        "type": "line",
+                        "name": "Restriction Series",
+                        "yaxis": "y"
+                    },
+                    {
+                        "x": x_scatter,
+                        "y": y_scatter,
+                        "type": "scatter",
+                        "name": "Custom Series",
+                        "yaxis": "y2"
+                    }
+                ],
+                "layout": {
+                    "title": "Time Series Plot",
+                    "yaxis": {
+                        "title": "Restrictions",
+                        "side": "left"
+                    },
+                    "yaxis2": {
+                        "title": "Custom",
+                        "side": "right",
+                        "overlaying": "y"
+                    }
                 }
             }
-        }
+        finally:
+            data_server._db_session.close()
+            data_server._graph_session.close()
+            data_server._custom_session.close()
 
     def correlation(
         self,
@@ -404,8 +405,14 @@ class Diagrams:
         Returns:
             go.Figure: A Plotly bar chart.
         """
-        restr, val = zip(*self.server.serve_restr_distr(final_date))
-        return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
+        data_server = self.get_data_server()
+        try:
+            restr, val = zip(*data_server.serve_restr_distr(final_date))
+            return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
+        finally:
+            data_server._db_session.close()
+            data_server._graph_session.close()
+            data_server._custom_session.close()
 
     def timeline(self) -> go.Figure:
         """
@@ -414,7 +421,7 @@ class Diagrams:
         Returns:
             go.Figure: A Plotly scatter plot with events.
         """
-        sql = self.server.serve_timeline()
+        sql = self.get_data_server().serve_timeline()
         date, event, url = zip(*sql)
 
         pattern = list(range(1, 10, 2)) + list(range(5, -10, -2))

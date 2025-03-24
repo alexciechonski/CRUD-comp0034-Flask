@@ -70,35 +70,70 @@ class DataServer:
         Returns:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
-        if database == 'covid.db' and not table:
-            query = self._db_session.query(
-                Date.date,
-                func.sum(DailyRestriction.in_place).label('total_restrictions')
-            ).join(DailyRestriction)
-
-            if restrs:
-                query = query.join(DailyRestriction.restriction).filter(
-                    Restriction.restriction.in_(restrs)
+        print(f"serve_time_series called with: database={database}, table={table}, restrictions={restrs}")
+        
+        if database == 'covid.db':
+            try:
+                # Base query joining Date and DailyRestriction
+                query = self._db_session.query(
+                    Date.date,
+                    func.sum(DailyRestriction.in_place).label('total_restrictions')
+                ).join(
+                    DailyRestriction,
+                    Date.date_id == DailyRestriction.date_id
                 )
 
-            return query.group_by(Date.date).all()
+                # Add restriction filter if restrictions are specified
+                if restrs:
+                    print(f"Filtering for restrictions: {restrs}")
+                    query = query.join(
+                        Restriction,
+                        DailyRestriction.restriction_id == Restriction.restriction_id
+                    ).filter(
+                        Restriction.restriction.in_(restrs)
+                    )
+
+                # Group by date and order by date
+                query = query.group_by(Date.date).order_by(Date.date)
+                
+                print("Executing query...")
+                result = query.all()
+                print(f"Query returned {len(result)} rows")
+                
+                if not result:
+                    print("No results found, returning default value")
+                    return [(None, 0)]
+                return result
+                
+            except Exception as e:
+                print(f"Error in serve_time_series (covid.db): {str(e)}")
+                raise
         
         elif table and database in PATHS:
-            session = init_db(f'sqlite:///{PATHS[database]}')()
-            # For custom tables, we need to use the table object dynamically
-            from sqlalchemy import Table, MetaData
-            metadata = MetaData()
-            table_obj = Table(table, metadata, autoload_with=session.bind)
-            
-            result = session.query(
-                table_obj.c.time,
-                table_obj.c.measured_value
-            ).order_by(table_obj.c.time).all()
-            
-            session.close()
-            return result
+            session = None
+            try:
+                session = init_db(f'sqlite:///{PATHS[database]}')()
+                # For custom tables, we need to use the table object dynamically
+                from sqlalchemy import Table, MetaData
+                metadata = MetaData()
+                table_obj = Table(table, metadata, autoload_with=session.bind)
+                
+                result = session.query(
+                    table_obj.c.time,
+                    table_obj.c.measured_value
+                ).order_by(table_obj.c.time).all()
+                
+                if not result:
+                    return [(None, 0)]
+                return result
+            except Exception as e:
+                print(f"Error in serve_time_series (custom db): {str(e)}")
+                raise
+            finally:
+                if session:
+                    session.close()
         
-        return []
+        return [(None, 0)]
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """
@@ -151,13 +186,31 @@ class DataServer:
         Returns:
             List[tuple]: Processed time series data as (converted_date, measured_value).
         """
-        query = f"SELECT time, measured_value FROM {table_name};"
-        raw_data = query_db(query, PATHS[db_name])
+        session = None
         try:
-            processed_data = [(convert_to_date(row[0]), row[1]) for row in raw_data]
-        except ValueError:
-            processed_data = [(row[0], row[1]) for row in raw_data]
-        return processed_data
+            session = init_db(f'sqlite:///{PATHS[db_name]}')()
+            from sqlalchemy import Table, MetaData
+            metadata = MetaData()
+            table_obj = Table(table_name, metadata, autoload_with=session.bind)
+            
+            result = session.query(
+                table_obj.c.time,
+                table_obj.c.measured_value
+            ).order_by(table_obj.c.time).all()
+            
+            try:
+                from src.utils import convert_to_date
+                processed_data = [(convert_to_date(row[0]), row[1]) for row in result]
+            except ValueError:
+                processed_data = [(row[0], row[1]) for row in result]
+            
+            return processed_data
+        except Exception as e:
+            print(f"Error in serve_second_series: {str(e)}")
+            raise
+        finally:
+            if session:
+                session.close()
 
     def get_restrictions(self) -> List[str]:
         """

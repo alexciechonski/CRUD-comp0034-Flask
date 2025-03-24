@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 import io
 import base64
 import sqlite3
+import plotly.express as px
+import plotly.io as pio
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -44,25 +46,33 @@ app = Flask(__name__,
 # Set a secret key for flash messages
 app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
 
-# Initialize DataServer and Diagrams
-data_server = DataServer(
-    db_path=PATHS['covid.db'],
-    graph_path=PATHS['graph.db'],
-    custom_path=PATHS['custom.db']
-)
-
+# Initialize Diagrams
 diagrams = Diagrams(
     db_path=PATHS['covid.db'],
     graph_path=PATHS['graph.db'],
     custom_path=PATHS['custom.db']
 )
 
+def get_data_server():
+    """Create a new DataServer instance for each request"""
+    return DataServer(
+        db_path=PATHS['covid.db'],
+        graph_path=PATHS['graph.db'],
+        custom_path=PATHS['custom.db']
+    )
+
 # Add caching for time series data
 @lru_cache(maxsize=32)
 def get_cached_time_series(database, table, restrictions_key):
     """Cache time series data to improve performance"""
     restrictions = () if restrictions_key == 'all' else tuple(restrictions_key.split(','))
-    return data_server.serve_time_series(restrictions, database=database, table=table)
+    data_server = get_data_server()
+    try:
+        return data_server.serve_time_series(restrictions, database=database, table=table)
+    finally:
+        data_server._db_session.close()
+        data_server._graph_session.close()
+        data_server._custom_session.close()
 
 # Routes
 @app.route('/')
@@ -248,40 +258,83 @@ def time_series_data():
         database = request.args.get('database', 'covid.db')
         table = request.args.get('table')
 
-        if not database or not table:
-            return jsonify({'error': 'Missing database or table parameter'}), 400
+        print(f"Received request with: database={database}, table={table}, restrictions={selected_restrictions}")
 
-        # Create a cache key for the restrictions
-        restrictions_key = 'all' if not selected_restrictions else ','.join(sorted(selected_restrictions))
-        
-        # Get data from cache or compute new
-        time_series_data = get_cached_time_series(database, table, restrictions_key)
-        
-        if not time_series_data:
-            return jsonify({'error': 'No data available'}), 404
+        if not database:
+            return jsonify({'error': 'Missing database parameter'}), 400
             
-        return jsonify(time_series_data)
+        # Only require table parameter for non-COVID database
+        if database != 'covid.db' and not table:
+            return jsonify({'error': 'Missing table parameter'}), 400
+
+        # Get a new data server instance
+        data_server = get_data_server()
+        try:
+            print(f"Fetching time series data...")
+            # For COVID database, table parameter should be None
+            if database == 'covid.db':
+                table = None
+            data = data_server.serve_time_series(selected_restrictions, database, table)
+            
+            # Convert SQLAlchemy objects to JSON-serializable format
+            formatted_data = []
+            for row in data:
+                if row[0] is not None:  # Skip null dates
+                    formatted_data.append([
+                        row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]),
+                        float(row[1]) if row[1] is not None else 0
+                    ])
+            
+            print(f"Returning {len(formatted_data)} data points")
+            return jsonify(formatted_data)
+        finally:
+            data_server._db_session.close()
+            data_server._graph_session.close()
+            data_server._custom_session.close()
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in time_series_data: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'params': {
+                'database': database,
+                'table': table,
+                'restrictions': selected_restrictions
+            }
+        }), 500
 
 @app.route('/restriction-distribution')
 def restriction_distribution():
     # Get the date range from the database
+    data_server = get_data_server()
     start_date, end_date = data_server.get_date_range()
     return render_template('restriction_distribution.html', start_date=start_date, end_date=end_date)
 
 @app.route('/api/restriction-distribution')
 def restriction_distribution_data():
-    # Get end date from query parameters
-    end_date = request.args.get('end_date', None)
-    # Get restriction distribution data as JSON with end date filter
-    restr_distr = data_server.serve_restr_distr(end_date=end_date)
-    
-    # Return empty list as valid response when no data is found
-    if restr_distr is None:
-        return jsonify([])
-        
-    return jsonify(restr_distr)
+    try:
+        # Get end date from query parameters
+        end_date = request.args.get('end_date', None)
+        # Get restriction distribution data
+        data_server = get_data_server()
+        try:
+            restr_distr = data_server.serve_restr_distr(end_date=end_date)
+            
+            # Convert SQLAlchemy Row objects to JSON-serializable format
+            formatted_data = []
+            for row in restr_distr:
+                formatted_data.append([
+                    str(row[0]),  # restriction name
+                    float(row[1]) if row[1] is not None else 0  # count
+                ])
+            
+            return jsonify(formatted_data)
+        finally:
+            data_server._db_session.close()
+            data_server._graph_session.close()
+            data_server._custom_session.close()
+    except Exception as e:
+        print(f"Error in restriction_distribution_data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/timeline')
 def timeline():
@@ -291,19 +344,32 @@ def timeline():
 @app.route('/api/timeline')
 def timeline_data():
     # Get timeline data as JSON
+    data_server = get_data_server()
     timeline_data = data_server.serve_timeline()
     return jsonify(timeline_data)
 
 @app.route('/api/restrictions')
 def get_restrictions():
     """Get list of all available restrictions"""
-    restrictions = data_server.get_restrictions()
-    return jsonify(restrictions)
+    data_server = get_data_server()
+    try:
+        restrictions = data_server.get_restrictions()
+        # Convert restriction names to strings to ensure JSON serialization
+        formatted_restrictions = [str(r) for r in restrictions]
+        return jsonify(formatted_restrictions)
+    except Exception as e:
+        print(f"Error in get_restrictions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        data_server._db_session.close()
+        data_server._graph_session.close()
+        data_server._custom_session.close()
 
 @app.route('/api/tables/<database>')
 def get_tables(database):
     """Get list of available tables for a given database"""
     try:
+        data_server = get_data_server()
         tables = show_tables(database)
         return jsonify(tables)
     except Exception as e:
@@ -326,6 +392,7 @@ def create_table_endpoint():
             return redirect(url_for('dataset', database=database))
 
         # Create a CRUD instance with the database name (not path)
+        data_server = get_data_server()
         crud = CRUD(database)
 
         # Generate a unique graph_id based on the number of databases
@@ -358,6 +425,7 @@ def delete_table_endpoint():
             return redirect(url_for('dataset', database=database))
 
         # Create a CRUD instance with the database name
+        data_server = get_data_server()
         crud = CRUD(database)
 
         # Delete the table using the CRUD remove_table method
@@ -417,6 +485,7 @@ def insert_data_endpoint():
                 return redirect(url_for('dataset', database=database))
 
         # Get the correct database path
+        data_server = get_data_server()
         db_path = PATHS.get(database)
         if not db_path:
             flash(f'Database {database} not found', 'error')
