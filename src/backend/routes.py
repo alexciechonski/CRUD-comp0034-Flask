@@ -91,9 +91,13 @@ def restriction_distribution():
     # Debug print final values
     print(f"Final values - labels: {labels}, data: {data}, error: {error}")
 
+    # Create a list of bar data by zipping labels and data
+    bars = list(zip(labels, data))
+    max_value = max(data) if data else 0
+
     return render_template('restriction_distribution.html',
-                         labels=labels,
-                         data=data,
+                         bars=bars,
+                         max_value=max_value,
                          total_restrictions=total_restrictions,
                          most_common=most_common,
                          most_common_count=most_common_count,
