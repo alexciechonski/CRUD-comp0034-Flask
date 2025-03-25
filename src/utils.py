@@ -277,6 +277,28 @@ def select_graphable_tables(database: str) -> List[str]:
     engine.dispose()
     return graphable
 
+def get_graphable_tables():
+    """
+    Get list of tables that can be graphed using SQLAlchemy.
+    Excludes tables from graph.db and includes debug prints.
+
+    Returns:
+        List[str]: List of table names that can be graphed.
+    """
+    res = []
+    databases = get_databases()
+    
+    for db in databases:
+        if db['value'] not in ['graph.db']:  # Check the 'value' key and exclude graph.db
+            try:
+                tables = select_graphable_tables(db['value'])
+                res.extend(tables)
+            except Exception as e:
+                print(f"Error processing {db['value']}: {str(e)}")  # Debug print
+    
+    res.sort()
+    return res
+
 def get_resp(prompt: str) -> str:
     """
     Generates a response from an AI model using the `ollama` library.
@@ -291,5 +313,4 @@ def get_resp(prompt: str) -> str:
     return response['message']['content'] if 'message' in response else "No response"
 
 if __name__ == "__main__":
-    # print(select_graphable_tables(show_tables("covid.db")))
-    print(show_tables("custom.db"))
+    print(get_graphable_tables())

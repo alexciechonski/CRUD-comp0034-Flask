@@ -29,7 +29,17 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from flask import Flask, render_template, url_for, jsonify, send_file
 from src.backend.data_server import DataServer
 from src.config import PATHS
-from src.utils import query_db, get_table_info, convert_to_date, show_tables, select_graphable_tables, get_databases, create_table
+from src.utils import (
+    query_db, 
+    get_table_info, 
+    convert_to_date, 
+    show_tables, 
+    select_graphable_tables, 
+    get_databases, 
+    create_table, 
+    get_graphable_tables,
+    get_resp
+)
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
 from src.frontend.input_validation import Validator as v
@@ -247,10 +257,195 @@ def dataset():
                              selected_db=selected_db,
                              databases=databases)
 
-@app.route('/time-series')
+@app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
-    # Render the time series template
-    return render_template('time_series.html')
+    # Get data server instance
+    data_server = get_data_server()
+    try:
+        # Get available tables and restrictions
+        print("Fetching graphable tables...")
+        tables = get_graphable_tables()
+        print(f"Found tables: {tables}")
+        
+        # Define restrictions list
+        restrictions = [
+            "curfew",
+            "eat_out_to_help_out",
+            "eating_places_closed",
+            "household_mixing_indoors_banned",
+            "pubs_closed",
+            "rule_of_6_indoors",
+            "schools_closed",
+            "shops_closed",
+            "stay_at_home",
+            "wfh"
+        ]
+        
+        # Initialize variables
+        selected_table = None
+        selected_restrictions = []
+        prompt = ""
+        time_series_plot = None
+        regression_plot = None
+        analysis_result = None
+        
+        if request.method == 'POST':
+            print("Processing POST request...")
+            selected_table = request.form.get('table')
+            selected_restrictions = request.form.getlist('restrictions[]')
+            prompt = request.form.get('prompt', '')
+            
+            print(f"Selected table: {selected_table}")
+            print(f"Selected restrictions: {selected_restrictions}")
+            
+            if selected_table:
+                try:
+                    # 1. Generate time series plot
+                    print("Fetching time series data...")
+                    time_series_data = data_server.serve_time_series(selected_restrictions, 'custom.db', selected_table)
+                    
+                    if time_series_data:
+                        print("Processing time series data...")
+                        dates = [row[0] for row in time_series_data]
+                        values = [row[1] for row in time_series_data]
+                        
+                        print(f"Data points: {len(dates)}")
+                        
+                        # Create figure with secondary y-axis using Plotly Express
+                        fig = px.line(x=dates, y=values, 
+                                    title=f'Time Series Analysis: {selected_table} and Active Restrictions')
+                        fig.update_traces(name=selected_table.replace('_', ' ').title(),
+                                        line=dict(color='rgb(75, 192, 192)', width=2),
+                                        mode='lines+markers')
+                        
+                        # Add restrictions count to the plot
+                        print("Fetching restrictions data...")
+                        restrictions_data = data_server.serve_time_series(selected_restrictions, 'covid.db', None)
+                        if restrictions_data:
+                            restr_dates = [row[0] for row in restrictions_data]
+                            restr_counts = [row[1] for row in restrictions_data]
+                            
+                            # Add restrictions as a second y-axis
+                            fig.add_scatter(x=restr_dates, y=restr_counts,
+                                          name='Active Restrictions',
+                                          yaxis='y2',
+                                          line=dict(color='rgba(255, 99, 132, 0.8)', 
+                                                  width=2, dash='dot'))
+                            
+                            # Update layout for dual axes
+                            fig.update_layout(
+                                yaxis=dict(title=selected_table.replace('_', ' ').title()),
+                                yaxis2=dict(title='Number of Active Restrictions',
+                                          overlaying='y',
+                                          side='right',
+                                          showgrid=False),
+                                height=500,
+                                showlegend=True
+                            )
+                        
+                        time_series_plot = fig.to_html(full_html=False)
+                        print("Time series plot generated successfully")
+                    else:
+                        print("No time series data found")
+                
+                except Exception as plot_error:
+                    print(f"Error generating time series plot: {plot_error}")
+                    raise
+                
+                try:
+                    # 2. Generate regression plot using Model class
+                    print("Creating regression plot...")
+                    model = Model(selected_restrictions, 'custom.db', selected_table)
+                    df = model.prepare()
+                    
+                    if not df.empty and len(df) >= 2:
+                        print(f"Regression data points: {len(df)}")
+                        x = df['restr_value'].values
+                        y = df['custom_value'].values
+                        correlation = model.get_correlation()
+                        print(f"Correlation coefficient: {correlation}")
+                        
+                        # Calculate regression line parameters
+                        slope, intercept = np.polyfit(x, y, 1)
+                        
+                        # Create regression plot using Plotly Express
+                        fig = px.scatter(x=x, y=y,
+                                       title=f'Correlation Analysis (r = {correlation:.3f})')
+                        
+                        # Add regression line
+                        line_x = [min(x), max(x)]
+                        line_y = [slope * min(x) + intercept, slope * max(x) + intercept]
+                        
+                        fig.add_scatter(x=line_x, y=line_y,
+                                      mode='lines',
+                                      name='Regression Line',
+                                      line=dict(color='rgba(255, 99, 132, 0.8)', width=2))
+                        
+                        # Update layout
+                        fig.update_traces(
+                            marker=dict(size=10, color='rgb(75, 192, 192)', opacity=0.7),
+                            selector=dict(mode='markers')
+                        )
+                        fig.update_layout(
+                            xaxis_title='Number of Active Restrictions',
+                            yaxis_title=selected_table.replace('_', ' ').title(),
+                            height=500,
+                            showlegend=True,
+                            annotations=[
+                                dict(
+                                    x=0.05,
+                                    y=0.95,
+                                    xref='paper',
+                                    yref='paper',
+                                    text=f'Correlation: {correlation:.3f}',
+                                    showarrow=False,
+                                    bgcolor='rgba(255, 255, 255, 0.8)',
+                                    borderpad=4
+                                )
+                            ]
+                        )
+                        
+                        regression_plot = fig.to_html(full_html=False)
+                        print("Regression plot generated successfully")
+                    else:
+                        print("Insufficient data for regression analysis")
+                
+                except Exception as reg_error:
+                    print(f"Error generating regression plot: {reg_error}")
+                    raise
+                
+                try:
+                    # 3. Generate LLM analysis if prompt is provided
+                    if prompt:
+                        print("Generating LLM analysis...")
+                        correlation = model.get_correlation()
+                        meta = f"""The correlation coefficient between the number of lockdown restrictions and {selected_table.replace('_', ' ')} 
+                        is {correlation:.3f}. The analysis is based on data from {min(dates)} to {max(dates)}."""
+                        analysis_result = get_resp(meta + "\n\n" + prompt)
+                        print("LLM analysis generated successfully")
+                
+                except Exception as llm_error:
+                    print(f"Error generating LLM analysis: {llm_error}")
+                    raise
+        
+        return render_template('time_series.html',
+                             tables=tables,
+                             restrictions=restrictions,
+                             selected_table=selected_table,
+                             selected_restrictions=selected_restrictions,
+                             prompt=prompt,
+                             time_series_plot=time_series_plot,
+                             regression_plot=regression_plot,
+                             analysis_result=analysis_result)
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Error in time_series route: {e}")
+        print(f"Traceback: {error_traceback}")
+        return render_template('time_series.html',
+                             tables=[],
+                             restrictions=restrictions,
+                             error=f"An error occurred while loading the data: {str(e)}")
 
 @app.route('/api/time-series')
 def time_series_data():
@@ -645,7 +840,6 @@ def analyze_data():
             system_prompt = f"The correlation between number of restrictions and {variable} is {correlation:.3f}. "
             
             # Get AI response
-            from src.utils import get_resp
             response = get_resp(system_prompt + prompt)
             
             return jsonify({

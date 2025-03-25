@@ -8,48 +8,69 @@
     <p>Analyze the relationship between COVID-19 restrictions and custom data over time.</p>
     
     <div class="analysis-container">
-        <!-- Database and Table Selection -->
-        <div class="control-panel">
+        <form method="POST" action="{{ url_for('time_series') }}">
             <div class="select-group">
-                <label for="databaseSelect">Database</label>
-                <select id="databaseSelect" class="form-select">
-                    <option value="">Select a database...</option>
-                    <option value="covid.db">COVID-19 Database</option>
-                    <option value="custom.db">Custom Database</option>
+                <label for="tableSelect">Select Data to Analyze</label>
+                <select id="tableSelect" name="table" class="form-select" required>
+                    <option value="">Select a table to analyze...</option>
+                    {% for table in tables %}
+                    <option value="{{ table }}" {% if selected_table == table %}selected{% endif %}>
+                        {{ table.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
                 </select>
-            </div>
-
-            <div class="select-group">
-                <label for="tableSelect">Table</label>
-                <select id="tableSelect" class="form-select" disabled>
-                    <option value="">Select a table...</option>
-                </select>
+                <small class="help-text">Choose the data you want to analyze against restrictions</small>
             </div>
 
             <div class="select-group" id="restrictionSelectGroup">
                 <label for="restrictionSelect">Restrictions</label>
-                <select id="restrictionSelect" class="form-select" multiple>
-                    <option value="">Loading restrictions...</option>
+                <select id="restrictionSelect" name="restrictions[]" class="form-select" multiple>
+                    {% for restriction in restrictions %}
+                    <option value="{{ restriction }}" {% if restriction in selected_restrictions %}selected{% endif %}>
+                        {{ restriction.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
                 </select>
                 <small class="help-text">Hold Ctrl/Cmd to select multiple restrictions</small>
             </div>
-        </div>
 
-        <!-- Graph Display -->
-        <div class="graph-panel">
-            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
-                <div class="spinner"></div>
-                <p>Loading data...</p>
-            </div>
-            <div id="plotlyChart"></div>
-            <div id="regressionChart" style="margin-top: 2rem;"></div>
-            
             <div class="input-container" style="margin-top: 2rem;">
-                <textarea id="analysisInput" class="analysis-textarea" placeholder="Enter your analysis request here..."></textarea>
-                <button id="submitAnalysis" class="submit-button">Analyze Data</button>
-                <div id="analysisResult" class="analysis-result"></div>
+                <label for="analysisInput">Analysis Prompt</label>
+                <textarea id="analysisInput" name="prompt" class="analysis-textarea" placeholder="Enter your analysis request here...">{{ prompt }}</textarea>
+                <button type="submit" class="submit-button">Analyze Data</button>
             </div>
+        </form>
+
+        {% if error %}
+        <div class="alert alert-danger mt-4">
+            {{ error }}
         </div>
+        {% endif %}
+
+        {% if time_series_plot %}
+        <div class="graph-panel">
+            <div class="chart-container">
+                <div class="chart-title">Time Series Analysis</div>
+                {{ time_series_plot | safe }}
+            </div>
+            
+            {% if regression_plot %}
+            <div class="chart-container">
+                <div class="chart-title">Correlation Analysis</div>
+                {{ regression_plot | safe }}
+            </div>
+            {% endif %}
+            
+            {% if analysis_result %}
+            <div class="analysis-result">
+                <h4>Analysis Result</h4>
+                <div class="analysis-content">
+                    {{ analysis_result | safe }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -64,17 +85,11 @@
         margin-top: 2rem;
     }
 
-    .control-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
     .select-group {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .select-group label {
@@ -98,11 +113,6 @@
         box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.1);
     }
 
-    .form-select:disabled {
-        background-color: #f5f5f5;
-        cursor: not-allowed;
-    }
-
     #restrictionSelect {
         min-height: 200px;
     }
@@ -111,43 +121,6 @@
         font-size: 0.875rem;
         color: #666;
         margin-top: 0.25rem;
-    }
-
-    .graph-panel {
-        background: #f8f9fa;
-        border-radius: 6px;
-        padding: 1.5rem;
-        min-height: 400px;
-        position: relative;
-    }
-
-    .loading-spinner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        z-index: 1000;
-    }
-
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    #plotlyChart, #regressionChart {
-        width: 100%;
-        height: 400px;
     }
 
     .input-container {
@@ -191,565 +164,47 @@
         background-color: var(--primary-dark);
     }
 
-    .submit-button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
+    .graph-panel {
+        margin-top: 2rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 1.5rem;
+    }
+
+    .chart-container {
+        margin-bottom: 2rem;
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+        text-align: center;
     }
 
     .analysis-result {
-        margin-top: 1rem;
+        background: white;
         padding: 1.5rem;
         border-radius: 6px;
-        background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-        display: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .analysis-result h4 {
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .analysis-content {
         font-size: 1rem;
         line-height: 1.6;
-        color: #333;
+        color: #444;
         white-space: pre-wrap;
     }
-
-    .analysis-result.error {
-        border-color: #dc3545;
-        color: #dc3545;
-        background-color: #fff5f5;
-    }
-
-    .analysis-result.loading {
-        color: #666;
-        font-style: italic;
-    }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM Elements
-    const databaseSelect = document.getElementById('databaseSelect');
-    const tableSelect = document.getElementById('tableSelect');
-    const restrictionSelect = document.getElementById('restrictionSelect');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const plotlyChart = document.getElementById('plotlyChart');
-    const regressionChart = document.getElementById('regressionChart');
-    const analysisInput = document.getElementById('analysisInput');
-    const submitAnalysis = document.getElementById('submitAnalysis');
-    const analysisResult = document.getElementById('analysisResult');
-
-    // Constants
-    const NON_GRAPHABLE = ['Date', 'Week', 'Source', 'Restriction', 'SummaryRestriction', 'DailyRestriction', 'WeeklyRestriction'];
-
-    // Load restrictions when the page loads
-    loadRestrictions();
-
-    // Utility Functions
-    function showLoading() {
-        loadingSpinner.style.display = 'block';
-    }
-
-    function hideLoading() {
-        loadingSpinner.style.display = 'none';
-    }
-
-    function formatDate(dateStr) {
-        return new Date(dateStr).toLocaleDateString('en-GB', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
-
-    // Data Loading Functions
-    async function loadTables(database) {
-        try {
-            const response = await fetch(`/api/tables/${database}`);
-            if (!response.ok) throw new Error('Failed to load tables');
-            const tables = await response.json();
-            
-            tableSelect.innerHTML = '<option value="">Select a table...</option>';
-            tables.forEach(table => {
-                if (!NON_GRAPHABLE.includes(table)) {
-                    const option = document.createElement('option');
-                    option.value = table;
-                    option.textContent = table;
-                    tableSelect.appendChild(option);
-                }
-            });
-            tableSelect.disabled = false;
-        } catch (error) {
-            console.error('Error:', error);
-            tableSelect.innerHTML = '<option value="">Error loading tables</option>';
-            tableSelect.disabled = true;
-        }
-    }
-
-    async function loadRestrictions() {
-        try {
-            const response = await fetch('/api/restrictions');
-            if (!response.ok) throw new Error('Failed to load restrictions');
-            const restrictions = await response.json();
-            
-            restrictionSelect.innerHTML = '';
-            restrictions.forEach(restriction => {
-                const option = document.createElement('option');
-                option.value = restriction;
-                option.textContent = restriction
-                    .split('_')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                restrictionSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Error:', error);
-            restrictionSelect.innerHTML = '<option value="" disabled>Error loading restrictions</option>';
-        }
-    }
-
-    async function updateRegressionChart(selectedDb, selectedTable, selectedRestrictions) {
-        if (!selectedDb || (selectedDb !== 'covid.db' && !selectedTable)) return;
-
-        try {
-            const regressionUrl = new URL('/api/regression', window.location.origin);
-            regressionUrl.searchParams.append('database', selectedDb);
-            if (selectedTable) {
-                regressionUrl.searchParams.append('table', selectedTable);
-            }
-            if (selectedRestrictions.length > 0) {
-                selectedRestrictions.forEach(r => regressionUrl.searchParams.append('restrictions[]', r));
-            }
-
-            const response = await fetch(regressionUrl);
-            if (!response.ok) {
-                throw new Error('Failed to load regression data');
-            }
-
-            const data = await response.json();
-            if (!data || !data.points || data.points.length === 0) {
-                Plotly.newPlot(regressionChart, [], {
-                    title: {
-                        text: 'No regression data available',
-                        font: { size: 16 }
-                    },
-                    height: 400
-                });
-                return;
-            }
-
-            // Format table name for display
-            const formattedTableName = selectedTable
-                ? selectedTable.split(/(?=[A-Z])/).join(' ').replace(/^\w/, c => c.toUpperCase())
-                : 'Custom Data';
-
-            // Create scatter plot of actual points
-            const scatterTrace = {
-                x: data.points.map(p => p[0]),
-                y: data.points.map(p => p[1]),
-                mode: 'markers',
-                type: 'scatter',
-                name: 'Data Points',
-                marker: {
-                    color: 'rgb(70, 130, 180)',
-                    size: 8
-                }
-            };
-
-            // Create regression line
-            const regressionTrace = {
-                x: [Math.min(...data.points.map(p => p[0])), Math.max(...data.points.map(p => p[0]))],
-                y: [data.slope * Math.min(...data.points.map(p => p[0])) + data.intercept,
-                   data.slope * Math.max(...data.points.map(p => p[0])) + data.intercept],
-                mode: 'lines',
-                type: 'scatter',
-                name: 'Regression Line',
-                line: {
-                    color: 'rgb(255, 99, 132)',
-                    width: 2
-                }
-            };
-
-            const layout = {
-                title: {
-                    text: `Regression Analysis (r = ${data.correlation.toFixed(3)})`,
-                    font: { size: 18 }
-                },
-                xaxis: {
-                    title: 'Number of Active Restrictions',
-                    titlefont: { size: 12 },
-                    tickfont: { size: 10 }
-                },
-                yaxis: {
-                    title: `${formattedTableName} Value (thousands)`,
-                    titlefont: { size: 12 },
-                    tickfont: { size: 10 }
-                },
-                showlegend: true,
-                legend: {
-                    x: 0.05,
-                    y: 0.95
-                },
-                hovermode: 'closest'
-            };
-
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                displaylogo: false,
-                modeBarButtonsToRemove: ['lasso2d', 'select2d']
-            };
-
-            Plotly.newPlot(regressionChart, [scatterTrace, regressionTrace], layout, config);
-
-        } catch (error) {
-            console.error('Error:', error);
-            Plotly.newPlot(regressionChart, [], {
-                title: {
-                    text: 'Error loading regression data: ' + error.message,
-                    font: { color: 'red', size: 16 }
-                },
-                height: 400
-            });
-        }
-    }
-
-    async function updateChart() {
-        if (!databaseSelect.value) return;
-        // For non-COVID database, require table selection
-        if (databaseSelect.value !== 'covid.db' && !tableSelect.value) return;
-
-        showLoading();
-        try {
-            const selectedDb = databaseSelect.value;
-            const selectedTable = tableSelect.value;
-            const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
-
-            console.log('Fetching data with:', {
-                database: selectedDb,
-                table: selectedTable,
-                restrictions: selectedRestrictions
-            });
-
-            // Fetch COVID restrictions data
-            const covidUrl = new URL('/api/time-series', window.location.origin);
-            covidUrl.searchParams.append('database', 'covid.db');
-            if (selectedRestrictions.length > 0) {
-                selectedRestrictions.forEach(r => covidUrl.searchParams.append('restrictions[]', r));
-            }
-
-            // Fetch custom table data if a table is selected and database is not covid.db
-            let customResponse = null;
-            if (selectedDb !== 'covid.db' && selectedTable) {
-                const customUrl = new URL('/api/time-series', window.location.origin);
-                customUrl.searchParams.append('database', selectedDb);
-                customUrl.searchParams.append('table', selectedTable);
-                customResponse = fetch(customUrl);
-            }
-
-            // Fetch data
-            const responses = await Promise.all([
-                fetch(covidUrl),
-                customResponse
-            ].filter(Boolean));  // Remove null responses
-
-            // Check responses
-            for (const response of responses) {
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to load time series data');
-                }
-            }
-
-            // Parse JSON responses
-            const jsonData = await Promise.all(responses.map(r => r.json()));
-            const [covidData, customData] = [jsonData[0], jsonData[1] || []];
-
-            console.log('Received COVID data:', covidData);
-            if (customData.length) console.log('Received custom data:', customData);
-
-            // Filter out any null dates from both datasets
-            const validCovidData = covidData.filter(d => d[0] !== null);
-            const validCustomData = customData ? customData.filter(d => d[0] !== null) : [];
-
-            if (validCovidData.length === 0 && validCustomData.length === 0) {
-                Plotly.newPlot(plotlyChart, [], {
-                    title: {
-                        text: 'No data available for the selected criteria',
-                        font: { size: 16 }
-                    },
-                    height: 400
-                });
-                return;
-            }
-
-            // Create traces for both datasets
-            const traces = [];
-
-            // COVID restrictions trace
-            if (validCovidData.length > 0) {
-                // Sort COVID data by date
-                validCovidData.sort((a, b) => new Date(a[0]) - new Date(b[0]));
-                
-                traces.push({
-                    x: validCovidData.map(d => new Date(d[0])),
-                    y: validCovidData.map(d => d[1]),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: selectedRestrictions.length > 0 ? 'Selected Restrictions' : 'All Restrictions',
-                    line: {
-                        color: 'rgb(75, 192, 192)',
-                        width: 2
-                    },
-                    marker: {
-                        size: 6
-                    },
-                    yaxis: 'y'
-                });
-            }
-
-            // Custom data trace
-            if (validCustomData.length > 0) {
-                // Process and sort custom data
-                const processedData = validCustomData
-                    .map(d => {
-                        let date;
-                        // Try to parse the date in different formats
-                        if (d[0].includes('/')) {
-                            // M/YYYY format (e.g., "3/2020")
-                            const [month, year] = d[0].split('/');
-                            date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                        } else {
-                            // ISO format or other standard format
-                            date = new Date(d[0]);
-                        }
-                        
-                        // Verify we have a valid date
-                        if (isNaN(date.getTime())) {
-                            console.error('Invalid date:', d[0]);
-                            return null;
-                        }
-                        
-                        return [date, d[1] / 1000];
-                    })
-                    .filter(d => d !== null) // Remove any invalid dates
-                    .sort((a, b) => a[0] - b[0]); // Sort by date
-
-                // Format table name for display
-                const formattedTableName = selectedTable
-                    .split(/(?=[A-Z])/)
-                    .join(' ')
-                    .replace(/^\w/, c => c.toUpperCase());
-
-                console.log('Processed custom data:', processedData);
-
-                traces.push({
-                    x: processedData.map(d => d[0]),
-                    y: processedData.map(d => d[1]),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: `${formattedTableName} (thousands)`,
-                    line: {
-                        color: 'rgb(255, 99, 132)',
-                        width: 2
-                    },
-                    marker: {
-                        size: 6
-                    },
-                    yaxis: 'y2'
-                });
-            }
-
-            const layout = {
-                title: {
-                    text: validCustomData.length > 0 ? 
-                        'Restrictions and Custom Data Over Time' :
-                        'COVID-19 Restrictions Over Time',
-                    font: { size: 18 }
-                },
-                height: 500,
-                xaxis: {
-                    title: 'Date',
-                    tickangle: -45,
-                    tickformat: '%b %Y',
-                    type: 'date',
-                    tickfont: { size: 10 }
-                },
-                yaxis: {
-                    title: 'Number of Active Restrictions',
-                    titlefont: { color: 'rgb(75, 192, 192)', size: 12 },
-                    tickfont: { color: 'rgb(75, 192, 192)' },
-                    side: 'left'
-                },
-                yaxis2: validCustomData.length > 0 ? {
-                    title: `${selectedTable.split(/(?=[A-Z])/).join(' ')} (thousands)`,
-                    titlefont: { color: 'rgb(255, 99, 132)', size: 12 },
-                    tickfont: { color: 'rgb(255, 99, 132)' },
-                    overlaying: 'y',
-                    side: 'right'
-                } : undefined,
-                margin: {
-                    l: 80,   // Increased left margin
-                    r: 80,   // Increased right margin
-                    b: 100,  // Increased bottom margin for legend
-                    t: 60,
-                    pad: 4
-                },
-                showlegend: true,
-                legend: {
-                    x: 0.5,
-                    y: -0.3,         // Moved legend down
-                    orientation: 'h',
-                    xanchor: 'center',
-                    yanchor: 'top',
-                    traceorder: 'normal',
-                    font: { size: 12 },
-                    itemwidth: 80,
-                    itemsizing: 'constant'
-                },
-                hovermode: 'closest',
-                hoverlabel: {
-                    namelength: -1,
-                    font: { size: 12 }
-                }
-            };
-
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                displaylogo: false,
-                modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-                toImageButtonOptions: {
-                    format: 'png',
-                    filename: 'time_series_plot',
-                    height: 500,
-                    width: 900,
-                    scale: 2
-                }
-            };
-
-            console.log('Plotting with:', {
-                traces: traces.length,
-                covidPoints: validCovidData.length,
-                customPoints: validCustomData.length
-            });
-
-            Plotly.newPlot(plotlyChart, traces, layout, config);
-
-            // After updating the time series chart, update the regression chart
-            await updateRegressionChart(selectedDb, selectedTable, selectedRestrictions);
-
-        } catch (error) {
-            console.error('Error:', error);
-            Plotly.newPlot(plotlyChart, [], {
-                title: {
-                    text: 'Error loading data: ' + error.message,
-                    font: { color: 'red', size: 16 }
-                },
-                height: 400
-            });
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // Event Listeners
-    databaseSelect.addEventListener('change', async function() {
-        if (this.value) {
-            if (this.value !== 'covid.db') {
-                await loadTables(this.value);
-            } else {
-                tableSelect.innerHTML = '<option value="">No table needed for COVID database</option>';
-                tableSelect.disabled = true;
-                const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
-                await updateChart();  // Update time series chart
-                await updateRegressionChart(this.value, null, selectedRestrictions);  // Update regression chart
-            }
-        } else {
-            tableSelect.innerHTML = '<option value="">Select a table...</option>';
-            tableSelect.disabled = true;
-            // Clear both charts when no database is selected
-            Plotly.newPlot(plotlyChart, [], {
-                title: {
-                    text: 'Select a database and table to view data',
-                    font: { size: 16 }
-                },
-                height: 400
-            });
-            Plotly.newPlot(regressionChart, [], {
-                title: {
-                    text: 'Select a database and table to view regression',
-                    font: { size: 16 }
-                },
-                height: 400
-            });
-        }
-    });
-
-    tableSelect.addEventListener('change', async function() {
-        // Clear existing charts before updating
-        Plotly.purge(plotlyChart);
-        Plotly.purge(regressionChart);
-        
-        if (this.value) {
-            const selectedDb = databaseSelect.value;
-            const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
-            await updateChart();  // Update time series chart
-            await updateRegressionChart(selectedDb, this.value, selectedRestrictions);  // Update regression chart
-        }
-    });
-    
-    restrictionSelect.addEventListener('change', async function() {
-        const selectedDb = databaseSelect.value;
-        const selectedTable = tableSelect.value;
-        const selectedRestrictions = Array.from(this.selectedOptions).map(opt => opt.value);
-        await updateChart();  // Update time series chart
-        await updateRegressionChart(selectedDb, selectedTable, selectedRestrictions);  // Update regression chart
-    });
-
-    // Event listener for analysis submission
-    submitAnalysis.addEventListener('click', async function() {
-        const analysisText = analysisInput.value.trim();
-        if (!analysisText) return;
-
-        try {
-            submitAnalysis.disabled = true;
-            const selectedDb = databaseSelect.value;
-            const selectedTable = tableSelect.value;
-            const selectedRestrictions = Array.from(restrictionSelect.selectedOptions).map(opt => opt.value);
-
-            // Show loading state
-            analysisResult.textContent = 'Analyzing data...';
-            analysisResult.style.display = 'block';
-            analysisResult.className = 'analysis-result loading';
-
-            // Prepare the request URL with parameters
-            const analysisUrl = new URL('/api/analyze', window.location.origin);
-            analysisUrl.searchParams.append('prompt', analysisText);
-            analysisUrl.searchParams.append('database', selectedDb);
-            if (selectedTable) {
-                analysisUrl.searchParams.append('table', selectedTable);
-            }
-            if (selectedRestrictions.length > 0) {
-                selectedRestrictions.forEach(r => analysisUrl.searchParams.append('restrictions[]', r));
-            }
-
-            const response = await fetch(analysisUrl);
-            if (!response.ok) {
-                throw new Error('Failed to analyze data');
-            }
-
-            const result = await response.json();
-            analysisResult.textContent = result.analysis;
-            analysisResult.style.display = 'block';
-            analysisResult.className = 'analysis-result';
-        } catch (error) {
-            console.error('Error:', error);
-            analysisResult.textContent = 'Error analyzing data: ' + error.message;
-            analysisResult.style.display = 'block';
-            analysisResult.className = 'analysis-result error';
-        } finally {
-            submitAnalysis.disabled = false;
-        }
-    });
-});
-</script>
 {% endblock %} 
