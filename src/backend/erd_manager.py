@@ -18,44 +18,27 @@ from src.frontend.input_validation import Validator as v
 from src.backend.models import Base, create_custom_table
 
 class Visualizer:
-    """
-    A class for managing graph structures and retrieving adjacency lists.
-
-    Attributes:
-        _db (str): Path to the graph database.
-    """
-    def __init__(self, graph_db_path: str) -> None:
-        """
-        Initializes the Visualizer with the given graph database path.
-
-        Args:
-            graph_db_path (str): Path to the SQLite database containing graph data.
-        """
-        self._db = graph_db_path
-
-    def get_adj_list(self, db_name: str) -> Dict[str, List[List[str]]]:
-        """
-        Creates a directed adjacency list representation of database tables with relationship types.
-
-        Args:
-            db_name (str): Name of the database to analyze.
-
-        Returns:
-            Dict[str, List[List[str]]]: Dictionary where keys are table names and values are lists of
-            [target_table, relationship_type] pairs.
-            Example:
-            {
-                'TableA': [
-                    ['TableB', '1:N'],
-                    ['TableC', '1:1']
-                ]
-            }
-        """
-        # Create SQLAlchemy engine for the database
-        engine = create_engine(f'sqlite:///{PATHS[db_name]}')
-        inspector = inspect(engine)
+    """Class for visualizing database relationships"""
+    def __init__(self, session):
+        """Initialize the Visualizer with a database session
         
-        # Initialize adjacency list
+        Args:
+            session: SQLAlchemy session for database access
+        """
+        self._session = session
+        self._engine = session.get_bind()
+        
+    def get_adj_list(self, db_name: str) -> Dict[str, List[List[str]]]:
+        """Get adjacency list representation of database relationships
+        
+        Args:
+            db_name (str): Name of the database to analyze
+            
+        Returns:
+            Dict[str, List[List[str]]]: Adjacency list where each key is a table name and 
+            each value is a list of [target_table, relationship_type] pairs
+        """
+        inspector = inspect(self._engine)
         adj_list = {}
         
         try:
@@ -111,7 +94,8 @@ class Visualizer:
             return {}
             
         finally:
-            engine.dispose()
+            if hasattr(self, '_engine'):
+                self._engine.dispose()
 
     def _determine_relationship_type(
         self, 
@@ -134,7 +118,7 @@ class Visualizer:
             is_unique: Whether the foreign key columns are unique
 
         Returns:
-            str: Relationship type ('1:1', '1:N', 'N:M')
+            str: Relationship type ('1:1', '1:N', or 'N:M')
         """
         # Check for many-to-many relationship
         # This is a heuristic: if a table has exactly two foreign keys and no other columns
@@ -171,13 +155,12 @@ class CRUD:
         self.engine = create_engine(f'sqlite:///{PATHS[db_name]}')
         self.Session = sessionmaker(bind=self.engine)
 
-    def add_table(self, table_name: str, graph_id: int) -> None:
+    def add_table(self, table_name: str) -> None:
         """
         Creates a new table in the database.
 
         Args:
             table_name (str): Name of the table to create.
-            graph_id (int): ID for the graph representation.
 
         Raises:
             ValueError: If table already exists.

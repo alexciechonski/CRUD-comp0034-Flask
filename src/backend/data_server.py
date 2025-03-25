@@ -6,35 +6,31 @@ to fetch ERD structures, table information, time series data, restriction distri
 timelines, and other relevant data using SQLAlchemy.
 """
 from typing import List, Dict, Tuple
-from sqlalchemy import func, desc
-from sqlalchemy.orm import Session
+from sqlalchemy import func, desc, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from src.backend.models import init_db, Date, Restriction, DailyRestriction, Source, SummaryRestriction
 from src.backend.erd_manager import Visualizer
 from src.config import PATHS
 import pandas as pd
 
 class DataServer:
-    """
-    Backend service for querying ERD structures, table metadata, and time series data.
-
-    Attributes:
-        _db_session: SQLAlchemy session for the main database
-        _graph_session: SQLAlchemy session for the graph database
-        _custom_session: SQLAlchemy session for the custom database
-    """
-    def __init__(self, db_path: str, graph_path: str, custom_path: str) -> None:
-        """
-        Initializes the DataServer with database sessions.
-
+    """Class for serving data from the database"""
+    def __init__(self, db_path: str, custom_path: str):
+        """Initialize the DataServer with database paths
+        
         Args:
-            db_path (str): Path to the main database.
-            graph_path (str): Path to the graph database.
-            custom_path (str): Path to an additional database.
+            db_path (str): Path to the main database
+            custom_path (str): Path to the custom database
         """
-        self._db_session = init_db(f'sqlite:///{db_path}')()
-        self._graph_session = init_db(f'sqlite:///{graph_path}')()
-        self._custom_session = init_db(f'sqlite:///{custom_path}')()
-
+        self._db_engine = create_engine(f'sqlite:///{db_path}')
+        self._custom_engine = create_engine(f'sqlite:///{custom_path}')
+        
+        Session = sessionmaker(bind=self._db_engine)
+        CustomSession = sessionmaker(bind=self._custom_engine)
+        
+        self._db_session = Session()
+        self._custom_session = CustomSession()
+        
     def serve_erd(self, graph_id: int) -> Dict:
         """
         Retrieves the adjacency list for a given graph from the ERD manager.
@@ -45,7 +41,7 @@ class DataServer:
         Returns:
             dict: Adjacency list of the graph.
         """
-        erd = Visualizer(self._graph_session)
+        erd = Visualizer(self._db_session)
         return erd.get_adj_list(graph_id)
 
     def serve_table(self, db_name: str, table: str) ->List[tuple]:
@@ -268,7 +264,12 @@ class DataServer:
         return ('', '')
 
     def __del__(self):
-        """Cleanup database sessions."""
-        self._db_session.close()
-        self._graph_session.close()
-        self._custom_session.close()
+        """Clean up database connections"""
+        if hasattr(self, '_db_session'):
+            self._db_session.close()
+        if hasattr(self, '_custom_session'):
+            self._custom_session.close()
+        if hasattr(self, '_db_engine'):
+            self._db_engine.dispose()
+        if hasattr(self, '_custom_engine'):
+            self._custom_engine.dispose()

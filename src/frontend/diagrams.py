@@ -162,22 +162,20 @@ class Diagrams:
     Handles ERD visualization, table rendering, time series plots, and
     restriction data visualizations.
     """
-    def __init__(self, db_path: str, graph_path: str, custom_path: str) -> None:
+    def __init__(self, db_path: str, custom_path: str) -> None:
         """
         Initializes the Diagrams class with paths to relevant databases.
 
         Args:
             db_path (str): Path to the main database.
-            graph_path (str): Path to the graph database.
             custom_path (str): Path to a custom database.
         """
         self.db_path = db_path
-        self.graph_path = graph_path
         self.custom_path = custom_path
 
     def get_data_server(self) -> DataServer:
         """Create a new DataServer instance for each method call"""
-        return DataServer(self.db_path, self.graph_path, self.custom_path)
+        return DataServer(self.db_path, self.custom_path)
 
     @staticmethod
     def create_legend_base64(legend: Dict[str, str]) -> str:
@@ -211,18 +209,19 @@ class Diagrams:
         buffer.close()
         return f"data:image/png;base64,{base64_image}"
 
-    def erd(self, graph_id: int) -> go.Figure:
+    def erd(self, db_name: str) -> go.Figure:
         """
-        Generates an ERD diagram for a given graph ID.
+        Generates an ERD diagram for a given database.
 
         Args:
-            graph_id (int): The ID of the graph.
+            db_name (str): Name of the database.
 
         Returns:
             go.Figure: A Plotly figure representing the ERD.
         """
-        adj = self.get_data_server().serve_erd(graph_id)
-        legend = {"one-n": "salmon", "zero-one": "black", "zero-n": "darkblue", "one-only": "lime"}
+        data_server = self.get_data_server()
+        adj = data_server.serve_erd(db_name)
+        legend = {"1:1": "salmon", "1:N": "darkblue", "N:M": "lime"}
         legend_image_base64 = self.create_legend_base64(legend)
 
         graph = nx.DiGraph()
@@ -349,7 +348,6 @@ class Diagrams:
             }
         finally:
             data_server._db_session.close()
-            data_server._graph_session.close()
             data_server._custom_session.close()
 
     def correlation(
@@ -411,7 +409,6 @@ class Diagrams:
             return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
         finally:
             data_server._db_session.close()
-            data_server._graph_session.close()
             data_server._custom_session.close()
 
     def timeline(self) -> go.Figure:
@@ -485,7 +482,6 @@ class Diagrams:
 if __name__ == "__main__":
     dgms = Diagrams(
     "src/backend/data/covid.db",
-    "src/backend/data/graph.db",
     "src/backend/data/custom.db"
     )
-    dgms.erd(2)
+    dgms.erd("covid")

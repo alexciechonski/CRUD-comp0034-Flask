@@ -23,6 +23,7 @@ from sqlalchemy import create_engine, inspect, MetaData, Table
 from sqlalchemy.orm import sessionmaker
 from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
 from src.backend.models import init_db, Base
+import glob
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -206,18 +207,25 @@ def convert_to_date(date_str: str) -> str:
     except:
         return date_str
 
-def get_databases() -> List[Dict[str, str]]:
-    """
-    Get list of available databases with their labels.
-
+def get_databases() -> List[str]:
+    """Get list of available databases
+    
     Returns:
-        List[Dict[str, str]]: List of dictionaries with database info.
+        List[str]: List of database names
     """
-    return [
-        {"label": db_name, "value": db_name}
-        for db_name in PATHS.keys()
-        if db_name != "graph.db"
-    ]
+    db_files = glob.glob(os.path.join(BASE_PATH, '*.db'))
+    return [os.path.basename(db) for db in db_files]
+
+def get_database_path(database: str) -> str:
+    """Get full path for a database
+    
+    Args:
+        database (str): Name of the database
+        
+    Returns:
+        str: Full path to the database file
+    """
+    return os.path.join(BASE_PATH, database)
 
 def parse_csv_contents(contents) -> tuple[List[tuple], pd.DataFrame]:
     """
@@ -303,12 +311,12 @@ def get_graphable_tables(database: str = None):
         # If no database specified, check all databases
         databases = get_databases()
         for db in databases:
-            if db['value'] not in ['graph.db']:  # Check the 'value' key and exclude graph.db
+            if db not in ['graph.db']:  # Check the 'value' key and exclude graph.db
                 try:
-                    tables = select_graphable_tables(db['value'])
+                    tables = select_graphable_tables(db)
                     res.extend(tables)
                 except Exception as e:
-                    print(f"Error processing {db['value']}: {str(e)}")  # Debug print
+                    print(f"Error processing {db}: {str(e)}")  # Debug print
     
     res.sort()
     return res

@@ -23,6 +23,8 @@ import plotly.express as px
 import plotly.io as pio
 import numpy as np
 import pandas as pd
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -63,10 +65,13 @@ app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in p
 # Register blueprints
 app.register_blueprint(restriction_bp, url_prefix='')
 
+# Initialize SQLAlchemy session
+engine = create_engine(f'sqlite:///{PATHS["covid.db"]}')
+Session = sessionmaker(bind=engine)
+
 # Initialize Diagrams
 diagrams = Diagrams(
     db_path=PATHS['covid.db'],
-    graph_path=PATHS['graph.db'],
     custom_path=PATHS['custom.db']
 )
 
@@ -74,7 +79,6 @@ def get_data_server():
     """Create a new DataServer instance for each request"""
     return DataServer(
         db_path=PATHS['covid.db'],
-        graph_path=PATHS['graph.db'],
         custom_path=PATHS['custom.db']
     )
 
@@ -88,7 +92,6 @@ def get_cached_time_series(database, table, restrictions_key):
         return data_server.serve_time_series(restrictions, database=database, table=table)
     finally:
         data_server._db_session.close()
-        data_server._graph_session.close()
         data_server._custom_session.close()
 
 # Routes
@@ -108,7 +111,9 @@ def dataset():
     
     try:
         # Get list of available databases using get_databases() function
-        databases = get_databases()
+        db_names = get_databases()
+        # Format database names as objects with label and value attributes
+        databases = [{'label': db, 'value': db} for db in db_names]
         
         # Get all tables for the selected database
         tables = show_tables(selected_db)
@@ -138,8 +143,12 @@ def dataset():
 
         # Get ERD visualization using Visualizer
         try:
-            # Create Visualizer instance
-            visualizer = Visualizer(PATHS[selected_db])
+            # Create engine and session for the selected database
+            db_engine = create_engine(f'sqlite:///{PATHS[selected_db]}')
+            DbSession = sessionmaker(bind=db_engine)
+            
+            # Create Visualizer instance with the correct session
+            visualizer = Visualizer(DbSession())
             
             # Get adjacency list with relationship types
             adj_list = visualizer.get_adj_list(selected_db)
@@ -245,6 +254,10 @@ def dataset():
                     <p class="mb-0">Please check the database connection and schema.</p>
                 </div>
             '''
+        finally:
+            # Clean up database resources
+            if 'db_engine' in locals():
+                db_engine.dispose()
 
         return render_template('dataset.html', 
                              table_info=table_info,
@@ -252,6 +265,9 @@ def dataset():
                              databases=databases,
                              erd_html=erd_html)
     except Exception as e:
+        # Format database names as objects with label and value attributes
+        db_names = get_databases()
+        databases = [{'label': db, 'value': db} for db in db_names]
         return render_template('dataset.html', 
                              error=str(e),
                              selected_db=selected_db,
@@ -285,7 +301,6 @@ def time_series():
                              restrictions=restrictions)
     finally:
         data_server._db_session.close()
-        data_server._graph_session.close()
         data_server._custom_session.close()
 
 @app.route('/api/time-series')
@@ -304,7 +319,6 @@ def time_series_data():
         return jsonify(data)
     finally:
         data_server._db_session.close()
-        data_server._graph_session.close()
         data_server._custom_session.close()
 
 @app.route('/timeline')
@@ -321,7 +335,6 @@ def timeline_data():
         return jsonify(data)
     finally:
         data_server._db_session.close()
-        data_server._graph_session.close()
         data_server._custom_session.close()
 
 @app.route('/api/restrictions')
@@ -334,7 +347,6 @@ def get_restrictions():
         return jsonify(restrictions)
     finally:
         data_server._db_session.close()
-        data_server._graph_session.close()
         data_server._custom_session.close()
 
 @app.route('/api/tables/<database>')
@@ -363,15 +375,11 @@ def create_table_endpoint():
             flash(f'Table {table_name} already exists', 'error')
             return redirect(url_for('dataset', database=database))
 
-        # Create a CRUD instance with the database name (not path)
-        data_server = get_data_server()
+        # Create a CRUD instance with the database name
         crud = CRUD(database)
 
-        # Generate a unique graph_id based on the number of databases
-        graph_id = len(show_tables(database)) + 1
-
         # Create the table using the CRUD add_table method
-        crud.add_table(table_name, graph_id)
+        crud.add_table(table_name)
 
         flash(f'Table {table_name} created successfully', 'success')
         return redirect(url_for('dataset', database=database))

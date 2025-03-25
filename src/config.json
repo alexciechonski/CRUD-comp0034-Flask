@@ -2,7 +2,6 @@
     "base_path":"src/backend/data/",
     "paths": {
         "covid.db":"src/backend/data/covid.db",
-        "graph.db": "src/backend/data/graph.db",
         "custom.db" : "src/backend/data/custom.db"
     },
     "immutable":{

@@ -1,3 +1,8 @@
+"""
+Backend routes for the Flask application.
+
+This module defines routes for handling restriction distribution and timeline views.
+"""
 from flask import Blueprint, render_template, jsonify, request
 from datetime import datetime
 from sqlalchemy import func, create_engine
@@ -19,7 +24,6 @@ Session = sessionmaker(bind=engine)
 # Initialize DataServer
 data_server = DataServer(
     db_path=PATHS["covid.db"],
-    graph_path=PATHS["graph.db"],
     custom_path=PATHS["custom.db"]
 )
 
