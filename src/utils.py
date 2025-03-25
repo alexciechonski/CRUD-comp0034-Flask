@@ -277,24 +277,38 @@ def select_graphable_tables(database: str) -> List[str]:
     engine.dispose()
     return graphable
 
-def get_graphable_tables():
+def get_graphable_tables(database: str = None):
     """
     Get list of tables that can be graphed using SQLAlchemy.
     Excludes tables from graph.db and includes debug prints.
+
+    Args:
+        database (str, optional): Specific database to get graphable tables from.
+                                If None, returns graphable tables from all databases.
 
     Returns:
         List[str]: List of table names that can be graphed.
     """
     res = []
-    databases = get_databases()
     
-    for db in databases:
-        if db['value'] not in ['graph.db']:  # Check the 'value' key and exclude graph.db
+    if database:
+        # If a specific database is provided, only check that one
+        if database != 'graph.db':
             try:
-                tables = select_graphable_tables(db['value'])
+                tables = select_graphable_tables(database)
                 res.extend(tables)
             except Exception as e:
-                print(f"Error processing {db['value']}: {str(e)}")  # Debug print
+                print(f"Error processing {database}: {str(e)}")  # Debug print
+    else:
+        # If no database specified, check all databases
+        databases = get_databases()
+        for db in databases:
+            if db['value'] not in ['graph.db']:  # Check the 'value' key and exclude graph.db
+                try:
+                    tables = select_graphable_tables(db['value'])
+                    res.extend(tables)
+                except Exception as e:
+                    print(f"Error processing {db['value']}: {str(e)}")  # Debug print
     
     res.sort()
     return res
