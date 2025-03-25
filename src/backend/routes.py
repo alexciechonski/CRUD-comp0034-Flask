@@ -4,6 +4,7 @@ from sqlalchemy import func, create_engine
 from sqlalchemy.orm import sessionmaker
 from .models import Date, Restriction, DailyRestriction, init_db
 from ..config import PATHS
+from .data_server import DataServer
 import os
 
 bp = Blueprint('restriction_distribution', __name__)
@@ -12,6 +13,13 @@ bp = Blueprint('restriction_distribution', __name__)
 db_path = os.path.abspath(PATHS["covid.db"])
 engine = create_engine(f'sqlite:///{db_path}')
 Session = sessionmaker(bind=engine)
+
+# Initialize DataServer
+data_server = DataServer(
+    db_path=PATHS["covid.db"],
+    graph_path=PATHS["graph.db"],
+    custom_path=PATHS["custom.db"]
+)
 
 def format_restriction_name(name):
     """Format restriction name for display."""
@@ -102,4 +110,19 @@ def restriction_distribution():
                          most_common=most_common,
                          most_common_count=most_common_count,
                          end_date=end_date.strftime('%Y-%m-%d'),
-                         error=error) 
+                         error=error)
+
+@bp.route('/timeline')
+def timeline():
+    """Render the timeline page."""
+    try:
+        # Get timeline data from DataServer
+        timeline_data = data_server.serve_timeline()
+        
+        # Sort events by date
+        timeline_data.sort(key=lambda x: x[0])
+        
+        return render_template('timeline.html', events=timeline_data)
+    except Exception as e:
+        print(f"Error in timeline: {str(e)}")
+        return render_template('timeline.html', events=[], error="An error occurred while loading the timeline data.") 

@@ -9,12 +9,33 @@
     
     <div class="timeline-container">
         <div class="timeline-line"></div>
-        <div id="timeline-events" class="timeline-events">
-            <!-- Events will be populated here by JavaScript -->
-            <div class="timeline-loading">
-                <div class="spinner"></div>
-                <p>Loading timeline events...</p>
-            </div>
+        <div class="timeline-events">
+            {% if error %}
+                <div class="error-message">
+                    <p>{{ error }}</p>
+                </div>
+            {% elif events %}
+                {% for date, source_name, source_url in events %}
+                    <div class="timeline-event">
+                        <div class="timeline-card">
+                            <div class="timeline-date">{{ date.strftime('%d %B %Y') }}</div>
+                            <div class="timeline-content">
+                                <p>{{ source_name }}</p>
+                                {% if source_url %}
+                                    <div class="timeline-source">
+                                        <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer">Source →</a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-dot"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-data-message">
+                    <p>No timeline events available.</p>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -128,24 +149,10 @@
         left: -4px;
     }
 
-    .timeline-loading {
+    .error-message, .no-data-message {
         text-align: center;
         padding: 2rem;
-    }
-
-    .spinner {
-        width: 40px;
-        height: 40px;
-        margin: 0 auto;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        color: #666;
     }
 
     @keyframes fadeInUp {
@@ -178,68 +185,4 @@
         }
     }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const timelineEvents = document.getElementById('timeline-events');
-
-    async function loadTimelineData() {
-        try {
-            const response = await fetch('/api/timeline');
-            if (!response.ok) {
-                throw new Error('Failed to load timeline data');
-            }
-            const data = await response.json();
-            
-            // Clear loading indicator
-            timelineEvents.innerHTML = '';
-            
-            // Sort events by date
-            data.sort((a, b) => new Date(a[0]) - new Date(b[0]));
-            
-            // Create timeline events
-            data.forEach((event, index) => {
-                const [date, source_name, source_url] = event;
-                const eventElement = document.createElement('div');
-                eventElement.className = 'timeline-event';
-                eventElement.style.animationDelay = `${index * 0.1}s`;
-                
-                const formattedDate = new Date(date).toLocaleDateString('en-GB', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                
-                eventElement.innerHTML = `
-                    <div class="timeline-card">
-                        <div class="timeline-date">${formattedDate}</div>
-                        <div class="timeline-content">
-                            <p>${source_name}</p>
-                            ${source_url ? `<div class="timeline-source">
-                                <a href="${source_url}" target="_blank" rel="noopener noreferrer">Source →</a>
-                            </div>` : ''}
-                        </div>
-                        <div class="timeline-dot"></div>
-                    </div>
-                `;
-                
-                timelineEvents.appendChild(eventElement);
-            });
-            
-        } catch (error) {
-            console.error('Error loading timeline data:', error);
-            timelineEvents.innerHTML = `
-                <div class="error-message">
-                    <p>Error loading timeline data. Please try again later.</p>
-                </div>
-            `;
-        }
-    }
-
-    // Load timeline data
-    loadTimelineData();
-});
-</script>
 {% endblock %} 
