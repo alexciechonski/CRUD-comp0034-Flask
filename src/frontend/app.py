@@ -22,6 +22,7 @@ import sqlite3
 import plotly.express as px
 import plotly.io as pio
 import numpy as np
+import pandas as pd
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -306,47 +307,171 @@ def time_series():
                     
                     if time_series_data:
                         print("Processing time series data...")
-                        dates = [row[0] for row in time_series_data]
-                        values = [row[1] for row in time_series_data]
-                        
-                        print(f"Data points: {len(dates)}")
-                        
-                        # Create figure with secondary y-axis using Plotly Express
-                        fig = px.line(x=dates, y=values, 
-                                    title=f'Time Series Analysis: {selected_table} and Active Restrictions')
-                        fig.update_traces(name=selected_table.replace('_', ' ').title(),
-                                        line=dict(color='rgb(75, 192, 192)', width=2),
-                                        mode='lines+markers')
-                        
-                        # Add restrictions count to the plot
+                        # Get restrictions data first
                         print("Fetching restrictions data...")
                         restrictions_data = data_server.serve_time_series(selected_restrictions, 'covid.db', None)
-                        if restrictions_data:
-                            restr_dates = [row[0] for row in restrictions_data]
-                            restr_counts = [row[1] for row in restrictions_data]
+                        
+                        if restrictions_data and len(restrictions_data) > 0:
+                            # Debug: Print date ranges
+                            time_series_dates = [row[0] for row in time_series_data if row[0] is not None]
+                            restrictions_dates = [row[0] for row in restrictions_data if row[0] is not None]
+                            
+                            if time_series_dates and restrictions_dates:
+                                print(f"Time series date range: {min(time_series_dates)} to {max(time_series_dates)}")
+                                print(f"Restrictions date range: {min(restrictions_dates)} to {max(restrictions_dates)}")
+                            else:
+                                print("Warning: One or both datasets have no valid dates")
+                                print(f"Time series dates available: {len(time_series_dates)}")
+                                print(f"Restrictions dates available: {len(restrictions_dates)}")
+                            
+                            # Convert data to pandas DataFrames for easier manipulation
+                            df_values = pd.DataFrame([
+                                {'date': row[0], 'value': row[1]} 
+                                for row in time_series_data if row[0] is not None and row[1] is not None
+                            ])
+                            
+                            df_restrictions = pd.DataFrame([
+                                {'date': row[0], 'restrictions': row[1]} 
+                                for row in restrictions_data if row[0] is not None and row[1] is not None
+                            ])
+                            
+                            # Debug: Print DataFrame info
+                            print("\nTime series DataFrame info:")
+                            print(df_values.info())
+                            print("\nRestrictions DataFrame info:")
+                            print(df_restrictions.info())
+                            
+                            # Check if we have valid data
+                            if df_values.empty or df_restrictions.empty:
+                                raise ValueError("No valid data points found in one or both datasets")
+                            
+                            # Convert dates to datetime if they aren't already
+                            df_values['date'] = pd.to_datetime(df_values['date'])
+                            df_restrictions['date'] = pd.to_datetime(df_restrictions['date'])
+                            
+                            # Set date as index after conversion
+                            df_values.set_index('date', inplace=True)
+                            df_restrictions.set_index('date', inplace=True)
+                            
+                            # Debug: Print date ranges after conversion
+                            print(f"\nTime series date range after conversion: {df_values.index.min()} to {df_values.index.max()}")
+                            print(f"Restrictions date range after conversion: {df_restrictions.index.min()} to {df_restrictions.index.max()}")
+                            
+                            # Align the dates by using only dates present in both datasets
+                            common_dates = df_values.index.intersection(df_restrictions.index)
+                            print(f"\nNumber of common dates: {len(common_dates)}")
+                            if len(common_dates) == 0:
+                                error_msg = (
+                                    f"No overlapping dates found between the datasets.\n"
+                                    f"Time series data range: {df_values.index.min()} to {df_values.index.max()}\n"
+                                    f"Restrictions data range: {df_restrictions.index.min()} to {df_restrictions.index.max()}"
+                                )
+                                raise ValueError(error_msg)
+                                
+                            df_values = df_values.loc[common_dates]
+                            df_restrictions = df_restrictions.loc[common_dates]
+                            
+                            print(f"Common data points: {len(common_dates)}")
+                            
+                            # Create a combined DataFrame for plotting
+                            plot_df = pd.DataFrame({
+                                'value': df_values['value'],
+                                'restrictions': df_restrictions['restrictions']
+                            }, index=common_dates)
+                            
+                            # Sort by date
+                            plot_df = plot_df.sort_index()
+                            
+                            print("\nFirst few rows of sorted data:")
+                            print(plot_df.head())
+                            print("\nLast few rows of sorted data:")
+                            print(plot_df.tail())
+                            
+                            # Verify we have valid data for plotting
+                            if plot_df['value'].isna().all() or plot_df['restrictions'].isna().all():
+                                raise ValueError("One or both datasets contain only null values")
+                            
+                            # Create figure with secondary y-axis using Plotly Express
+                            # Reset index to get date as a column for plotting
+                            plot_df_reset = plot_df.reset_index()
+                            fig = px.line(plot_df_reset, x='date', y='value',
+                                        title=f'Time Series Analysis: {selected_table} and Active Restrictions')
+                            
+                            # Format the main data line
+                            fig.update_traces(
+                                name=selected_table.replace('_', ' ').title(),
+                                line=dict(color='rgb(75, 192, 192)', width=2),
+                                mode='lines+markers',
+                                marker=dict(size=6)
+                            )
                             
                             # Add restrictions as a second y-axis
-                            fig.add_scatter(x=restr_dates, y=restr_counts,
-                                          name='Active Restrictions',
-                                          yaxis='y2',
-                                          line=dict(color='rgba(255, 99, 132, 0.8)', 
-                                                  width=2, dash='dot'))
+                            fig.add_scatter(
+                                x=plot_df_reset['date'],
+                                y=plot_df_reset['restrictions'],
+                                name='Active Restrictions',
+                                yaxis='y2',
+                                line=dict(
+                                    color='rgba(255, 99, 132, 0.8)', 
+                                    width=2, 
+                                    dash='dot'
+                                ),
+                                marker=dict(size=6)
+                            )
                             
-                            # Update layout for dual axes
+                            # Get max value for y2 axis with safety check
+                            max_restrictions = plot_df['restrictions'].max()
+                            if pd.isna(max_restrictions):
+                                max_restrictions = 1  # Default to 1 if no valid max found
+                            
+                            # Update layout for dual axes with improved formatting
                             fig.update_layout(
-                                yaxis=dict(title=selected_table.replace('_', ' ').title()),
-                                yaxis2=dict(title='Number of Active Restrictions',
-                                          overlaying='y',
-                                          side='right',
-                                          showgrid=False),
-                                height=500,
-                                showlegend=True
+                                yaxis=dict(
+                                    title=dict(
+                                        text=selected_table.replace('_', ' ').title(),
+                                        font=dict(color='rgb(75, 192, 192)')
+                                    ),
+                                    tickfont=dict(color='rgb(75, 192, 192)'),
+                                    showgrid=True,
+                                    gridcolor='rgba(75, 192, 192, 0.1)',
+                                    tickformat=',d'  # Add thousand separators
+                                ),
+                                yaxis2=dict(
+                                    title=dict(
+                                        text='Number of Active Restrictions',
+                                        font=dict(color='rgba(255, 99, 132, 0.8)')
+                                    ),
+                                    tickfont=dict(color='rgba(255, 99, 132, 0.8)'),
+                                    overlaying='y',
+                                    side='right',
+                                    showgrid=False,
+                                    range=[0, max_restrictions + 1]  # Ensure y2 axis starts at 0
+                                ),
+                                xaxis=dict(
+                                    title=dict(text='Date'),
+                                    tickangle=45,
+                                    nticks=20,  # Reduce number of x-axis labels
+                                    showgrid=True,
+                                    gridcolor='rgba(128, 128, 128, 0.1)',
+                                ),
+                                height=600,  # Increase height for better visibility
+                                showlegend=True,
+                                legend=dict(
+                                    yanchor="top",
+                                    y=0.99,
+                                    xanchor="left",
+                                    x=0.01
+                                ),
+                                margin=dict(t=30, b=50),  # Adjust margins
+                                plot_bgcolor='white'  # White background
                             )
                         
-                        time_series_plot = fig.to_html(full_html=False)
-                        print("Time series plot generated successfully")
+                            time_series_plot = fig.to_html(full_html=False, include_plotlyjs=True)
+                            print("Time series plot generated successfully")
+                        else:
+                            raise ValueError("No restrictions data available for the selected time period")
                     else:
-                        print("No time series data found")
+                        raise ValueError("No time series data found for the selected table")
                 
                 except Exception as plot_error:
                     print(f"Error generating time series plot: {plot_error}")
@@ -420,7 +545,7 @@ def time_series():
                         print("Generating LLM analysis...")
                         correlation = model.get_correlation()
                         meta = f"""The correlation coefficient between the number of lockdown restrictions and {selected_table.replace('_', ' ')} 
-                        is {correlation:.3f}. The analysis is based on data from {min(dates)} to {max(dates)}."""
+                        is {correlation:.3f}. The analysis is based on data from {min(common_dates)} to {max(common_dates)}."""
                         analysis_result = get_resp(meta + "\n\n" + prompt)
                         print("LLM analysis generated successfully")
                 
