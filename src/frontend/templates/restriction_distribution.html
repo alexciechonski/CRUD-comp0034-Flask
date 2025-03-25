@@ -34,7 +34,7 @@
                     {% for label, value in bars %}
                     <div class="bar-group">
                         <div class="bar-container">
-                            <div class="bar-wrapper" style="height: {{ (value / max_value * 100) if max_value > 0 else 0 }}%">
+                            <div class="bar-wrapper" data-value="{{ value }}" data-max="{{ max_value }}">
                                 <div class="bar">
                                     <div class="bar-value">{{ value }}</div>
                                 </div>
@@ -166,6 +166,7 @@
     .bar-wrapper {
         width: 100%;
         transition: height 0.3s ease;
+        height: 0;
     }
 
     .bar {
@@ -255,4 +256,18 @@
         font-size: 0.875rem;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const barWrappers = document.querySelectorAll('.bar-wrapper');
+    barWrappers.forEach(wrapper => {
+        const value = parseFloat(wrapper.dataset.value);
+        const maxValue = parseFloat(wrapper.dataset.max);
+        const height = maxValue > 0 ? (value / maxValue * 100) : 0;
+        wrapper.style.height = `${height}%`;
+    });
+});
+</script>
 {% endblock %} 
