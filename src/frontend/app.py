@@ -61,7 +61,7 @@ app = Flask(__name__,
 app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
 
 # Register blueprints
-app.register_blueprint(restriction_bp)
+app.register_blueprint(restriction_bp, url_prefix='')
 
 # Initialize Diagrams
 diagrams = Diagrams(
