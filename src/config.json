@@ -3,7 +3,8 @@
     "paths": {
         "covid.db": "src/backend/data/covid.db",
         "custom.db": "src/backend/data/custom.db",
-        "test.db": "src/backend/data/test.db"
+        "test.db": "src/backend/data/test.db",
+        "new.db": "src/backend/data/new.db"
     },
     "immutable": {
         "covid.db": [
@@ -18,7 +19,8 @@
         "custom.db": [
             "MHCareCluster"
         ],
-        "test.db": []
+        "test.db": [],
+        "new.db": []
     },
     "schema": [
         "id",

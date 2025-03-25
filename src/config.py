@@ -8,11 +8,20 @@ Variables:
 - BASE_PATH: base path for databases
 """
 import json
-with open('src/config.json', 'r', encoding='utf-8') as f:
-    config = json.load(f)
+from pathlib import Path
 
-PATHS = config['paths']
-IMMUTABLE = config['immutable']
-SCHEMA = config['schema']
-NON_GRAPHABLE = config['non_graphable']
-BASE_PATH = config['base_path']
+def load_config():
+    """Reload configuration from config.json"""
+    global PATHS, IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH
+    config_path = Path(__file__).parent / 'config.json'
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    PATHS = config['paths']
+    IMMUTABLE = config['immutable']
+    SCHEMA = config['schema']
+    NON_GRAPHABLE = config['non_graphable']
+    BASE_PATH = config['base_path']
+
+# Initial load of configuration
+load_config()

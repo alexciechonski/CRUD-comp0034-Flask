@@ -143,106 +143,119 @@ def dataset():
 
         # Get ERD visualization using Visualizer
         try:
-            # Create engine and session for the selected database
-            db_engine = create_engine(f'sqlite:///{PATHS[selected_db]}')
-            DbSession = sessionmaker(bind=db_engine)
-            
-            # Create Visualizer instance with the correct session
-            visualizer = Visualizer(DbSession())
-            
-            # Get adjacency list with relationship types
-            adj_list = visualizer.get_adj_list(selected_db)
-            
-            # Create a NetworkX graph
-            G = nx.DiGraph()
-            
-            # Create a case mapping dictionary to ensure consistent case
-            case_mapping = {}
-            
-            # First pass: collect all table names and determine canonical case
-            all_tables = set()
-            for source_table, relationships in adj_list.items():
-                all_tables.add(source_table.lower())
-                for target_table, _ in relationships:
-                    all_tables.add(target_table.lower())
-            
-            # Create case mapping using actual table names from the database
-            actual_tables = {table.lower(): table for table in tables}
-            
-            # Add nodes using actual table names from database
-            for table_lower in all_tables:
-                if table_lower in actual_tables:
-                    canonical_name = actual_tables[table_lower]
-                    G.add_node(canonical_name)
-                    case_mapping[table_lower] = canonical_name
-            
-            # Add edges with relationship types using correct case
-            for source_table, relationships in adj_list.items():
-                source_lower = source_table.lower()
-                if source_lower in case_mapping:
-                    source_canonical = case_mapping[source_lower]
-                    for target_table, rel_type in relationships:
-                        target_lower = target_table.lower()
-                        if target_lower in case_mapping:
-                            target_canonical = case_mapping[target_lower]
-                            G.add_edge(source_canonical, target_canonical, relationship=rel_type)
-            
-            edge_count = len(G.edges())
-            print(f"\nTotal edges found: {edge_count}")
-            print(f"Graph edges with relationships: {list(G.edges(data=True))}")
-            
-            # Create visualization
-            plt.figure(figsize=(12, 10))
-            
-            # Use spring layout with optimized parameters
-            if edge_count > 0:
-                pos = nx.spring_layout(G, k=2, iterations=50)
+            # If there are no tables, show a message instead of trying to create a graph
+            if not tables:
+                erd_html = '''
+                    <div class="erd-container">
+                        <div class="alert alert-info">
+                            <h4 class="alert-heading">Empty Database</h4>
+                            <p>This database has no tables yet. Create a table to get started!</p>
+                        </div>
+                    </div>
+                '''
             else:
-                pos = nx.circular_layout(G)
-            
-            # Draw nodes
-            nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
-                                 node_size=3000, alpha=0.7)
-            
-            # Draw node labels
-            nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
-            
-            # Draw edges with arrows and relationship labels
-            if edge_count > 0:
-                nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
-                                     arrowsize=20, width=1.5)
+                # Create engine and session for the selected database
+                db_engine = create_engine(f'sqlite:///{PATHS[selected_db]}')
+                DbSession = sessionmaker(bind=db_engine)
                 
-                # Add edge labels (relationship types)
-                edge_labels = nx.get_edge_attributes(G, 'relationship')
-                nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
-                                           font_size=8, font_color='red')
-            
-            # Add padding around the graph
-            plt.margins(0.2)
-            
-            # Convert plot to image
-            img = io.BytesIO()
-            plt.savefig(img, format='png', bbox_inches='tight', dpi=200)
-            img.seek(0)
-            plt.close()
-            
-            # Convert to base64 for embedding in HTML
-            if edge_count > 0:
+                # Create Visualizer instance with the correct session
+                visualizer = Visualizer(DbSession())
+                
+                # Get adjacency list with relationship types
+                adj_list = visualizer.get_adj_list(selected_db)
+                
+                # Check if there are any relationships
+                has_relationships = any(relationships for relationships in adj_list.values())
+                
+                # Create a NetworkX graph
+                G = nx.DiGraph()
+                
+                # Create a case mapping dictionary to ensure consistent case
+                case_mapping = {}
+                
+                # Add all tables as nodes, regardless of relationships
+                for table in tables:
+                    G.add_node(table)
+                
+                if has_relationships:
+                    # First pass: collect all table names and determine canonical case
+                    all_tables = set()
+                    for source_table, relationships in adj_list.items():
+                        all_tables.add(source_table.lower())
+                        for target_table, _ in relationships:
+                            all_tables.add(target_table.lower())
+                    
+                    # Create case mapping using actual table names from database
+                    actual_tables = {table.lower(): table for table in tables}
+                    
+                    # Update case mapping for tables with relationships
+                    for table_lower in all_tables:
+                        if table_lower in actual_tables:
+                            canonical_name = actual_tables[table_lower]
+                            case_mapping[table_lower] = canonical_name
+                    
+                    # Add edges with relationship types using correct case
+                    for source_table, relationships in adj_list.items():
+                        source_lower = source_table.lower()
+                        if source_lower in case_mapping:
+                            source_canonical = case_mapping[source_lower]
+                            for target_table, rel_type in relationships:
+                                target_lower = target_table.lower()
+                                if target_lower in case_mapping:
+                                    target_canonical = case_mapping[target_lower]
+                                    G.add_edge(source_canonical, target_canonical, relationship=rel_type)
+                
+                edge_count = len(G.edges())
+                print(f"\nTotal edges found: {edge_count}")
+                if edge_count > 0:
+                    print(f"Graph edges with relationships: {list(G.edges(data=True))}")
+                
+                # Create visualization
+                plt.figure(figsize=(12, 10))
+                
+                # Use spring layout with optimized parameters for connected graphs
+                # Use circular layout for disconnected nodes
+                pos = nx.spring_layout(G, k=2, iterations=50) if edge_count > 0 else nx.circular_layout(G)
+                
+                # Draw nodes
+                nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
+                                     node_size=3000, alpha=0.7)
+                
+                # Draw node labels
+                nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
+                
+                if edge_count > 0:
+                    # Draw edges with arrows and relationship labels
+                    nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
+                                         arrowsize=20, width=1.5)
+                    
+                    # Add edge labels (relationship types)
+                    edge_labels = nx.get_edge_attributes(G, 'relationship')
+                    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
+                                               font_size=8, font_color='red')
+                
+                # Add padding around the graph
+                plt.margins(0.2)
+                
+                # Convert plot to image
+                img = io.BytesIO()
+                plt.savefig(img, format='png', bbox_inches='tight', dpi=200)
+                img.seek(0)
+                plt.close()
+                
+                # Convert to base64 for embedding in HTML
                 title = "Entity Relationship Diagram"
-                desc = "Showing tables and their relationships (1:1, 1:N, N:M)"
-            else:
-                title = "Database Tables Overview"
-                desc = "No relationships found between tables"
-                
-            erd_html = f'''
-                <div class="erd-container">
-                    <h4 class="text-center mb-3">{title}</h4>
-                    <p class="text-muted text-center mb-3">{desc}</p>
-                    <img src="data:image/png;base64,{base64.b64encode(img.getvalue()).decode()}" 
-                         class="img-fluid" 
-                         style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
-                </div>
-            '''
+                desc = "Showing tables" + (" and their relationships (1:1, 1:N, N:M)" if edge_count > 0 else " (no relationships)")
+                    
+                erd_html = f'''
+                    <div class="erd-container">
+                        <h4 class="text-center mb-3">{title}</h4>
+                        <p class="text-muted text-center mb-3">{desc}</p>
+                        <img src="data:image/png;base64,{base64.b64encode(img.getvalue()).decode()}" 
+                             class="img-fluid" 
+                             style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                    </div>
+                '''
             
         except Exception as e:
             print(f"Error generating ERD: {str(e)}")
@@ -358,6 +371,41 @@ def get_tables(database):
         return jsonify(tables)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/create-database', methods=['POST'])
+def create_database_endpoint():
+    try:
+        # Get database name from form
+        database_name = request.form.get('database_name')
+        
+        if not database_name:
+            flash('Database name is required', 'error')
+            return redirect(url_for('dataset'))
+
+        # Ensure database name ends with .db
+        if not database_name.endswith('.db'):
+            database_name += '.db'
+
+        # Create the database using the utility function
+        from src.utils import create_database
+        from src.config import load_config
+        success = create_database(database_name)
+
+        if success:
+            # Reload configuration to get the new database path
+            load_config()
+            flash(f'Database {database_name} created successfully', 'success')
+        else:
+            flash(f'Failed to create database {database_name}', 'error')
+
+        return redirect(url_for('dataset'))
+
+    except ValueError as ve:
+        flash(str(ve), 'error')
+        return redirect(url_for('dataset'))
+    except Exception as e:
+        flash(f'Error creating database: {str(e)}', 'error')
+        return redirect(url_for('dataset'))
 
 @app.route('/api/create-table', methods=['POST'])
 def create_table_endpoint():
@@ -643,6 +691,51 @@ def analyze_data():
             'error': 'Failed to process analysis request',
             'details': str(e)
         }), 500
+
+@app.route('/api/delete-database', methods=['POST'])
+def delete_database_endpoint():
+    try:
+        # Get the currently selected database from form data
+        database = request.form.get('database', '')
+        print(f"Attempting to delete database: {database}")
+        
+        if not database:
+            print("No database name provided")
+            flash('No database selected for deletion', 'error')
+            return redirect(url_for('dataset'))
+            
+        # Don't allow deletion of covid.db
+        if database == 'covid.db':
+            print("Attempted to delete covid.db")
+            flash('Cannot delete the main COVID-19 database', 'error')
+            return redirect(url_for('dataset'))
+            
+        # Import necessary functions
+        from src.utils import delete_database
+        from src.config import load_config, PATHS
+        
+        print(f"Current database paths before deletion: {PATHS}")
+        
+        # Delete the database
+        success = delete_database(database)
+        print(f"Delete operation result: {success}")
+        
+        if success:
+            # Reload configuration after deletion
+            print("Reloading configuration...")
+            load_config()
+            print(f"Database paths after reload: {PATHS}")
+            flash(f'Database {database} deleted successfully', 'success')
+        else:
+            print("Delete operation failed")
+            flash(f'Failed to delete database {database}', 'error')
+            
+        return redirect(url_for('dataset'))
+        
+    except Exception as e:
+        print(f"Error in delete_database_endpoint: {str(e)}")
+        flash(f'Error deleting database: {str(e)}', 'error')
+        return redirect(url_for('dataset'))
 
 if __name__ == '__main__':
     app.run(debug=True)

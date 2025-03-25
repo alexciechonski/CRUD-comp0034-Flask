@@ -337,7 +337,7 @@ def get_resp(prompt: str) -> str:
 
 def create_database(db_name: str) -> bool:
     """
-    Creates a new SQLite database file in the data directory.
+    Creates a new empty SQLite database file in the data directory.
     
     Args:
         db_name (str): Name of the database to create (should end with .db)
@@ -351,7 +351,6 @@ def create_database(db_name: str) -> bool:
     from pathlib import Path
     from sqlalchemy import create_engine
     from src.config import PATHS, BASE_PATH
-    from src.backend.models import Base
     
     # Validate database name
     if not db_name.endswith('.db'):
@@ -368,9 +367,10 @@ def create_database(db_name: str) -> bool:
         # Create the data directory if it doesn't exist
         db_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Create the database file and initialize it with SQLAlchemy
+        # Create an empty database file
         engine = create_engine(f'sqlite:///{db_path}')
-        Base.metadata.create_all(engine)
+        # Just connect and disconnect to create the empty file
+        engine.connect().close()
         
         # Update the PATHS dictionary in config.json
         import json
@@ -400,6 +400,75 @@ def create_database(db_name: str) -> bool:
     finally:
         if 'engine' in locals():
             engine.dispose()
+
+def delete_database(db_name: str) -> bool:
+    """
+    Deletes a SQLite database file and updates the configuration.
+    
+    Args:
+        db_name (str): Name of the database to delete
+        
+    Returns:
+        bool: True if database was deleted successfully, False otherwise
+        
+    Raises:
+        ValueError: If db_name is covid.db or database doesn't exist
+    """
+    from pathlib import Path
+    from src.config import PATHS, BASE_PATH
+    
+    print(f"delete_database called with db_name: {db_name}")
+    print(f"BASE_PATH: {BASE_PATH}")
+    
+    # Don't allow deletion of covid.db
+    if db_name == 'covid.db':
+        print("Attempted to delete covid.db")
+        raise ValueError("Cannot delete the main COVID-19 database")
+    
+    # Construct the full path
+    db_path = Path(BASE_PATH) / db_name
+    print(f"Full database path: {db_path}")
+    print(f"Database exists: {db_path.exists()}")
+    
+    # Check if database exists
+    if not db_path.exists():
+        print(f"Database not found at {db_path}")
+        raise ValueError(f"Database {db_name} does not exist at {db_path}")
+    
+    try:
+        # Delete the database file
+        print(f"Attempting to delete file at {db_path}")
+        db_path.unlink()
+        print(f"File deleted successfully. Still exists: {db_path.exists()}")
+        
+        # Update the PATHS dictionary in config.json
+        import json
+        config_path = Path(__file__).parent / 'config.json'
+        print(f"Config path: {config_path}")
+        print(f"Config exists: {config_path.exists()}")
+        
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+            print(f"Current config paths: {config['paths']}")
+        
+        # Remove the database path and immutable tables
+        if db_name in config['paths']:
+            print(f"Removing {db_name} from config paths")
+            del config['paths'][db_name]
+        if db_name in config['immutable']:
+            print(f"Removing {db_name} from immutable tables")
+            del config['immutable'][db_name]
+        
+        # Write back the updated config
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+        print("Config file updated successfully")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error in delete_database: {str(e)}")
+        return False
 
 if __name__ == "__main__":
     create_database("test.db")
