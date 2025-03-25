@@ -45,6 +45,7 @@ from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
 from src.frontend.input_validation import Validator as v
 from src.prediction.pred import Model
+from src.backend.routes import bp as restriction_bp
 
 # Debug: Print the paths
 print("Database paths:")
@@ -58,6 +59,9 @@ app = Flask(__name__,
 
 # Set a secret key for flash messages
 app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
+
+# Register blueprints
+app.register_blueprint(restriction_bp)
 
 # Initialize Diagrams
 diagrams = Diagrams(
@@ -263,400 +267,50 @@ def time_series():
     # Get data server instance
     data_server = get_data_server()
     try:
-        # Get available tables and restrictions
-        print("Fetching graphable tables...")
-        tables = get_graphable_tables()
-        print(f"Found tables: {tables}")
+        # Get list of available databases
+        databases = get_databases()
         
-        # Define restrictions list
-        restrictions = [
-            "curfew",
-            "eat_out_to_help_out",
-            "eating_places_closed",
-            "household_mixing_indoors_banned",
-            "pubs_closed",
-            "rule_of_6_indoors",
-            "schools_closed",
-            "shops_closed",
-            "stay_at_home",
-            "wfh"
-        ]
+        # Get selected database from query parameters, default to covid.db
+        selected_db = request.args.get('database', 'covid.db')
         
-        # Initialize variables
-        selected_table = None
-        selected_restrictions = []
-        prompt = ""
-        time_series_plot = None
-        regression_plot = None
-        analysis_result = None
+        # Get all tables for the selected database
+        tables = show_tables(selected_db)
         
-        if request.method == 'POST':
-            print("Processing POST request...")
-            selected_table = request.form.get('table')
-            selected_restrictions = request.form.getlist('restrictions[]')
-            prompt = request.form.get('prompt', '')
-            
-            print(f"Selected table: {selected_table}")
-            print(f"Selected restrictions: {selected_restrictions}")
-            
-            if selected_table:
-                try:
-                    # 1. Generate time series plot
-                    print("Fetching time series data...")
-                    time_series_data = data_server.serve_time_series(selected_restrictions, 'custom.db', selected_table)
-                    
-                    if time_series_data:
-                        print("Processing time series data...")
-                        # Get restrictions data first
-                        print("Fetching restrictions data...")
-                        restrictions_data = data_server.serve_time_series(selected_restrictions, 'covid.db', None)
-                        
-                        if restrictions_data and len(restrictions_data) > 0:
-                            # Debug: Print date ranges
-                            time_series_dates = [row[0] for row in time_series_data if row[0] is not None]
-                            restrictions_dates = [row[0] for row in restrictions_data if row[0] is not None]
-                            
-                            if time_series_dates and restrictions_dates:
-                                print(f"Time series date range: {min(time_series_dates)} to {max(time_series_dates)}")
-                                print(f"Restrictions date range: {min(restrictions_dates)} to {max(restrictions_dates)}")
-                            else:
-                                print("Warning: One or both datasets have no valid dates")
-                                print(f"Time series dates available: {len(time_series_dates)}")
-                                print(f"Restrictions dates available: {len(restrictions_dates)}")
-                            
-                            # Convert data to pandas DataFrames for easier manipulation
-                            df_values = pd.DataFrame([
-                                {'date': row[0], 'value': row[1]} 
-                                for row in time_series_data if row[0] is not None and row[1] is not None
-                            ])
-                            
-                            df_restrictions = pd.DataFrame([
-                                {'date': row[0], 'restrictions': row[1]} 
-                                for row in restrictions_data if row[0] is not None and row[1] is not None
-                            ])
-                            
-                            # Debug: Print DataFrame info
-                            print("\nTime series DataFrame info:")
-                            print(df_values.info())
-                            print("\nRestrictions DataFrame info:")
-                            print(df_restrictions.info())
-                            
-                            # Check if we have valid data
-                            if df_values.empty or df_restrictions.empty:
-                                raise ValueError("No valid data points found in one or both datasets")
-                            
-                            # Convert dates to datetime if they aren't already
-                            df_values['date'] = pd.to_datetime(df_values['date'])
-                            df_restrictions['date'] = pd.to_datetime(df_restrictions['date'])
-                            
-                            # Set date as index after conversion
-                            df_values.set_index('date', inplace=True)
-                            df_restrictions.set_index('date', inplace=True)
-                            
-                            # Debug: Print date ranges after conversion
-                            print(f"\nTime series date range after conversion: {df_values.index.min()} to {df_values.index.max()}")
-                            print(f"Restrictions date range after conversion: {df_restrictions.index.min()} to {df_restrictions.index.max()}")
-                            
-                            # Align the dates by using only dates present in both datasets
-                            common_dates = df_values.index.intersection(df_restrictions.index)
-                            print(f"\nNumber of common dates: {len(common_dates)}")
-                            if len(common_dates) == 0:
-                                error_msg = (
-                                    f"No overlapping dates found between the datasets.\n"
-                                    f"Time series data range: {df_values.index.min()} to {df_values.index.max()}\n"
-                                    f"Restrictions data range: {df_restrictions.index.min()} to {df_restrictions.index.max()}"
-                                )
-                                raise ValueError(error_msg)
-                                
-                            df_values = df_values.loc[common_dates]
-                            df_restrictions = df_restrictions.loc[common_dates]
-                            
-                            print(f"Common data points: {len(common_dates)}")
-                            
-                            # Create a combined DataFrame for plotting
-                            plot_df = pd.DataFrame({
-                                'value': df_values['value'],
-                                'restrictions': df_restrictions['restrictions']
-                            }, index=common_dates)
-                            
-                            # Sort by date
-                            plot_df = plot_df.sort_index()
-                            
-                            print("\nFirst few rows of sorted data:")
-                            print(plot_df.head())
-                            print("\nLast few rows of sorted data:")
-                            print(plot_df.tail())
-                            
-                            # Verify we have valid data for plotting
-                            if plot_df['value'].isna().all() or plot_df['restrictions'].isna().all():
-                                raise ValueError("One or both datasets contain only null values")
-                            
-                            # Create figure with secondary y-axis using Plotly Express
-                            # Reset index to get date as a column for plotting
-                            plot_df_reset = plot_df.reset_index()
-                            fig = px.line(plot_df_reset, x='date', y='value',
-                                        title=f'Time Series Analysis: {selected_table} and Active Restrictions')
-                            
-                            # Format the main data line
-                            fig.update_traces(
-                                name=selected_table.replace('_', ' ').title(),
-                                line=dict(color='rgb(75, 192, 192)', width=2),
-                                mode='lines+markers',
-                                marker=dict(size=6)
-                            )
-                            
-                            # Add restrictions as a second y-axis
-                            fig.add_scatter(
-                                x=plot_df_reset['date'],
-                                y=plot_df_reset['restrictions'],
-                                name='Active Restrictions',
-                                yaxis='y2',
-                                line=dict(
-                                    color='rgba(255, 99, 132, 0.8)', 
-                                    width=2, 
-                                    dash='dot'
-                                ),
-                                marker=dict(size=6)
-                            )
-                            
-                            # Get max value for y2 axis with safety check
-                            max_restrictions = plot_df['restrictions'].max()
-                            if pd.isna(max_restrictions):
-                                max_restrictions = 1  # Default to 1 if no valid max found
-                            
-                            # Update layout for dual axes with improved formatting
-                            fig.update_layout(
-                                yaxis=dict(
-                                    title=dict(
-                                        text=selected_table.replace('_', ' ').title(),
-                                        font=dict(color='rgb(75, 192, 192)')
-                                    ),
-                                    tickfont=dict(color='rgb(75, 192, 192)'),
-                                    showgrid=True,
-                                    gridcolor='rgba(75, 192, 192, 0.1)',
-                                    tickformat=',d'  # Add thousand separators
-                                ),
-                                yaxis2=dict(
-                                    title=dict(
-                                        text='Number of Active Restrictions',
-                                        font=dict(color='rgba(255, 99, 132, 0.8)')
-                                    ),
-                                    tickfont=dict(color='rgba(255, 99, 132, 0.8)'),
-                                    overlaying='y',
-                                    side='right',
-                                    showgrid=False,
-                                    range=[0, max_restrictions + 1]  # Ensure y2 axis starts at 0
-                                ),
-                                xaxis=dict(
-                                    title=dict(text='Date'),
-                                    tickangle=45,
-                                    nticks=20,  # Reduce number of x-axis labels
-                                    showgrid=True,
-                                    gridcolor='rgba(128, 128, 128, 0.1)',
-                                ),
-                                height=600,  # Increase height for better visibility
-                                showlegend=True,
-                                legend=dict(
-                                    yanchor="top",
-                                    y=0.99,
-                                    xanchor="left",
-                                    x=0.01
-                                ),
-                                margin=dict(t=30, b=50),  # Adjust margins
-                                plot_bgcolor='white'  # White background
-                            )
-                        
-                            time_series_plot = fig.to_html(full_html=False, include_plotlyjs=True)
-                            print("Time series plot generated successfully")
-                        else:
-                            raise ValueError("No restrictions data available for the selected time period")
-                    else:
-                        raise ValueError("No time series data found for the selected table")
-                
-                except Exception as plot_error:
-                    print(f"Error generating time series plot: {plot_error}")
-                    raise
-                
-                try:
-                    # 2. Generate regression plot using Model class
-                    print("Creating regression plot...")
-                    model = Model(selected_restrictions, 'custom.db', selected_table)
-                    df = model.prepare()
-                    
-                    if not df.empty and len(df) >= 2:
-                        print(f"Regression data points: {len(df)}")
-                        x = df['restr_value'].values
-                        y = df['custom_value'].values
-                        correlation = model.get_correlation()
-                        print(f"Correlation coefficient: {correlation}")
-                        
-                        # Calculate regression line parameters
-                        slope, intercept = np.polyfit(x, y, 1)
-                        
-                        # Create regression plot using Plotly Express
-                        fig = px.scatter(x=x, y=y,
-                                       title=f'Correlation Analysis (r = {correlation:.3f})')
-                        
-                        # Add regression line
-                        line_x = [min(x), max(x)]
-                        line_y = [slope * min(x) + intercept, slope * max(x) + intercept]
-                        
-                        fig.add_scatter(x=line_x, y=line_y,
-                                      mode='lines',
-                                      name='Regression Line',
-                                      line=dict(color='rgba(255, 99, 132, 0.8)', width=2))
-                        
-                        # Update layout
-                        fig.update_traces(
-                            marker=dict(size=10, color='rgb(75, 192, 192)', opacity=0.7),
-                            selector=dict(mode='markers')
-                        )
-                        fig.update_layout(
-                            xaxis_title='Number of Active Restrictions',
-                            yaxis_title=selected_table.replace('_', ' ').title(),
-                            height=500,
-                            showlegend=True,
-                            annotations=[
-                                dict(
-                                    x=0.05,
-                                    y=0.95,
-                                    xref='paper',
-                                    yref='paper',
-                                    text=f'Correlation: {correlation:.3f}',
-                                    showarrow=False,
-                                    bgcolor='rgba(255, 255, 255, 0.8)',
-                                    borderpad=4
-                                )
-                            ]
-                        )
-                        
-                        regression_plot = fig.to_html(full_html=False)
-                        print("Regression plot generated successfully")
-                    else:
-                        print("Insufficient data for regression analysis")
-                
-                except Exception as reg_error:
-                    print(f"Error generating regression plot: {reg_error}")
-                    raise
-                
-                try:
-                    # 3. Generate LLM analysis if prompt is provided
-                    if prompt:
-                        print("Generating LLM analysis...")
-                        correlation = model.get_correlation()
-                        meta = f"""The correlation coefficient between the number of lockdown restrictions and {selected_table.replace('_', ' ')} 
-                        is {correlation:.3f}. The analysis is based on data from {min(common_dates)} to {max(common_dates)}."""
-                        analysis_result = get_resp(meta + "\n\n" + prompt)
-                        print("LLM analysis generated successfully")
-                
-                except Exception as llm_error:
-                    print(f"Error generating LLM analysis: {llm_error}")
-                    raise
+        # Get graphable tables for the selected database
+        graphable_tables = get_graphable_tables(selected_db)
+        
+        # Get restrictions for the selected database
+        restrictions = data_server.get_restrictions(selected_db)
         
         return render_template('time_series.html',
+                             databases=databases,
+                             selected_db=selected_db,
                              tables=tables,
-                             restrictions=restrictions,
-                             selected_table=selected_table,
-                             selected_restrictions=selected_restrictions,
-                             prompt=prompt,
-                             time_series_plot=time_series_plot,
-                             regression_plot=regression_plot,
-                             analysis_result=analysis_result)
-    except Exception as e:
-        import traceback
-        error_traceback = traceback.format_exc()
-        print(f"Error in time_series route: {e}")
-        print(f"Traceback: {error_traceback}")
-        return render_template('time_series.html',
-                             tables=[],
-                             restrictions=restrictions,
-                             error=f"An error occurred while loading the data: {str(e)}")
+                             graphable_tables=graphable_tables,
+                             restrictions=restrictions)
+    finally:
+        data_server._db_session.close()
+        data_server._graph_session.close()
+        data_server._custom_session.close()
 
 @app.route('/api/time-series')
 def time_series_data():
+    # Get data server instance
+    data_server = get_data_server()
     try:
-        # Get parameters
-        selected_restrictions = request.args.getlist('restrictions[]')
+        # Get parameters from request
         database = request.args.get('database', 'covid.db')
         table = request.args.get('table')
-
-        print(f"Received request with: database={database}, table={table}, restrictions={selected_restrictions}")
-
-        if not database:
-            return jsonify({'error': 'Missing database parameter'}), 400
-            
-        # Only require table parameter for non-COVID database
-        if database != 'covid.db' and not table:
-            return jsonify({'error': 'Missing table parameter'}), 400
-
-        # Get a new data server instance
-        data_server = get_data_server()
-        try:
-            print(f"Fetching time series data...")
-            # For COVID database, table parameter should be None
-            if database == 'covid.db':
-                table = None
-            data = data_server.serve_time_series(selected_restrictions, database, table)
-            
-            # Convert SQLAlchemy objects to JSON-serializable format
-            formatted_data = []
-            for row in data:
-                if row[0] is not None:  # Skip null dates
-                    formatted_data.append([
-                        row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]),
-                        float(row[1]) if row[1] is not None else 0
-                    ])
-            
-            print(f"Returning {len(formatted_data)} data points")
-            return jsonify(formatted_data)
-        finally:
-            data_server._db_session.close()
-            data_server._graph_session.close()
-            data_server._custom_session.close()
-    except Exception as e:
-        print(f"Error in time_series_data: {str(e)}")
-        return jsonify({
-            'error': str(e),
-            'params': {
-                'database': database,
-                'table': table,
-                'restrictions': selected_restrictions
-            }
-        }), 500
-
-@app.route('/restriction-distribution')
-def restriction_distribution():
-    # Get the date range from the database
-    data_server = get_data_server()
-    start_date, end_date = data_server.get_date_range()
-    return render_template('restriction_distribution.html', start_date=start_date, end_date=end_date)
-
-@app.route('/api/restriction-distribution')
-def restriction_distribution_data():
-    try:
-        # Get end date from query parameters
-        end_date = request.args.get('end_date', None)
-        # Get restriction distribution data
-        data_server = get_data_server()
-        try:
-            restr_distr = data_server.serve_restr_distr(end_date=end_date)
-            
-            # Convert SQLAlchemy Row objects to JSON-serializable format
-            formatted_data = []
-            for row in restr_distr:
-                formatted_data.append([
-                    str(row[0]),  # restriction name
-                    float(row[1]) if row[1] is not None else 0  # count
-                ])
-            
-            return jsonify(formatted_data)
-        finally:
-            data_server._db_session.close()
-            data_server._graph_session.close()
-            data_server._custom_session.close()
-    except Exception as e:
-        print(f"Error in restriction_distribution_data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        restrictions = request.args.getlist('restrictions[]')
+        
+        # Get time series data
+        data = data_server.serve_time_series(restrictions, database=database, table=table)
+        
+        return jsonify(data)
+    finally:
+        data_server._db_session.close()
+        data_server._graph_session.close()
+        data_server._custom_session.close()
 
 @app.route('/timeline')
 def timeline():
@@ -667,21 +321,22 @@ def timeline():
 def timeline_data():
     # Get timeline data as JSON
     data_server = get_data_server()
-    timeline_data = data_server.serve_timeline()
-    return jsonify(timeline_data)
+    try:
+        data = data_server.serve_timeline()
+        return jsonify(data)
+    finally:
+        data_server._db_session.close()
+        data_server._graph_session.close()
+        data_server._custom_session.close()
 
 @app.route('/api/restrictions')
 def get_restrictions():
-    """Get list of all available restrictions"""
+    # Get restrictions for a specific database
+    database = request.args.get('database', 'covid.db')
     data_server = get_data_server()
     try:
-        restrictions = data_server.get_restrictions()
-        # Convert restriction names to strings to ensure JSON serialization
-        formatted_restrictions = [str(r) for r in restrictions]
-        return jsonify(formatted_restrictions)
-    except Exception as e:
-        print(f"Error in get_restrictions: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        restrictions = data_server.get_restrictions(database)
+        return jsonify(restrictions)
     finally:
         data_server._db_session.close()
         data_server._graph_session.close()
