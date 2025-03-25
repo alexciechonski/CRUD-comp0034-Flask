@@ -136,85 +136,82 @@ def dataset():
                 print(f"Error getting schema for table {table}: {str(table_error)}")
                 table_info[table] = []
 
-        # Get ERD visualization
+        # Get ERD visualization using Visualizer
         try:
-            # Create a NetworkX graph from the database structure
+            # Create Visualizer instance
+            visualizer = Visualizer(PATHS[selected_db])
+            
+            # Get adjacency list with relationship types
+            adj_list = visualizer.get_adj_list(selected_db)
+            
+            # Create a NetworkX graph
             G = nx.DiGraph()
             
-            # Create a case-insensitive mapping of table names
-            table_map = {table.lower(): table for table in tables}
+            # Create a case mapping dictionary to ensure consistent case
+            case_mapping = {}
             
-            # Add nodes (tables)
-            for table in tables:
-                G.add_node(table)
+            # First pass: collect all table names and determine canonical case
+            all_tables = set()
+            for source_table, relationships in adj_list.items():
+                all_tables.add(source_table.lower())
+                for target_table, _ in relationships:
+                    all_tables.add(target_table.lower())
             
-            # Get foreign key relationships
-            with sqlite3.connect(PATHS[selected_db]) as conn:
-                cursor = conn.cursor()
-                
-                # Enable foreign keys and set to full foreign key checks
-                cursor.execute("PRAGMA foreign_keys = ON")
-                
-                # Debug: Print database being analyzed
-                print(f"\nAnalyzing database: {selected_db}")
-                print(f"Tables found: {tables}")
-                
-                # Add edges based on foreign key relationships
-                for table in tables:
-                    print(f"\nChecking foreign keys for table: {table}")
-                    
-                    # Get foreign key information
-                    cursor.execute(f"PRAGMA foreign_key_list('{table}')")
-                    foreign_keys = cursor.fetchall()
-                    
-                    if foreign_keys:
-                        print(f"Found {len(foreign_keys)} foreign key(s) in {table}")
-                        for fk in foreign_keys:
-                            # fk[0] is id, fk[1] is seq, fk[2] is table, fk[3] is from, fk[4] is to
-                            referenced_table = fk[2]
-                            from_col = fk[3]
-                            to_col = fk[4]
-                            print(f"Found relationship: {table}.{to_col} -> {referenced_table}.{from_col}")
-                            
-                            # Look up the actual table name using case-insensitive comparison
-                            referenced_table_actual = table_map.get(referenced_table.lower())
-                            if referenced_table_actual:
-                                G.add_edge(table, referenced_table_actual)
-                                print(f"Added edge: {table} -> {referenced_table_actual}")
-                            else:
-                                print(f"Warning: Referenced table {referenced_table} not found in table list")
+            # Create case mapping using actual table names from the database
+            actual_tables = {table.lower(): table for table in tables}
+            
+            # Add nodes using actual table names from database
+            for table_lower in all_tables:
+                if table_lower in actual_tables:
+                    canonical_name = actual_tables[table_lower]
+                    G.add_node(canonical_name)
+                    case_mapping[table_lower] = canonical_name
+            
+            # Add edges with relationship types using correct case
+            for source_table, relationships in adj_list.items():
+                source_lower = source_table.lower()
+                if source_lower in case_mapping:
+                    source_canonical = case_mapping[source_lower]
+                    for target_table, rel_type in relationships:
+                        target_lower = target_table.lower()
+                        if target_lower in case_mapping:
+                            target_canonical = case_mapping[target_lower]
+                            G.add_edge(source_canonical, target_canonical, relationship=rel_type)
             
             edge_count = len(G.edges())
             print(f"\nTotal edges found: {edge_count}")
-            print(f"Graph edges: {list(G.edges())}")
+            print(f"Graph edges with relationships: {list(G.edges(data=True))}")
             
-            # Always create visualization, even if there are no edges
-            # Create the plot with a more appropriate figure size
-            plt.figure(figsize=(10, 8))
+            # Create visualization
+            plt.figure(figsize=(12, 10))
             
-            # Use spring layout with optimized parameters for better distribution
-            # If there are no edges, arrange nodes in a circle
+            # Use spring layout with optimized parameters
             if edge_count > 0:
-                pos = nx.spring_layout(G, k=1.5, iterations=50)
+                pos = nx.spring_layout(G, k=2, iterations=50)
             else:
                 pos = nx.circular_layout(G)
             
-            # Draw edges with arrows (if any exist)
-            if edge_count > 0:
-                nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
-                                     arrowsize=20, width=1.5)
-            
-            # Draw nodes with better visibility
+            # Draw nodes
             nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
                                  node_size=3000, alpha=0.7)
             
-            # Draw labels with better font size
+            # Draw node labels
             nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
+            
+            # Draw edges with arrows and relationship labels
+            if edge_count > 0:
+                nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
+                                     arrowsize=20, width=1.5)
+                
+                # Add edge labels (relationship types)
+                edge_labels = nx.get_edge_attributes(G, 'relationship')
+                nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
+                                           font_size=8, font_color='red')
             
             # Add padding around the graph
             plt.margins(0.2)
             
-            # Convert plot to image with higher DPI for better quality
+            # Convert plot to image
             img = io.BytesIO()
             plt.savefig(img, format='png', bbox_inches='tight', dpi=200)
             img.seek(0)
@@ -223,10 +220,10 @@ def dataset():
             # Convert to base64 for embedding in HTML
             if edge_count > 0:
                 title = "Entity Relationship Diagram"
-                desc = "Showing tables and their relationships"
+                desc = "Showing tables and their relationships (1:1, 1:N, N:M)"
             else:
                 title = "Database Tables Overview"
-                desc = ""
+                desc = "No relationships found between tables"
                 
             erd_html = f'''
                 <div class="erd-container">
@@ -238,8 +235,6 @@ def dataset():
                 </div>
             '''
             
-            if edge_count == 0:
-                print("No relationships between tables")
         except Exception as e:
             print(f"Error generating ERD: {str(e)}")
             erd_html = f'''

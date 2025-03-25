@@ -33,67 +33,123 @@ class Visualizer:
         """
         self._db = graph_db_path
 
-    def get_adj_list(self, graph_id: int) -> None:
+    def get_adj_list(self, db_name: str) -> Dict[str, List[List[str]]]:
         """
-        Retrieves the adjacency list representation of a graph.
+        Creates a directed adjacency list representation of database tables with relationship types.
 
         Args:
-            graph_id (int): The ID of the graph to retrieve.
+            db_name (str): Name of the database to analyze.
 
         Returns:
-            dict: A dictionary where each key is a node, and the value is a list
-                  of connected nodes along with their edge types.
+            Dict[str, List[List[str]]]: Dictionary where keys are table names and values are lists of
+            [target_table, relationship_type] pairs.
+            Example:
+            {
+                'TableA': [
+                    ['TableB', '1:N'],
+                    ['TableC', '1:1']
+                ]
+            }
         """
-        sql = """
-            SELECT 
-                fn.node_name AS from_node_name, 
-                tn.node_name AS to_node_name, 
-                et.type_name AS edge_type
-            FROM 
-                Nodes fn
-            LEFT JOIN 
-                Edges e ON e.from_node = fn.node_id
-            LEFT JOIN 
-                Nodes tn ON e.to_node = tn.node_id
-            LEFT JOIN 
-                EdgeTypes et ON e.type_id = et.type_id
-            WHERE 
-                fn.graph_id = ?;
-            """
-        res = query_db(sql, self._db, (graph_id,))
-        adj = defaultdict(list)
-        for start, end, typ in res:
-            adj[start].append([end, typ])
-        return adj
+        # Create SQLAlchemy engine for the database
+        engine = create_engine(f'sqlite:///{PATHS[db_name]}')
+        inspector = inspect(engine)
+        
+        # Initialize adjacency list
+        adj_list = {}
+        
+        try:
+            # Get all tables in the database
+            tables = inspector.get_table_names()
+            
+            # Initialize empty lists for all tables
+            for table in tables:
+                adj_list[table] = []
+            
+            # For each table, analyze its relationships
+            for table in tables:
+                # Get foreign key information
+                fks = inspector.get_foreign_keys(table)
+                
+                # Get unique constraints and primary key info
+                unique_constraints = inspector.get_unique_constraints(table)
+                pk_constraint = inspector.get_pk_constraint(table)
+                unique_columns = set()
+                
+                # Collect all unique columns
+                for constraint in unique_constraints:
+                    unique_columns.update(constraint['column_names'])
+                if pk_constraint:
+                    unique_columns.update(pk_constraint['constrained_columns'])
+                
+                # For each foreign key, determine the relationship type
+                for fk in fks:
+                    referred_table = fk['referred_table']
+                    constrained_columns = fk['constrained_columns']
+                    referred_columns = fk['referred_columns']
+                    
+                    # Check if the foreign key columns are part of a unique constraint
+                    is_unique = all(col in unique_columns for col in constrained_columns)
+                    
+                    # Determine relationship type
+                    relationship_type = self._determine_relationship_type(
+                        inspector, table, referred_table,
+                        constrained_columns, referred_columns,
+                        is_unique
+                    )
+                    
+                    # Add relationship to adjacency list as [to_node, relationship_type]
+                    adj_list[table].append([referred_table, relationship_type])
+                    
+                # Sort the list of references by table name for consistency
+                adj_list[table].sort(key=lambda x: x[0])
+            
+            return adj_list
+            
+        except Exception as e:
+            print(f"Error creating adjacency list for {db_name}: {str(e)}")
+            return {}
+            
+        finally:
+            engine.dispose()
 
-    def add_graph(self, graph_id: int, graph_name: str) -> None:
+    def _determine_relationship_type(
+        self, 
+        inspector: Any,
+        source_table: str,
+        target_table: str,
+        source_columns: List[str],
+        target_columns: List[str],
+        is_unique: bool
+    ) -> str:
         """
-        Adds a new graph entry to the database.
+        Determines the type of relationship between two tables.
 
         Args:
-            graph_id (int): Unique identifier for the graph.
-            graph_name (str): Name of the graph.
-        """
-        with sqlite3.connect(self._db) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO Graphs (graph_id, graph_name) VALUES (?, ?)",
-                (graph_id, graph_name)
-                )
-            conn.commit()
+            inspector: SQLAlchemy inspector instance
+            source_table: Name of the table containing the foreign key
+            target_table: Name of the referenced table
+            source_columns: Columns in the source table (foreign key columns)
+            target_columns: Referenced columns in the target table
+            is_unique: Whether the foreign key columns are unique
 
-    def delete_graph(self, graph_id: int) -> None:
+        Returns:
+            str: Relationship type ('1:1', '1:N', 'N:M')
         """
-        Deletes a graph and its associated nodes from the database.
-
-        Args:
-            graph_id (int): Unique identifier for the graph to be deleted.
-        """
-        with sqlite3.connect(self._db) as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM Graphs WHERE graph_id = ?;", (graph_id,))
-            cursor.execute("DELETE FROM Nodes WHERE graph_id = ?;", (graph_id,))
-            conn.commit()
+        # Check for many-to-many relationship
+        # This is a heuristic: if a table has exactly two foreign keys and no other columns
+        # (except perhaps an id), it's likely a junction table
+        source_columns_all = [col['name'] for col in inspector.get_columns(source_table)]
+        if len(inspector.get_foreign_keys(source_table)) == 2 and \
+           len(source_columns_all) <= len(source_columns) + 1:  # +1 for possible id column
+            return 'N:M'
+        
+        # If the foreign key columns are unique, it's a one-to-one relationship
+        if is_unique:
+            return '1:1'
+        
+        # Otherwise, it's a one-to-many relationship
+        return '1:N'
 
 class CRUD:
     """
@@ -214,4 +270,6 @@ class CRUD:
         self.engine.dispose()
 
 if __name__ == "__main__":
-    pass
+    path = PATHS['covid.db']
+    v = Visualizer(path)
+    print(v.get_adj_list('covid.db'))
