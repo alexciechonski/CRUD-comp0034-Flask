@@ -24,6 +24,7 @@ from sqlalchemy.orm import sessionmaker
 from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
 from src.backend.models import init_db, Base
 import glob
+from pathlib import Path
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -334,5 +335,71 @@ def get_resp(prompt: str) -> str:
     response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": prompt}])
     return response['message']['content'] if 'message' in response else "No response"
 
+def create_database(db_name: str) -> bool:
+    """
+    Creates a new SQLite database file in the data directory.
+    
+    Args:
+        db_name (str): Name of the database to create (should end with .db)
+        
+    Returns:
+        bool: True if database was created successfully, False otherwise
+        
+    Raises:
+        ValueError: If db_name doesn't end with .db or database already exists
+    """
+    from pathlib import Path
+    from sqlalchemy import create_engine
+    from src.config import PATHS, BASE_PATH
+    from src.backend.models import Base
+    
+    # Validate database name
+    if not db_name.endswith('.db'):
+        raise ValueError("Database name must end with .db")
+    
+    # Construct the full path
+    db_path = Path(BASE_PATH) / db_name
+    
+    # Check if database already exists
+    if db_path.exists():
+        raise ValueError(f"Database {db_name} already exists at {db_path}")
+    
+    try:
+        # Create the data directory if it doesn't exist
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Create the database file and initialize it with SQLAlchemy
+        engine = create_engine(f'sqlite:///{db_path}')
+        Base.metadata.create_all(engine)
+        
+        # Update the PATHS dictionary in config.json
+        import json
+        config_path = Path(__file__).parent / 'config.json'
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        # Add the new database path
+        config['paths'][db_name] = str(db_path)
+        
+        # Add empty lists for immutable tables
+        config['immutable'][db_name] = []
+        
+        # Write back the updated config
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error creating database: {str(e)}")
+        # Clean up if file was created but there was an error
+        if db_path.exists():
+            db_path.unlink()
+        return False
+        
+    finally:
+        if 'engine' in locals():
+            engine.dispose()
+
 if __name__ == "__main__":
-    print(get_graphable_tables())
+    create_database("test.db")

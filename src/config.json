@@ -1,13 +1,37 @@
 {
-    "base_path":"src/backend/data/",
+    "base_path": "src/backend/data/",
     "paths": {
-        "covid.db":"src/backend/data/covid.db",
-        "custom.db" : "src/backend/data/custom.db"
+        "covid.db": "src/backend/data/covid.db",
+        "custom.db": "src/backend/data/custom.db",
+        "test.db": "src/backend/data/test.db"
     },
-    "immutable":{
-        "covid.db" : ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"],
-        "custom.db" : ["MHCareCluster"]
+    "immutable": {
+        "covid.db": [
+            "Date",
+            "Week",
+            "Source",
+            "Restriction",
+            "SummaryRestriction",
+            "DailyRestriction",
+            "WeeklyRestriction"
+        ],
+        "custom.db": [
+            "MHCareCluster"
+        ],
+        "test.db": []
     },
-    "schema" : ["id", "time", "measured_value"],
-    "non_graphable" : ["Date", "Week", "Source", "Restriction", "SummaryRestriction", "DailyRestriction", "WeeklyRestriction"]
+    "schema": [
+        "id",
+        "time",
+        "measured_value"
+    ],
+    "non_graphable": [
+        "Date",
+        "Week",
+        "Source",
+        "Restriction",
+        "SummaryRestriction",
+        "DailyRestriction",
+        "WeeklyRestriction"
+    ]
 }
