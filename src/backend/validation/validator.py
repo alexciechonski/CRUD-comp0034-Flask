@@ -6,7 +6,7 @@ to validate table creation, deletion, data insertion, and schema compliance
 based on predefined database constraints.
 """
 import pandas as pd
-from src.config import IMMUTABLE, SCHEMA
+from src.config import IMMUTABLE, SCHEMA, NON_DELETEABLE
 from src.utils import show_tables
 
 class Validator:
@@ -75,3 +75,16 @@ class Validator:
             bool: True if the schema matches the expected structure, otherwise False.
         """
         return SCHEMA == list(contents_df.columns)
+
+    @staticmethod
+    def val_delete_database(db_name: str) -> bool:
+        """
+        Validates if a database can be deleted.
+
+        Args:
+            db_name (str): The name of the database.
+
+        Returns:
+            bool: False if the database is non-deletable, otherwise True.
+        """
+        return db_name not in NON_DELETEABLE

@@ -11,7 +11,7 @@ from pathlib import Path
 
 def load_config():
     """Reload configuration from config.json"""
-    global IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH, LOG_PATH
+    global IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH, LOG_PATH, NON_DELETEABLE
     config_path = Path(__file__).parent / 'config.json'
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)

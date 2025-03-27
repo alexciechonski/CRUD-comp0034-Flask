@@ -817,10 +817,10 @@ def delete_database_endpoint():
             flash('No database selected for deletion', 'error')
             return redirect(url_for('dataset'))
             
-        # Don't allow deletion of covid.db
-        if database == 'covid.db':
-            print("Attempted to delete covid.db")
-            flash('Cannot delete the main COVID-19 database', 'error')
+        # Validate if database can be deleted
+        if not v.val_delete_database(database):
+            print(f"Attempted to delete non-deletable database: {database}")
+            flash('This database cannot be deleted as it is protected', 'error')
             return redirect(url_for('dataset'))
             
         # Import necessary functions
