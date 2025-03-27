@@ -1,0 +1,7 @@
+[
+    {
+        "change": "delete_table",
+        "table_name": "test",
+        "schema": ["Nums, INTEGER, Primary Key"]
+    }
+]

@@ -12,7 +12,7 @@ from pathlib import Path
 
 def load_config():
     """Reload configuration from config.json"""
-    global PATHS, IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH
+    global PATHS, IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH, LOG_PATH
     config_path = Path(__file__).parent / 'config.json'
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
@@ -22,6 +22,7 @@ def load_config():
     SCHEMA = config['schema']
     NON_GRAPHABLE = config['non_graphable']
     BASE_PATH = config['base_path']
+    LOG_PATH = config['log_path']
 
 # Initial load of configuration
 load_config()

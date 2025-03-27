@@ -1,10 +1,9 @@
 {
     "base_path": "src/backend/data/",
+    "log_path": "src/backend/log/changes.json", 
     "paths": {
         "covid.db": "src/backend/data/covid.db",
-        "custom.db": "src/backend/data/custom.db",
-        "test.db": "src/backend/data/test.db",
-        "new.db": "src/backend/data/new.db"
+        "custom.db": "src/backend/data/custom.db"
     },
     "immutable": {
         "covid.db": [
