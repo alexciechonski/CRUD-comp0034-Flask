@@ -445,16 +445,19 @@ def delete_table_endpoint():
             return redirect(url_for('dataset', database=database))
 
         # Create a CRUD instance with the database name
-        data_server = get_data_server()
         crud = CRUD(database)
+        try:
+            # Delete the table using the CRUD remove_table method
+            crud.remove_table(database, table_name)
+            flash(f'Table {table_name} deleted successfully', 'success')
+        finally:
+            # Clean up the CRUD instance
+            crud.engine.dispose()
 
-        # Delete the table using the CRUD remove_table method
-        crud.remove_table(database, table_name)
-
-        flash(f'Table {table_name} deleted successfully', 'success')
         return redirect(url_for('dataset', database=database))
 
     except Exception as e:
+        print(f"Error in delete_table_endpoint: {str(e)}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 

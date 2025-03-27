@@ -193,11 +193,21 @@ class CRUD:
         if not v.val_delete_table(database, table_name):
             raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
 
-        metadata = MetaData()
-        # Reflect the table
-        table = Table(table_name, metadata, autoload_with=self.engine)
-        # Drop the table
-        table.drop(self.engine)
+        # Check if table exists
+        inspector = inspect(self.engine)
+        if table_name not in inspector.get_table_names():
+            raise ValueError(f"Table {table_name} does not exist in database {database}")
+
+        try:
+            metadata = MetaData()
+            # Reflect the table
+            table = Table(table_name, metadata, autoload_with=self.engine)
+            # Drop the table
+            table.drop(self.engine)
+            print(f"Successfully dropped table {table_name}")
+        except Exception as e:
+            print(f"Error dropping table {table_name}: {str(e)}")
+            raise
 
     def insert_data(self, table_name: str, data: List[Dict]) -> None:
         """

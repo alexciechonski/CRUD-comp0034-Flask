@@ -15,8 +15,7 @@
             "MHCareCluster"
         ],
         "test.db": [],
-        "new.db": [],
-        "alex.db": []
+        "new.db": []
     },
     "schema": [
         "id",
