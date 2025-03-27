@@ -327,24 +327,61 @@ def time_series():
                 analysis_result = get_resp(system_prompt + prompt)
                 
                 # Get time series data for plotting
-                time_series_data = data_server.serve_time_series(selected_restrictions, database=db_name, table=table_name)
+                time_series_data = data_server.serve_time_series(selected_restrictions, database='covid.db', table=None)  # Get restrictions data
+                custom_series_data = data_server.serve_time_series(selected_restrictions, database=db_name, table=table_name)  # Get custom variable data
                 
                 # Create time series plot
-                df = pd.DataFrame(time_series_data, columns=['date', 'restr_value'])
-                df['date'] = pd.to_datetime(df['date'])
+                # Create DataFrame for restrictions
+                restrictions_df = pd.DataFrame(time_series_data, columns=['date', 'total_restrictions'])
+                restrictions_df['date'] = pd.to_datetime(restrictions_df['date'])
                 
-                # Get second series data for comparison
-                second_series_data = data_server.serve_second_series(db_name, table_name)
-                second_df = pd.DataFrame(second_series_data, columns=['date', 'custom_value'])
-                second_df['date'] = pd.to_datetime(second_df['date'])
+                # Create DataFrame for custom variable
+                custom_df = pd.DataFrame(custom_series_data, columns=['date', 'measured_value'])
+                custom_df['date'] = pd.to_datetime(custom_df['date'])
                 
                 # Merge the dataframes
-                merged_df = pd.merge_asof(df, second_df, on='date', direction='nearest')
+                merged_df = pd.merge_asof(restrictions_df, custom_df, on='date', direction='nearest')
                 
-                # Create the plot
-                fig = px.line(merged_df, x='date', y=['restr_value', 'custom_value'],
-                            title='Time Series Analysis',
-                            labels={'value': 'Value', 'date': 'Date'})
+                # Create figure with secondary y-axis
+                fig = px.line(merged_df, x='date', y='total_restrictions',
+                            title='Time Series Analysis')
+                
+                # Add second trace on secondary y-axis
+                fig.add_scatter(x=merged_df['date'], y=merged_df['measured_value'],
+                              name=f'{table_name}',
+                              yaxis='y2')
+                
+                # Update layout for dual axes
+                fig.update_layout(
+                    yaxis=dict(
+                        title=dict(
+                            text='Number of Restrictions',
+                            font=dict(color='blue')
+                        ),
+                        tickfont=dict(color='blue')
+                    ),
+                    yaxis2=dict(
+                        title=dict(
+                            text=f'{table_name} Value',
+                            font=dict(color='red')
+                        ),
+                        tickfont=dict(color='red'),
+                        overlaying='y',
+                        side='right'
+                    ),
+                    xaxis=dict(
+                        title=dict(
+                            text='Date'
+                        )
+                    ),
+                    showlegend=True
+                )
+                
+                # Update first trace name and color
+                fig.data[0].name = 'Restrictions'
+                fig.data[0].line.color = 'blue'
+                fig.data[1].line.color = 'red'
+                
                 time_series_plot = pio.to_html(fig, full_html=False)
                 
                 # Create regression plot
