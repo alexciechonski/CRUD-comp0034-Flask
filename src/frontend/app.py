@@ -23,8 +23,9 @@ import plotly.express as px
 import plotly.io as pio
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -851,41 +852,136 @@ def delete_database_endpoint():
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
-@app.route('/table-crud')
+@app.route('/table-crud', methods=['GET', 'POST'])
 def table_crud():
     """Render the Table CRUD page with available tables."""
-    # Get selected database from query parameters, default to covid.db
-    selected_db = request.args.get('database', 'covid.db')
-    selected_table = request.args.get('table')
-    
-    # Get list of all available tables across all databases
-    tables = get_all_tables()
-    
-    # Initialize variables for table data
-    table_data = None
-    table_columns = None
-    
-    # If a table is selected, fetch its data
-    if selected_table:
-        try:
-            # Get table schema
-            table_info = get_table_info(selected_table, get_db_path(selected_db))
-            if table_info:
-                table_columns = [col[1] for col in table_info]  # Get column names
+    try:
+        # Handle POST request for adding/updating/deleting records
+        if request.method == 'POST':
+            action = request.form.get('action')
+            selected_db = request.form.get('database')
+            selected_table = request.form.get('table')
             
-            # Query the table data
-            query = f"SELECT * FROM {selected_table} LIMIT 100"  # Limit to 100 rows for performance
-            table_data = query_db(query, get_db_path(selected_db))
+            print(f"POST request received - Action: {action}, DB: {selected_db}, Table: {selected_table}")
+            print(f"Form data: {request.form}")
             
-        except Exception as e:
-            flash(f"Error fetching table data: {str(e)}", "error")
-    
-    return render_template('table_crud.html', 
-                         tables=tables,
-                         selected_db=selected_db,
-                         selected_table=selected_table,
-                         table_data=table_data,
-                         table_columns=table_columns)
+            if action == 'add':
+                try:
+                    if not selected_table or not selected_db:
+                        flash('No table or database selected', 'error')
+                        return redirect(url_for('table_crud'))
+                    
+                    # Create a dictionary of column values from form data
+                    record_data = {
+                        key: value for key, value in request.form.items()
+                        if key not in ['action', 'database', 'table']
+                    }
+                    
+                    print(f"Record data to insert: {record_data}")
+                    
+                    # Create a CRUD instance
+                    crud = CRUD(selected_db)
+                    try:
+                        # Insert the data
+                        crud.insert_data(selected_table, [record_data])
+                        flash('Record added successfully!', 'success')
+                    except Exception as e:
+                        print(f"Error in crud.insert_data: {str(e)}")
+                        flash(f'Error adding record: {str(e)}', 'error')
+                    finally:
+                        crud.engine.dispose()
+                        
+                except Exception as e:
+                    print(f"Error in add record handling: {str(e)}")
+                    flash(f'Error adding record: {str(e)}', 'error')
+                
+                return redirect(url_for('table_crud', table=selected_table))
+                
+            elif action == 'delete':
+                # Handle delete action
+                pass  # We'll implement this later
+                
+        # Handle GET request
+        selected_table = request.args.get('table')
+        
+        print(f"GET request - Selected Table: {selected_table}")
+        
+        # Get list of all available tables across all databases
+        tables = get_all_tables()
+        print(f"Available tables: {tables}")
+        
+        # Initialize variables for table data
+        table_data = None
+        table_columns = None
+        selected_db = None
+        
+        # If a table is selected, fetch its data
+        if selected_table:
+            try:
+                # Find the table info from the list of tables
+                table_info = next((table for table in tables if table['name'].lower() == selected_table.lower()), None)
+                
+                if not table_info:
+                    raise ValueError(f"Could not find table '{selected_table}'")
+                
+                # Get the correct case for the table name and its database
+                selected_table = table_info['name']
+                selected_db = table_info['database']
+                
+                # Get the database path
+                db_path = get_db_path(selected_db)
+                if not db_path:
+                    raise ValueError(f"Could not find database path for {selected_db}")
+                
+                print(f"Using database path: {db_path} for table: {selected_table}")
+                
+                # Create SQLAlchemy engine
+                engine = create_engine(f'sqlite:///{db_path}')
+                
+                try:
+                    # Create a connection
+                    with engine.connect() as connection:
+                        # Get table columns
+                        inspector = inspect(engine)
+                        columns = inspector.get_columns(selected_table)
+                        table_columns = [col['name'] for col in columns]
+                        print(f"Found columns: {table_columns}")
+                        
+                        # Query table data
+                        result = connection.execute(text(f"SELECT * FROM {selected_table} LIMIT 100"))
+                        table_data = result.fetchall()
+                        print(f"Retrieved {len(table_data) if table_data else 0} rows")
+                        
+                finally:
+                    engine.dispose()
+                
+            except SQLAlchemyError as e:
+                error_msg = f"Database error: {str(e)}"
+                print(error_msg)
+                flash(error_msg, "error")
+            except ValueError as e:
+                error_msg = str(e)
+                print(error_msg)
+                flash(error_msg, "error")
+            except Exception as e:
+                error_msg = f"Error fetching table data: {str(e)}"
+                print(error_msg)
+                flash(error_msg, "error")
+        
+        return render_template('table_crud.html', 
+                             tables=tables,
+                             selected_db=selected_db,
+                             selected_table=selected_table,
+                             table_data=table_data,
+                             table_columns=table_columns)
+                             
+    except Exception as e:
+        error_msg = f"Unexpected error in table_crud: {str(e)}"
+        print(error_msg)
+        flash(error_msg, "error")
+        return render_template('table_crud.html', 
+                             tables=get_all_tables(),
+                             selected_db=None)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -15,8 +15,8 @@
                 <select id="tableSelect" name="table" class="form-select" required onchange="this.form.submit()">
                     <option value="">Select a table to manage...</option>
                     {% for table in tables %}
-                    <option value="{{ table }}" {% if table == selected_table %}selected{% endif %}>
-                        {{ table.replace('_', ' ').title() }}
+                    <option value="{{ table.name }}" {% if table.name == selected_table %}selected{% endif %}>
+                        {{ table.name }} ({{ table.database }})
                     </option>
                     {% endfor %}
                 </select>
@@ -46,8 +46,28 @@
                     </tbody>
                 </table>
             </div>
+            <!-- Add Record Button -->
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                    Add Record
+                </button>
+            </div>
         </div>
         {% endif %}
+
+        <!-- Validation Messages -->
+        <div class="mt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
         <!-- CRUD Operations -->
         <div class="crud-operations mt-4">
@@ -57,9 +77,13 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Add New Record</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <form id="addRecordForm" method="POST" action="{{ url_for('table_crud') }}">
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="table" value="{{ selected_table }}">
+                                <input type="hidden" name="database" value="{{ selected_db }}">
                                 {% if table_columns %}
                                     {% for column in table_columns %}
                                     <div class="form-group mb-3">
@@ -68,7 +92,10 @@
                                     </div>
                                     {% endfor %}
                                 {% endif %}
-                                <button type="submit" class="btn btn-primary">Save Record</button>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save Record</button>
+                                </div>
                             </form>
                         </div>
                     </div>

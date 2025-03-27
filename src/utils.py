@@ -336,10 +336,20 @@ def graphable_tables():
     return graphable
 
 def get_all_tables():
-    db_files = os.listdir(BASE_PATH)
+    """Get list of all tables with their associated databases
+    
+    Returns:
+        List[Dict[str, str]]: List of dictionaries containing table name and database name
+    """
+    db_files = [f for f in os.listdir(BASE_PATH) if f.endswith('.db')]
     tables = []
     for db in db_files:
-        tables.extend(show_tables(db))
+        db_tables = show_tables(db)
+        for table in db_tables:
+            tables.append({
+                'name': table,
+                'database': db
+            })
     return tables
 
 def get_resp(prompt: str) -> str:
