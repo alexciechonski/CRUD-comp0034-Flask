@@ -148,6 +148,8 @@
                             <p>Enter the exact values of the record you want to delete:</p>
                             <form id="deleteRecordForm" method="POST" action="{{ url_for('table_crud') }}">
                                 <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="table" value="{{ selected_table }}">
+                                <input type="hidden" name="database" value="{{ selected_db }}">
                                 {% if table_columns %}
                                     {% for column in table_columns %}
                                     <div class="form-group mb-3">

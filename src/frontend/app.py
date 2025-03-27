@@ -898,8 +898,48 @@ def table_crud():
                 return redirect(url_for('table_crud', table=selected_table))
                 
             elif action == 'delete':
-                # Handle delete action
-                pass  # We'll implement this later
+                try:
+                    if not selected_table or not selected_db:
+                        flash('No table or database selected', 'error')
+                        return redirect(url_for('table_crud'))
+                    
+                    # Create a dictionary of column values from form data
+                    record_data = {
+                        key: value for key, value in request.form.items()
+                        if key not in ['action', 'database', 'table']
+                    }
+                    
+                    print(f"Record data to delete: {record_data}")
+                    
+                    # Create SQLAlchemy engine
+                    db_path = get_db_path(selected_db)
+                    engine = create_engine(f'sqlite:///{db_path}')
+                    
+                    try:
+                        # First check if the record exists
+                        conditions = " AND ".join([f"{k} = :{k}" for k in record_data.keys()])
+                        check_query = f"SELECT COUNT(*) FROM {selected_table} WHERE {conditions}"
+                        
+                        with engine.connect() as connection:
+                            result = connection.execute(text(check_query), record_data)
+                            count = result.scalar()
+                            
+                            if count == 0:
+                                flash('Record not found. Please check the values and try again.', 'error')
+                            else:
+                                # Delete the record
+                                delete_query = f"DELETE FROM {selected_table} WHERE {conditions}"
+                                connection.execute(text(delete_query), record_data)
+                                connection.commit()
+                                flash('Record deleted successfully!', 'success')
+                    finally:
+                        engine.dispose()
+                        
+                except Exception as e:
+                    print(f"Error in delete record handling: {str(e)}")
+                    flash(f'Error deleting record: {str(e)}', 'error')
+                
+                return redirect(url_for('table_crud', table=selected_table))
                 
         # Handle GET request
         selected_table = request.args.get('table')
