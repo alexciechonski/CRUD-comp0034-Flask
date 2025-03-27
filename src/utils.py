@@ -21,10 +21,13 @@ import pandas as pd
 import ollama # ollama has not been covered in the couse: https://github.com/ollama/ollama
 from sqlalchemy import create_engine, inspect, MetaData, Table
 from sqlalchemy.orm import sessionmaker
-from src.config import PATHS, NON_GRAPHABLE, BASE_PATH
+from src.config import NON_GRAPHABLE, BASE_PATH
 from src.backend.models import init_db, Base
 import glob
 from pathlib import Path
+
+def get_db_path(db_name):
+    return BASE_PATH + db_name
 
 def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple[Any, ...]]]:
     """
@@ -94,10 +97,10 @@ def delete_table(db_name: str, table_name: str) -> None:
     Deletes a table from the specified SQLite database.
 
     Args:
-        db_name (str): Name of the database (key from PATHS).
+        db_name (str): Name of the database.
         table_name (str): Name of the table to delete.
     """
-    with sqlite3.connect(PATHS[db_name]) as conn:
+    with sqlite3.connect(get_db_path(db_name)) as conn:
         cursor = conn.cursor()
         try:
             cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
@@ -146,7 +149,7 @@ def show_tables(database: str) -> List[str]:
     Returns:
         List[str]: List of table names.
     """
-    engine = create_engine(f'sqlite:///{PATHS[database]}')
+    engine = create_engine(f'sqlite:///{get_db_path(database)}')
     inspector = inspect(engine)
     tables = inspector.get_table_names()
     engine.dispose()
@@ -163,7 +166,7 @@ def table_not_empty(db_name: str, table: str) -> bool:
     Returns:
         bool: True if table has rows, False otherwise.
     """
-    engine = create_engine(f'sqlite:///{PATHS[db_name]}')
+    engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
     metadata = MetaData()
     table_obj = Table(table, metadata, autoload_with=engine)
     
@@ -254,7 +257,7 @@ def dynamic_name_id() -> List[tuple]:
     Returns:
         dict[str, int]: Dictionary mapping graph names to their IDs.
     """
-    with sqlite3.connect(PATHS["graph.db"]) as conn:
+    with sqlite3.connect(get_db_path("graph.db")) as conn:
         res = {}
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Graphs;")
@@ -274,7 +277,7 @@ def select_graphable_tables(database: str) -> List[str]:
         List[str]: List of table names that can be graphed.
     """
     tables = show_tables(database)
-    engine = create_engine(f'sqlite:///{PATHS[database]}')
+    engine = create_engine(f'sqlite:///{get_db_path(database)}')
     inspector = inspect(engine)
     
     graphable = []
@@ -350,7 +353,6 @@ def create_database(db_name: str) -> bool:
     """
     from pathlib import Path
     from sqlalchemy import create_engine
-    from src.config import PATHS, BASE_PATH
     
     # Validate database name
     if not db_name.endswith('.db'):
@@ -372,14 +374,11 @@ def create_database(db_name: str) -> bool:
         # Just connect and disconnect to create the empty file
         engine.connect().close()
         
-        # Update the PATHS dictionary in config.json
+        # Update the config.json
         import json
         config_path = Path(__file__).parent / 'config.json'
         with open(config_path, 'r') as f:
             config = json.load(f)
-        
-        # Add the new database path
-        config['paths'][db_name] = str(db_path)
         
         # Add empty lists for immutable tables
         config['immutable'][db_name] = []
@@ -415,7 +414,6 @@ def delete_database(db_name: str) -> bool:
         ValueError: If db_name is covid.db or database doesn't exist
     """
     from pathlib import Path
-    from src.config import PATHS, BASE_PATH
     
     print(f"delete_database called with db_name: {db_name}")
     print(f"BASE_PATH: {BASE_PATH}")
@@ -441,7 +439,7 @@ def delete_database(db_name: str) -> bool:
         db_path.unlink()
         print(f"File deleted successfully. Still exists: {db_path.exists()}")
         
-        # Update the PATHS dictionary in config.json
+        # Update the config.json
         import json
         config_path = Path(__file__).parent / 'config.json'
         print(f"Config path: {config_path}")
@@ -449,12 +447,9 @@ def delete_database(db_name: str) -> bool:
         
         with open(config_path, 'r') as f:
             config = json.load(f)
-            print(f"Current config paths: {config['paths']}")
+            print(f"Current config: {config}")
         
-        # Remove the database path and immutable tables
-        if db_name in config['paths']:
-            print(f"Removing {db_name} from config paths")
-            del config['paths'][db_name]
+        # Remove immutable tables entry
         if db_name in config['immutable']:
             print(f"Removing {db_name} from immutable tables")
             del config['immutable'][db_name]

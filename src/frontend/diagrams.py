@@ -16,7 +16,7 @@ import plotly.express as px
 import networkx as nx # nx uses graphviz: https://graphviz.org/
 import matplotlib.pyplot as plt
 import matplotlib
-from backend.data_server import DataServer
+from src.backend.data_server import DataServer
 from src.prediction.pred import Model
 from src.utils import table_not_empty
 
@@ -162,20 +162,18 @@ class Diagrams:
     Handles ERD visualization, table rendering, time series plots, and
     restriction data visualizations.
     """
-    def __init__(self, db_path: str, custom_path: str) -> None:
+    def __init__(self, db_name: str) -> None:
         """
-        Initializes the Diagrams class with paths to relevant databases.
+        Initializes the Diagrams class with database name.
 
         Args:
-            db_path (str): Path to the main database.
-            custom_path (str): Path to a custom database.
+            db_name (str): Name of the database to connect to.
         """
-        self.db_path = db_path
-        self.custom_path = custom_path
+        self.db_name = db_name
 
     def get_data_server(self) -> DataServer:
         """Create a new DataServer instance for each method call"""
-        return DataServer(self.db_path, self.custom_path)
+        return DataServer(self.db_name)
 
     @staticmethod
     def create_legend_base64(legend: Dict[str, str]) -> str:
@@ -481,7 +479,6 @@ class Diagrams:
 
 if __name__ == "__main__":
     dgms = Diagrams(
-    "src/backend/data/covid.db",
-    "src/backend/data/custom.db"
+    "src/backend/data/covid.db"
     )
     dgms.erd("covid")

@@ -31,7 +31,6 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from flask import Flask, render_template, url_for, jsonify, send_file
 from src.backend.data_server import DataServer
-from src.config import PATHS
 from src.utils import (
     query_db, 
     get_table_info, 
@@ -41,19 +40,14 @@ from src.utils import (
     get_databases, 
     create_table, 
     get_graphable_tables,
-    get_resp
+    get_resp,
+    get_db_path
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
 from src.frontend.input_validation import Validator as v
 from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
-
-# Debug: Print the paths
-print("Database paths:")
-for key, path in PATHS.items():
-    print(f"{key}: {path}")
-    print(f"File exists: {os.path.exists(path)}")
 
 app = Flask(__name__,
             template_folder='templates',
@@ -66,20 +60,18 @@ app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in p
 app.register_blueprint(restriction_bp, url_prefix='')
 
 # Initialize SQLAlchemy session
-engine = create_engine(f'sqlite:///{PATHS["covid.db"]}')
+engine = create_engine(f'sqlite:///{get_db_path("covid.db")}')
 Session = sessionmaker(bind=engine)
 
 # Initialize Diagrams
 diagrams = Diagrams(
-    db_path=PATHS['covid.db'],
-    custom_path=PATHS['custom.db']
+    db_name='covid.db'
 )
 
 def get_data_server():
     """Create a new DataServer instance for each request"""
     return DataServer(
-        db_path=PATHS['covid.db'],
-        custom_path=PATHS['custom.db']
+        db_name='covid.db'
     )
 
 # Add caching for time series data
@@ -123,7 +115,7 @@ def dataset():
         for table in tables:
             try:
                 # Get table schema information using get_table_info
-                schema_info = get_table_info(table, PATHS[selected_db])
+                schema_info = get_table_info(table, get_db_path(selected_db))
                 if schema_info:
                     # Format schema info into a list of dictionaries
                     formatted_info = [{
@@ -155,7 +147,7 @@ def dataset():
                 '''
             else:
                 # Create engine and session for the selected database
-                db_engine = create_engine(f'sqlite:///{PATHS[selected_db]}')
+                db_engine = create_engine(f'sqlite:///{get_db_path(selected_db)}')
                 DbSession = sessionmaker(bind=db_engine)
                 
                 # Create Visualizer instance with the correct session
@@ -514,7 +506,7 @@ def insert_data_endpoint():
 
         # Get the correct database path
         data_server = get_data_server()
-        db_path = PATHS.get(database)
+        db_path = get_db_path(database)
         if not db_path:
             flash(f'Database {database} not found', 'error')
             return redirect(url_for('dataset', database=database))
@@ -712,9 +704,9 @@ def delete_database_endpoint():
             
         # Import necessary functions
         from src.utils import delete_database
-        from src.config import load_config, PATHS
+        from src.config import load_config
         
-        print(f"Current database paths before deletion: {PATHS}")
+        print(f"Current database path before deletion: {get_db_path(database)}")
         
         # Delete the database
         success = delete_database(database)
@@ -724,7 +716,7 @@ def delete_database_endpoint():
             # Reload configuration after deletion
             print("Reloading configuration...")
             load_config()
-            print(f"Database paths after reload: {PATHS}")
+            print(f"Database path after reload: {get_db_path(database)}")
             flash(f'Database {database} deleted successfully', 'success')
         else:
             print("Delete operation failed")

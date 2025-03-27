@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import func, create_engine
 from sqlalchemy.orm import sessionmaker
 from .models import Date, Restriction, DailyRestriction, init_db
-from ..config import PATHS
+from src.utils import get_db_path
 from .data_server import DataServer
 import os
 import plotly.graph_objects as go
@@ -17,15 +17,12 @@ import json
 bp = Blueprint('restriction_distribution', __name__)
 
 # Create engine and session factory
-db_path = os.path.abspath(PATHS["covid.db"])
+db_path = get_db_path("covid.db")
 engine = create_engine(f'sqlite:///{db_path}')
 Session = sessionmaker(bind=engine)
 
 # Initialize DataServer
-data_server = DataServer(
-    db_path=PATHS["covid.db"],
-    custom_path=PATHS["custom.db"]
-)
+data_server = DataServer("covid.db")
 
 def format_restriction_name(name):
     """Format restriction name for display."""

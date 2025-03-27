@@ -12,8 +12,7 @@ from typing import Any, Dict, List
 from collections import defaultdict
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, inspect, Date
 from sqlalchemy.orm import sessionmaker
-from src.utils import create_table, delete_table, query_db
-from src.config import PATHS
+from src.utils import create_table, delete_table, query_db, get_db_path
 from src.frontend.input_validation import Validator as v
 from src.backend.models import Base, create_custom_table
 
@@ -152,7 +151,7 @@ class CRUD:
             db_name (str): Name of the database to operate on.
         """
         self.db_name = db_name
-        self.engine = create_engine(f'sqlite:///{PATHS[db_name]}')
+        self.engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
         self.Session = sessionmaker(bind=self.engine)
 
     def add_table(self, table_name: str) -> None:
@@ -253,6 +252,6 @@ class CRUD:
         self.engine.dispose()
 
 if __name__ == "__main__":
-    path = PATHS['covid.db']
+    path = get_db_path('covid.db')
     v = Visualizer(path)
     print(v.get_adj_list('covid.db'))

@@ -1,10 +1,6 @@
 {
     "base_path": "src/backend/data/",
-    "log_path": "src/backend/log/changes.json", 
-    "paths": {
-        "covid.db": "src/backend/data/covid.db",
-        "custom.db": "src/backend/data/custom.db"
-    },
+    "log_path": "src/backend/log/changes.json",
     "immutable": {
         "covid.db": [
             "Date",
@@ -19,7 +15,8 @@
             "MHCareCluster"
         ],
         "test.db": [],
-        "new.db": []
+        "new.db": [],
+        "alex.db": []
     },
     "schema": [
         "id",

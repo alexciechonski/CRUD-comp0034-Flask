@@ -1,7 +1,6 @@
 """
 Module for initializing global variables from config.json
 Variables:
-- PATHS: dictionary for path to respective databases
 - IMMUTABLE: list of immutable tables
 - SCHEMA: list of required columns for user created tables
 - NON-GRAPHABLE: list of non-graphable tables used for time series
@@ -12,12 +11,11 @@ from pathlib import Path
 
 def load_config():
     """Reload configuration from config.json"""
-    global PATHS, IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH, LOG_PATH
+    global IMMUTABLE, SCHEMA, NON_GRAPHABLE, BASE_PATH, LOG_PATH
     config_path = Path(__file__).parent / 'config.json'
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
-    PATHS = config['paths']
     IMMUTABLE = config['immutable']
     SCHEMA = config['schema']
     NON_GRAPHABLE = config['non_graphable']

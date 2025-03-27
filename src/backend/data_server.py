@@ -10,26 +10,27 @@ from sqlalchemy import func, desc, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.backend.models import init_db, Date, Restriction, DailyRestriction, Source, SummaryRestriction
 from src.backend.erd_manager import Visualizer
-from src.config import PATHS
 import pandas as pd
+from src.utils import get_table_info, get_db_path
+from sqlalchemy import Table, MetaData
 
 class DataServer:
     """Class for serving data from the database"""
-    def __init__(self, db_path: str, custom_path: str):
+    def __init__(self, db_name: str):
         """Initialize the DataServer with database paths
         
         Args:
-            db_path (str): Path to the main database
-            custom_path (str): Path to the custom database
+            db_name (str): Name of the database to connect to
         """
-        self._db_engine = create_engine(f'sqlite:///{db_path}')
-        self._custom_engine = create_engine(f'sqlite:///{custom_path}')
-        
-        Session = sessionmaker(bind=self._db_engine)
-        CustomSession = sessionmaker(bind=self._custom_engine)
-        
-        self._db_session = Session()
-        self._custom_session = CustomSession()
+        self._db_session = self.get_session('covid.db')
+        self._graph_session = self.get_session('graph.db')
+        self._custom_session = self.get_session('custom.db')
+
+    @staticmethod
+    def get_session(db_name):
+        engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
+        session = sessionmaker(bind=engine)
+        yield session
         
     def serve_erd(self, graph_id: int) -> Dict:
         """
@@ -52,10 +53,10 @@ class DataServer:
             db_name (str): Name of the database.
             table (str): Name of the table.
         """
-        db_path = PATHS[db_name]
+        db_path = get_db_path(db_name)
         return get_table_info(table, db_path)
 
-    def serve_time_series(self, restrs: List[str] = [], database: str = 'covid.db', table: str = None) -> List[tuple]:
+    def serve_time_series(self, restrs: List[str], database: str, table: str) -> List[tuple]:
         """
         Retrieves time-series data using SQLAlchemy.
 
@@ -68,6 +69,8 @@ class DataServer:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
         print(f"serve_time_series called with: database={database}, table={table}, restrictions={restrs}")
+        if not restrs:
+            restrs = []
         
         if database == 'covid.db':
             try:
@@ -106,31 +109,28 @@ class DataServer:
                 print(f"Error in serve_time_series (covid.db): {str(e)}")
                 raise
         
-        elif table and database in PATHS:
-            session = None
-            try:
-                session = init_db(f'sqlite:///{PATHS[database]}')()
-                # For custom tables, we need to use the table object dynamically
-                from sqlalchemy import Table, MetaData
-                metadata = MetaData()
-                table_obj = Table(table, metadata, autoload_with=session.bind)
-                
-                result = session.query(
-                    table_obj.c.time,
-                    table_obj.c.measured_value
-                ).order_by(table_obj.c.time).all()
-                
-                if not result:
-                    return [(None, 0)]
-                return result
-            except Exception as e:
-                print(f"Error in serve_time_series (custom db): {str(e)}")
-                raise
-            finally:
-                if session:
-                    session.close()
-        
-        return [(None, 0)]
+        session = None
+        try:
+            session = init_db(f'sqlite:///{get_db_path(database)}')()
+            # For custom tables, we need to use the table object dynamically
+            metadata = MetaData()
+            table_obj = Table(table, metadata, autoload_with=session.bind)
+            
+            result = session.query(
+                table_obj.c.time,
+                table_obj.c.measured_value
+            ).order_by(table_obj.c.time).all()
+            
+            if not result:
+                return [(None, 0)]
+            return result
+        except Exception as e:
+            print(f"Error in serve_time_series (custom db): {str(e)}")
+            raise
+        finally:
+            if session:
+                session.close()
+    
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """
@@ -273,3 +273,9 @@ class DataServer:
             self._db_engine.dispose()
         if hasattr(self, '_custom_engine'):
             self._custom_engine.dispose()
+
+if __name__ == "__main__":
+    data_server = DataServer("covid.db")
+    # print(data_server.serve_erd(1)) # fails
+    print(data_server.serve_table("covid.db", "Date"))
+    data_server.__del__

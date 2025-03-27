@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 import pandas as pd
 from src.backend.data_server import DataServer
-from src.config import PATHS
+from src.utils import get_db_path
 
 class Model:
     """
@@ -46,7 +46,11 @@ class Model:
         Returns:
             pd.DataFrame: A DataFrame containing `restr_value` and `custom_value`.
         """
-        server = DataServer(PATHS["covid.db"], PATHS["graph.db"], PATHS["custom.db"])
+        server = DataServer(
+            get_db_path("covid.db"),
+            get_db_path("graph.db"),
+            get_db_path("custom.db")
+        )
         try:
             time_series_data = server.serve_time_series(self.restrs)
             second_series_data = server.serve_second_series(self.db_name, self.table_name)
