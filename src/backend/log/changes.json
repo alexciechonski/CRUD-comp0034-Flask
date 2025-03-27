@@ -3,5 +3,22 @@
         "change": "delete_table",
         "table_name": "test",
         "schema": ["Nums, INTEGER, Primary Key"]
+    },
+    {
+        "change":"create_table",
+        "table_name":"new",
+        "schema": ["Words, TEXT, Primary Key"]
+    },
+    {
+        "change":"insert_data",
+        "csv_path":"src/frontend/testing/resources/test.csv"
+    },
+    {
+        "change":"create_database",
+        "db_name":"new.db"
+    },
+    {
+        "change":"delete_database",
+        "db_name": "new2.db"
     }
 ]
