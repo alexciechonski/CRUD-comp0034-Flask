@@ -46,32 +46,38 @@ class Model:
         Returns:
             pd.DataFrame: A DataFrame containing `restr_value` and `custom_value`.
         """
-        server = DataServer(
-            get_db_path("covid.db"),
-            get_db_path("graph.db"),
-            get_db_path("custom.db")
-        )
+        server = DataServer('covid.db')
         try:
-            time_series_data = server.serve_time_series(self.restrs)
+            time_series_data = server.serve_time_series(self.restrs, database=self.db_name, table=self.table_name)
+            print(f"Time series data: {time_series_data[:5]}")  # Debug print
             second_series_data = server.serve_second_series(self.db_name, self.table_name)
+            print(f"Second series data: {second_series_data[:5]}")  # Debug print
 
-            time_series_df = pd.DataFrame(
-                time_series_data, columns=["date", "restr_value"]
+            # Handle different column names based on database type
+            if self.db_name == 'covid.db':
+                time_series_df = pd.DataFrame(
+                    time_series_data, columns=["date", "total_restrictions"]
+                ).rename(columns={"total_restrictions": "restr_value"}
                 ).sort_values('date')
+            else:
+                time_series_df = pd.DataFrame(
+                    time_series_data, columns=["date", "measured_value"]
+                ).rename(columns={"measured_value": "restr_value"}
+                ).sort_values('date')
+
             second_series_df = pd.DataFrame(
                 second_series_data, columns=["date", "custom_value"]
-                ).sort_values('date')
+            ).sort_values('date')
 
             time_series_df['date'] = pd.to_datetime(time_series_df['date'])
             second_series_df['date'] = pd.to_datetime(second_series_df['date'])
             merged_df = pd.merge_asof(
                 time_series_df, second_series_df, on='date', direction='nearest'
-                ).interpolate(method='pad')
+            ).interpolate(method='pad')
 
             return merged_df.groupby('restr_value', as_index=False)['custom_value'].mean()
         finally:
             server._db_session.close()
-            server._graph_session.close()
             server._custom_session.close()
 
     def train_linear(self) -> pd.DataFrame:

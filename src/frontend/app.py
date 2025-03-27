@@ -41,7 +41,8 @@ from src.utils import (
     create_table, 
     get_graphable_tables,
     get_resp,
-    get_db_path
+    get_db_path,
+    graphable_tables
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
@@ -280,29 +281,109 @@ def dataset():
 
 @app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
-    # Get data server instance
+    # Get selected database from query parameters, default to covid.db
+    selected_db = request.args.get('database', 'covid.db')
+    
+    # Get data server instance with the selected database
     data_server = get_data_server()
     try:
         # Get list of available databases
         databases = get_databases()
         
-        # Get selected database from query parameters, default to covid.db
-        selected_db = request.args.get('database', 'covid.db')
-        
-        # Get all tables for the selected database
-        tables = show_tables(selected_db)
-        
         # Get graphable tables for the selected database
-        graphable_tables = get_graphable_tables(selected_db)
+        tables = graphable_tables()
         
         # Get restrictions for the selected database
         restrictions = data_server.get_restrictions(selected_db)
         
+        # Handle POST request for analysis
+        if request.method == 'POST':
+            # Get form data
+            table = request.form.get('table')
+            selected_restrictions = request.form.getlist('restrictions[]')
+            prompt = request.form.get('prompt')
+            
+            if not table or not selected_restrictions or not prompt:
+                return render_template('time_series.html',
+                                     databases=databases,
+                                     selected_db=selected_db,
+                                     tables=tables,
+                                     restrictions=restrictions,
+                                     error="Please fill in all required fields")
+            
+            try:
+                # Extract database and table names from the combined string
+                db_name, table_name = table.split('.')
+                db_name = f"{db_name}.db"  # Add back the .db extension
+                
+                # Create Model instance and get correlation
+                model = Model(selected_restrictions, db_name, table_name)
+                correlation = model.get_correlation()
+                
+                # Create system prompt with correlation information
+                system_prompt = f"The correlation between number of restrictions and {table_name} is {correlation:.3f}. "
+                
+                # Get AI response
+                analysis_result = get_resp(system_prompt + prompt)
+                
+                # Get time series data for plotting
+                time_series_data = data_server.serve_time_series(selected_restrictions, database=db_name, table=table_name)
+                
+                # Create time series plot
+                df = pd.DataFrame(time_series_data, columns=['date', 'restr_value'])
+                df['date'] = pd.to_datetime(df['date'])
+                
+                # Get second series data for comparison
+                second_series_data = data_server.serve_second_series(db_name, table_name)
+                second_df = pd.DataFrame(second_series_data, columns=['date', 'custom_value'])
+                second_df['date'] = pd.to_datetime(second_df['date'])
+                
+                # Merge the dataframes
+                merged_df = pd.merge_asof(df, second_df, on='date', direction='nearest')
+                
+                # Create the plot
+                fig = px.line(merged_df, x='date', y=['restr_value', 'custom_value'],
+                            title='Time Series Analysis',
+                            labels={'value': 'Value', 'date': 'Date'})
+                time_series_plot = pio.to_html(fig, full_html=False)
+                
+                # Create regression plot
+                regression_data = model.prepare()
+                if not regression_data.empty:
+                    fig = px.scatter(regression_data, x='restr_value', y='custom_value',
+                                   title='Correlation Analysis',
+                                   labels={'restr_value': 'Number of Restrictions',
+                                          'custom_value': f'{table_name} Value'})
+                    regression_plot = pio.to_html(fig, full_html=False)
+                else:
+                    regression_plot = None
+                
+                return render_template('time_series.html',
+                                   databases=databases,
+                                   selected_db=selected_db,
+                                   tables=tables,
+                                   restrictions=restrictions,
+                                   selected_table=table,
+                                   selected_restrictions=selected_restrictions,
+                                   prompt=prompt,
+                                   time_series_plot=time_series_plot,
+                                   regression_plot=regression_plot,
+                                   analysis_result=analysis_result)
+                
+            except Exception as e:
+                print(f"Error in time series analysis: {str(e)}")  # Add debug print
+                return render_template('time_series.html',
+                                     databases=databases,
+                                     selected_db=selected_db,
+                                     tables=tables,
+                                     restrictions=restrictions,
+                                     error=str(e))
+        
+        # Handle GET request
         return render_template('time_series.html',
                              databases=databases,
                              selected_db=selected_db,
                              tables=tables,
-                             graphable_tables=graphable_tables,
                              restrictions=restrictions)
     finally:
         data_server._db_session.close()

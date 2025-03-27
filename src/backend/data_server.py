@@ -16,6 +16,20 @@ from sqlalchemy import Table, MetaData
 
 class DataServer:
     """Class for serving data from the database"""
+    @staticmethod
+    def get_session(db_name):
+        """Get a SQLAlchemy session for a database
+        
+        Args:
+            db_name (str): Name of the database to connect to
+            
+        Returns:
+            Session: SQLAlchemy session
+        """
+        engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
+        Session = sessionmaker(bind=engine)
+        return Session()
+
     def __init__(self, db_name: str):
         """Initialize the DataServer with database paths
         
@@ -26,12 +40,6 @@ class DataServer:
         self._graph_session = self.get_session('graph.db')
         self._custom_session = self.get_session('custom.db')
 
-    @staticmethod
-    def get_session(db_name):
-        engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
-        session = sessionmaker(bind=engine)
-        yield session
-        
     def serve_erd(self, graph_id: int) -> Dict:
         """
         Retrieves the adjacency list for a given graph from the ERD manager.
@@ -236,16 +244,21 @@ class DataServer:
             print(f"Error in serve_second_series: {str(e)}")
             return []
 
-    def get_restrictions(self) -> List[str]:
+    def get_restrictions(self, database: str = 'covid.db') -> List[str]:
         """
-        Retrieves a list of all available restrictions using SQLAlchemy.
+        Gets a list of available restrictions for a specific database.
+
+        Args:
+            database (str): Name of the database to get restrictions from. Defaults to 'covid.db'.
 
         Returns:
             List[str]: List of restriction names.
         """
-        return [r[0] for r in self._db_session.query(
-            Restriction.restriction
-        ).order_by(Restriction.restriction).all()]
+        if database == 'covid.db':
+            return [r.restriction for r in self._db_session.query(Restriction).all()]
+        else:
+            # For custom databases, return empty list as they don't have restrictions
+            return []
 
     def get_date_range(self) -> Tuple[str, str]:
         """
