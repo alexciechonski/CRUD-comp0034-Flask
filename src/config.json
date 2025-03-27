@@ -30,5 +30,6 @@
         "SummaryRestriction",
         "DailyRestriction",
         "WeeklyRestriction"
-    ]
+    ],
+    "non_deleteable": ["covid.db"]
 }

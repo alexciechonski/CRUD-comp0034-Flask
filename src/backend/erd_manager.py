@@ -13,7 +13,7 @@ from collections import defaultdict
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, inspect, Date
 from sqlalchemy.orm import sessionmaker
 from src.utils import create_table, delete_table, query_db, get_db_path
-from src.frontend.input_validation import Validator as v
+from src.backend.validation import Validator as v
 from src.backend.models import Base, create_custom_table
 
 class Visualizer:

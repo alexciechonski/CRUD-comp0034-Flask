@@ -46,7 +46,7 @@ from src.utils import (
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
-from src.frontend.input_validation import Validator as v
+from src.backend.validation import Validator as v
 from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
 

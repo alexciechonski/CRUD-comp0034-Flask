@@ -21,6 +21,7 @@ def load_config():
     NON_GRAPHABLE = config['non_graphable']
     BASE_PATH = config['base_path']
     LOG_PATH = config['log_path']
+    NON_DELETEABLE = config['non_deleteable']
 
 # Initial load of configuration
 load_config()
