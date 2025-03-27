@@ -62,7 +62,6 @@
                     {% for category, message in messages %}
                         <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -77,7 +76,6 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Add New Record</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <form id="addRecordForm" method="POST" action="{{ url_for('table_crud') }}">
@@ -86,16 +84,21 @@
                                 <input type="hidden" name="database" value="{{ selected_db }}">
                                 {% if table_columns %}
                                     {% for column in table_columns %}
-                                    <div class="form-group mb-3">
-                                        <label for="{{ column }}">{{ column.replace('_', ' ').title() }}</label>
-                                        <input type="text" class="form-control" id="{{ column }}" name="{{ column }}" required>
+                                    <div style="margin-bottom: 10px;">
+                                        <label style="display: block; margin-bottom: 5px;">{{ column }}</label>
+                                    {% if column == 'id' %}
+                                        <input type="number" name="{{ column }}" class="form-control">
+                                    {% elif column == 'time' %}
+                                        <input type="date" name="{{ column }}" required class="form-control">
+                                    {% elif column == 'measured_value' %}
+                                        <input type="number" name="{{ column }}" step="any" required class="form-control">
+                                    {% else %}
+                                        <input type="text" name="{{ column }}" required class="form-control">
+                                    {% endif %}
                                     </div>
                                     {% endfor %}
+                                    <button type="submit" style="background-color: #007bff; color: white; border: none;">Save Record</button>
                                 {% endif %}
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-primary">Save Record</button>
-                                </div>
                             </form>
                         </div>
                     </div>
@@ -113,13 +116,21 @@
                             <form id="updateRecordForm" method="POST" action="{{ url_for('table_crud') }}">
                                 {% if table_columns %}
                                     {% for column in table_columns %}
-                                    <div class="form-group mb-3">
-                                        <label for="update_{{ column }}">{{ column.replace('_', ' ').title() }}</label>
-                                        <input type="text" class="form-control" id="update_{{ column }}" name="{{ column }}" required>
+                                    <div style="margin-bottom: 10px;">
+                                        <label style="display: block; margin-bottom: 5px;">{{ column }}</label>
+                                    {% if column == 'id' %}
+                                        <input type="number" name="{{ column }}" class="form-control">
+                                    {% elif column == 'time' %}
+                                        <input type="date" name="{{ column }}" required class="form-control">
+                                    {% elif column == 'measured_value' %}
+                                        <input type="number" name="{{ column }}" step="any" required class="form-control">
+                                    {% else %}
+                                        <input type="text" name="{{ column }}" required class="form-control">
+                                    {% endif %}
                                     </div>
                                     {% endfor %}
+                                    <button type="submit" style="background-color: #28a745; color: white; border: none;">Update Record</button>
                                 {% endif %}
-                                <button type="submit" class="btn btn-primary">Update Record</button>
                             </form>
                         </div>
                     </div>
@@ -172,58 +183,77 @@
     margin-bottom: 20px;
 }
 
-.button-group {
-    display: flex;
-    gap: 10px;
+.modal-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: normal;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.modal-footer {
+    border-top: 1px solid #eee;
+    padding: 15px 0 0;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
 }
 
 .modal-body form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
-.modal-body .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    position: relative;
-}
-
-.modal-body .form-group::before,
-.modal-body .form-group::after {
-    display: none;
-}
-
-.modal-body label {
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-
-.modal-body input, 
-.modal-body select {
+.modal-body input {
     padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
+    margin-bottom: 10px;
 }
 
-/* Remove any browser default form styling */
-.modal-body input::-webkit-outer-spin-button,
-.modal-body input::-webkit-inner-spin-button,
-.modal-body input::-webkit-search-decoration,
-.modal-body input::-webkit-search-cancel-button,
-.modal-body input::-webkit-search-results-button,
-.modal-body input::-webkit-search-results-decoration {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.btn-group-sm > .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+.modal-body button {
+    padding: 8px;
+    margin-top: 10px;
 }
 </style>
 {% endblock %} 
