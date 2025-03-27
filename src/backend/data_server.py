@@ -289,6 +289,5 @@ class DataServer:
 
 if __name__ == "__main__":
     data_server = DataServer("covid.db")
-    # print(data_server.serve_erd(1)) # fails
-    print(data_server.serve_table("covid.db", "Date"))
-    data_server.__del__
+    time_series_data = data_server.serve_time_series(selected_restrictions, database=selected_db, table=table)
+

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Table CRUD Operations - COVID-19 Insights{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Table CRUD Operations</h2>
+    <p>View, add, update, and delete records in the database tables.</p>
+    
+    <div class="crud-container">
+        <!-- Table Selector -->
+        <div class="select-group">
+            <form method="GET" action="{{ url_for('table_crud') }}" class="mb-4">
+                <label for="tableSelect">Select Table</label>
+                <select id="tableSelect" name="table" class="form-select" required onchange="this.form.submit()">
+                    <option value="">Select a table to manage...</option>
+                    {% for table in tables %}
+                    <option value="{{ table }}" {% if table == selected_table %}selected{% endif %}>
+                        {{ table.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <!-- Data Table -->
+        {% if table_data and table_columns %}
+        <div class="table-container mt-4">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            {% for column in table_columns %}
+                            <th>{{ column.replace('_', ' ').title() }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table_data %}
+                        <tr>
+                            {% for cell in row %}
+                            <td>{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- CRUD Operations -->
+        <div class="crud-operations mt-4">
+            <!-- Add Record Modal -->
+            <div class="modal fade" id="addRecordModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Record</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form id="addRecordForm" method="POST" action="{{ url_for('table_crud') }}">
+                                {% if table_columns %}
+                                    {% for column in table_columns %}
+                                    <div class="form-group mb-3">
+                                        <label for="{{ column }}">{{ column.replace('_', ' ').title() }}</label>
+                                        <input type="text" class="form-control" id="{{ column }}" name="{{ column }}" required>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                                <button type="submit" class="btn btn-primary">Save Record</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update Record Modal -->
+            <div class="modal fade" id="updateRecordModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Update Record</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form id="updateRecordForm" method="POST" action="{{ url_for('table_crud') }}">
+                                {% if table_columns %}
+                                    {% for column in table_columns %}
+                                    <div class="form-group mb-3">
+                                        <label for="update_{{ column }}">{{ column.replace('_', ' ').title() }}</label>
+                                        <input type="text" class="form-control" id="update_{{ column }}" name="{{ column }}" required>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                                <button type="submit" class="btn btn-primary">Update Record</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Record Modal -->
+            <div class="modal fade" id="deleteRecordModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Delete Record</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p>Enter the exact values of the record you want to delete:</p>
+                            <form id="deleteRecordForm" method="POST" action="{{ url_for('table_crud') }}">
+                                <input type="hidden" name="action" value="delete">
+                                {% if table_columns %}
+                                    {% for column in table_columns %}
+                                    <div class="form-group mb-3">
+                                        <label for="delete_{{ column }}">{{ column.replace('_', ' ').title() }}</label>
+                                        <input type="text" class="form-control" id="delete_{{ column }}" name="{{ column }}" required>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                                <button type="submit" class="btn btn-danger">Delete Record</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.crud-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.table-responsive {
+    margin-bottom: 20px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-body form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-body .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    position: relative;
+}
+
+.modal-body .form-group::before,
+.modal-body .form-group::after {
+    display: none;
+}
+
+.modal-body label {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.modal-body input, 
+.modal-body select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+/* Remove any browser default form styling */
+.modal-body input::-webkit-outer-spin-button,
+.modal-body input::-webkit-inner-spin-button,
+.modal-body input::-webkit-search-decoration,
+.modal-body input::-webkit-search-cancel-button,
+.modal-body input::-webkit-search-results-button,
+.modal-body input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %} 

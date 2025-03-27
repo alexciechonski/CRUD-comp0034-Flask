@@ -42,7 +42,8 @@ from src.utils import (
     get_graphable_tables,
     get_resp,
     get_db_path,
-    graphable_tables
+    graphable_tables,
+    get_all_tables
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
@@ -849,6 +850,42 @@ def delete_database_endpoint():
         print(f"Error in delete_database_endpoint: {str(e)}")
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
+
+@app.route('/table-crud')
+def table_crud():
+    """Render the Table CRUD page with available tables."""
+    # Get selected database from query parameters, default to covid.db
+    selected_db = request.args.get('database', 'covid.db')
+    selected_table = request.args.get('table')
+    
+    # Get list of all available tables across all databases
+    tables = get_all_tables()
+    
+    # Initialize variables for table data
+    table_data = None
+    table_columns = None
+    
+    # If a table is selected, fetch its data
+    if selected_table:
+        try:
+            # Get table schema
+            table_info = get_table_info(selected_table, get_db_path(selected_db))
+            if table_info:
+                table_columns = [col[1] for col in table_info]  # Get column names
+            
+            # Query the table data
+            query = f"SELECT * FROM {selected_table} LIMIT 100"  # Limit to 100 rows for performance
+            table_data = query_db(query, get_db_path(selected_db))
+            
+        except Exception as e:
+            flash(f"Error fetching table data: {str(e)}", "error")
+    
+    return render_template('table_crud.html', 
+                         tables=tables,
+                         selected_db=selected_db,
+                         selected_table=selected_table,
+                         table_data=table_data,
+                         table_columns=table_columns)
 
 if __name__ == '__main__':
     app.run(debug=True)

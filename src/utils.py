@@ -335,6 +335,13 @@ def graphable_tables():
                 graphable.append(f"{db.replace('.db', '')}.{table}")
     return graphable
 
+def get_all_tables():
+    db_files = os.listdir(BASE_PATH)
+    tables = []
+    for db in db_files:
+        tables.extend(show_tables(db))
+    return tables
+
 def get_resp(prompt: str) -> str:
     """
     Generates a response from an AI model using the `ollama` library.
@@ -476,4 +483,4 @@ def delete_database(db_name: str) -> bool:
         return False
 
 if __name__ == "__main__":
-    print(graphable_tables())
+    print(get_all_tables())
