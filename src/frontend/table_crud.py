@@ -31,13 +31,17 @@ app.layout = html.Div([
             )
         ]
     ),
+    html.Div(
+        id='add-records-form',  # fixed typo in id
+        children=[]
+    )
 ])
 
-# Load table columns and data
+# Load table columns and data + generate form
 @app.callback(
     Output('data-table', 'columns'),
     Output('data-table', 'data'),
-    Output('data-table', 'data_previous'),
+    Output('add-records-form', 'children'),
     Input('table-select', 'value')
 )
 def show_table(selection):
@@ -54,34 +58,19 @@ def show_table(selection):
     data = query_db(f"SELECT * FROM {table_name}", db_path)
     table_data = [dict(zip(col_ids, row)) for row in data]
 
-    return cols, table_data, table_data  # set both data and data_previous
+    # Generate input form for adding new records
+    form = html.Div([
+        html.H4(f"Add Record to {table_name}"),
+        html.Div([
+            html.Div([
+                html.Label(col_id),
+                dcc.Input(id=f'input-{col_id}', type='text', debounce=True)
+            ], style={'margin-bottom': '10px'}) for col_id in col_ids
+        ]),
+        html.Button('Submit', id='submit-button', n_clicks=0)
+    ])
 
-# Detect edits or deletions
-@app.callback(
-    Output('data-table', 'data_previous', allow_duplicate=True),
-    Input('data-table', 'data'),
-    State('data-table', 'data_previous'),
-    prevent_initial_call=True
-)
-def detect_change(data, previous):
-    if not previous:
-        raise dash.exceptions.PreventUpdate
-
-    # Detect deleted rows
-    deleted_rows = [row for row in previous if row not in data]
-    if deleted_rows:
-        for row in deleted_rows:
-            print(row)
-
-    # Detect edited values
-    for new_row in data:
-        for old_row in previous:
-            if old_row.get('id') == new_row.get('id'):  # assuming each row has an 'id' field
-                for key in new_row:
-                    if new_row[key] != old_row[key]:
-                        print(f"Edited row id={new_row['id']} column '{key}': '{old_row[key]}' → '{new_row[key]}'")
-
-    return data  # update previous state
+    return cols, table_data, form
 
 if __name__ == '__main__':
     app.run(debug=True)

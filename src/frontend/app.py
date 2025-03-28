@@ -51,6 +51,7 @@ from src.frontend.diagrams import Diagrams
 from src.backend.validation import Validator as v
 from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
+from src.frontend.dash_app import create_dash_app
 
 app = Flask(__name__,
             template_folder='templates',
@@ -58,6 +59,9 @@ app = Flask(__name__,
 
 # Set a secret key for flash messages
 app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
+
+# Initialize Dash app
+dash_app = create_dash_app(app)
 
 # Register blueprints
 app.register_blueprint(restriction_bp, url_prefix='')
@@ -852,176 +856,10 @@ def delete_database_endpoint():
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
-@app.route('/table-crud', methods=['GET', 'POST'])
+@app.route('/crud-view')
 def table_crud():
-    """Render the Table CRUD page with available tables."""
-    try:
-        # Handle POST request for adding/updating/deleting records
-        if request.method == 'POST':
-            action = request.form.get('action')
-            selected_db = request.form.get('database')
-            selected_table = request.form.get('table')
-            
-            print(f"POST request received - Action: {action}, DB: {selected_db}, Table: {selected_table}")
-            print(f"Form data: {request.form}")
-            
-            if action == 'add':
-                try:
-                    if not selected_table or not selected_db:
-                        flash('No table or database selected', 'error')
-                        return redirect(url_for('table_crud'))
-                    
-                    # Create a dictionary of column values from form data
-                    record_data = {
-                        key: value for key, value in request.form.items()
-                        if key not in ['action', 'database', 'table']
-                    }
-                    
-                    print(f"Record data to insert: {record_data}")
-                    
-                    # Create a CRUD instance
-                    crud = CRUD(selected_db)
-                    try:
-                        # Insert the data
-                        crud.insert_data(selected_table, [record_data])
-                        flash('Record added successfully!', 'success')
-                    except Exception as e:
-                        print(f"Error in crud.insert_data: {str(e)}")
-                        flash(f'Error adding record: {str(e)}', 'error')
-                    finally:
-                        crud.engine.dispose()
-                        
-                except Exception as e:
-                    print(f"Error in add record handling: {str(e)}")
-                    flash(f'Error adding record: {str(e)}', 'error')
-                
-                return redirect(url_for('table_crud', table=selected_table))
-                
-            elif action == 'delete':
-                try:
-                    if not selected_table or not selected_db:
-                        flash('No table or database selected', 'error')
-                        return redirect(url_for('table_crud'))
-                    
-                    # Create a dictionary of column values from form data
-                    record_data = {
-                        key: value for key, value in request.form.items()
-                        if key not in ['action', 'database', 'table']
-                    }
-                    
-                    print(f"Record data to delete: {record_data}")
-                    
-                    # Create SQLAlchemy engine
-                    db_path = get_db_path(selected_db)
-                    engine = create_engine(f'sqlite:///{db_path}')
-                    
-                    try:
-                        # First check if the record exists
-                        conditions = " AND ".join([f"{k} = :{k}" for k in record_data.keys()])
-                        check_query = f"SELECT COUNT(*) FROM {selected_table} WHERE {conditions}"
-                        
-                        with engine.connect() as connection:
-                            result = connection.execute(text(check_query), record_data)
-                            count = result.scalar()
-                            
-                            if count == 0:
-                                flash('Record not found. Please check the values and try again.', 'error')
-                            else:
-                                # Delete the record
-                                delete_query = f"DELETE FROM {selected_table} WHERE {conditions}"
-                                connection.execute(text(delete_query), record_data)
-                                connection.commit()
-                                flash('Record deleted successfully!', 'success')
-                    finally:
-                        engine.dispose()
-                        
-                except Exception as e:
-                    print(f"Error in delete record handling: {str(e)}")
-                    flash(f'Error deleting record: {str(e)}', 'error')
-                
-                return redirect(url_for('table_crud', table=selected_table))
-                
-        # Handle GET request
-        selected_table = request.args.get('table')
-        
-        print(f"GET request - Selected Table: {selected_table}")
-        
-        # Get list of all available tables across all databases
-        tables = get_all_tables()
-        print(f"Available tables: {tables}")
-        
-        # Initialize variables for table data
-        table_data = None
-        table_columns = None
-        selected_db = None
-        
-        # If a table is selected, fetch its data
-        if selected_table:
-            try:
-                # Find the table info from the list of tables
-                table_info = next((table for table in tables if table['name'].lower() == selected_table.lower()), None)
-                
-                if not table_info:
-                    raise ValueError(f"Could not find table '{selected_table}'")
-                
-                # Get the correct case for the table name and its database
-                selected_table = table_info['name']
-                selected_db = table_info['database']
-                
-                # Get the database path
-                db_path = get_db_path(selected_db)
-                if not db_path:
-                    raise ValueError(f"Could not find database path for {selected_db}")
-                
-                print(f"Using database path: {db_path} for table: {selected_table}")
-                
-                # Create SQLAlchemy engine
-                engine = create_engine(f'sqlite:///{db_path}')
-                
-                try:
-                    # Create a connection
-                    with engine.connect() as connection:
-                        # Get table columns
-                        inspector = inspect(engine)
-                        columns = inspector.get_columns(selected_table)
-                        table_columns = [col['name'] for col in columns]
-                        print(f"Found columns: {table_columns}")
-                        
-                        # Query table data
-                        result = connection.execute(text(f"SELECT * FROM {selected_table} LIMIT 100"))
-                        table_data = result.fetchall()
-                        print(f"Retrieved {len(table_data) if table_data else 0} rows")
-                        
-                finally:
-                    engine.dispose()
-                
-            except SQLAlchemyError as e:
-                error_msg = f"Database error: {str(e)}"
-                print(error_msg)
-                flash(error_msg, "error")
-            except ValueError as e:
-                error_msg = str(e)
-                print(error_msg)
-                flash(error_msg, "error")
-            except Exception as e:
-                error_msg = f"Error fetching table data: {str(e)}"
-                print(error_msg)
-                flash(error_msg, "error")
-        
-        return render_template('table_crud.html', 
-                             tables=tables,
-                             selected_db=selected_db,
-                             selected_table=selected_table,
-                             table_data=table_data,
-                             table_columns=table_columns)
-                             
-    except Exception as e:
-        error_msg = f"Unexpected error in table_crud: {str(e)}"
-        print(error_msg)
-        flash(error_msg, "error")
-        return render_template('table_crud.html', 
-                             tables=get_all_tables(),
-                             selected_db=None)
+    """Render the Table CRUD page with the embedded Dash app."""
+    return render_template('table_crud.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
