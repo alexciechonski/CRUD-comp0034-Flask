@@ -287,7 +287,7 @@ class DataServer:
         if hasattr(self, '_custom_engine'):
             self._custom_engine.dispose()
 
-if __name__ == "__main__":
-    data_server = DataServer("covid.db")
-    time_series_data = data_server.serve_time_series(selected_restrictions, database=selected_db, table=table)
+# if __name__ == "__main__":
+#     data_server = DataServer("covid.db")
+#     time_series_data = data_server.serve_time_series(selected_restrictions, database=selected_db, table=table)
 

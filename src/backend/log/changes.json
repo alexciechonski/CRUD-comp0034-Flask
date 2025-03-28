@@ -1,24 +1,21 @@
 [
     {
-        "change": "delete_table",
-        "table_name": "test",
-        "schema": ["Nums, INTEGER, Primary Key"]
+        "change":"added_rows",
+        "table": "deaths",
+        "new_data":{
+            "id":10,
+            "date":"2024-01-01",
+            "measured_value":1000
+        }
     },
     {
-        "change":"create_table",
-        "table_name":"new",
-        "schema": ["Words, TEXT, Primary Key"]
-    },
-    {
-        "change":"insert_data",
-        "csv_path":"src/frontend/testing/resources/test.csv"
-    },
-    {
-        "change":"create_database",
-        "db_name":"new.db"
-    },
-    {
-        "change":"delete_database",
-        "db_name": "new2.db"
+        "change":"update",
+        "table":"deaths",
+        "new_val":{
+            "id":100
+        },
+        "old_val":{
+            "id":99
+        }
     }
 ]

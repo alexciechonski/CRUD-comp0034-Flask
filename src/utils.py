@@ -493,4 +493,4 @@ def delete_database(db_name: str) -> bool:
         return False
 
 if __name__ == "__main__":
-    print(get_all_tables())
+    print(get_table_info("deaths", "src/backend/data/custom.db"))
