@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, text
 from src.backend.erd_manager import CRUD
 import logging
 import sys
+from typing import List
 
 # Set up logging with more detailed configuration
 logging.basicConfig(
@@ -181,6 +182,171 @@ def create_dash_app(server):
             
             logger.info("Returning table data and form fields")
             return cols, table_data, table_data, input_fields
+
+        # Handle record deletion
+        @dash_app.callback(
+            Output('data-table', 'data', allow_duplicate=True),
+            Input('data-table', 'data'),
+            State('data-table', 'data_previous'),
+            State('table-select', 'value'),
+            prevent_initial_call=True
+        )
+        def handle_deletion(data, previous, selection):
+            if not selection or not previous:
+                raise dash.exceptions.PreventUpdate
+                
+            table_name, db_name = selection.split(" ")
+            db_path = get_db_path(db_name)
+            
+            # Find deleted rows by comparing previous and current data
+            deleted_rows = [row for row in previous if row not in data]
+            
+            if deleted_rows:
+                logger.info(f"Deleting rows from {table_name}: {deleted_rows}")
+                engine = create_engine(f'sqlite:///{db_path}')
+                
+                try:
+                    # Get primary key columns
+                    cols_info = get_table_info(table_name, db_path)
+                    pk_columns = [field[1] for field in cols_info if field[5]]
+                    
+                    if not pk_columns:
+                        logger.error(f"No primary key found for table {table_name}")
+                        return data
+                    
+                    # Delete each row
+                    with engine.connect() as connection:
+                        for row in deleted_rows:
+                            conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
+                            delete_query = f"DELETE FROM {table_name} WHERE {conditions}"
+                            params = {pk: row[pk] for pk in pk_columns}
+                            connection.execute(text(delete_query), params)
+                        connection.commit()
+                    
+                    logger.info("Rows deleted successfully")
+                finally:
+                    engine.dispose()
+            
+            return data
+
+        # Handle record updates
+        @dash_app.callback(
+            Output('data-table', 'data_previous', allow_duplicate=True),
+            Input('data-table', 'data'),
+            State('data-table', 'data_previous'),
+            State('table-select', 'value'),
+            prevent_initial_call=True
+        )
+        def handle_updates(data, previous, selection):
+            if not selection or not previous:
+                raise dash.exceptions.PreventUpdate
+                
+            table_name, db_name = selection.split(" ")
+            db_path = get_db_path(db_name)
+            
+            # Find updated rows by comparing previous and current data
+            updated_rows = []
+            for current_row in data:
+                for prev_row in previous:
+                    if all(current_row.get(pk) == prev_row.get(pk) for pk in get_primary_keys(table_name, db_path)):
+                        if current_row != prev_row:
+                            updated_rows.append((prev_row, current_row))
+                            break
+            
+            if updated_rows:
+                logger.info(f"Updating rows in {table_name}: {updated_rows}")
+                engine = create_engine(f'sqlite:///{db_path}')
+                
+                try:
+                    with engine.connect() as connection:
+                        for old_row, new_row in updated_rows:
+                            # Create WHERE clause using primary key
+                            pk_columns = get_primary_keys(table_name, db_path)
+                            conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
+                            
+                            # Create SET clause for changed values
+                            updates = ", ".join([f"{k} = :new_{k}" for k in new_row.keys()])
+                            
+                            # Combine parameters
+                            params = {f"new_{k}": v for k, v in new_row.items()}
+                            params.update({pk: new_row[pk] for pk in pk_columns})
+                            
+                            update_query = f"UPDATE {table_name} SET {updates} WHERE {conditions}"
+                            connection.execute(text(update_query), params)
+                        connection.commit()
+                    
+                    logger.info("Rows updated successfully")
+                finally:
+                    engine.dispose()
+            
+            return data
+
+        # Handle new record addition
+        @dash_app.callback(
+            Output('data-table', 'data', allow_duplicate=True),
+            Input('save-record-button', 'n_clicks'),
+            [State('table-select', 'value'),
+             State('data-table', 'columns'),
+             State('data-table', 'data')],
+            prevent_initial_call=True
+        )
+        def handle_addition(n_clicks, selection, columns, current_data):
+            if not selection or not columns:
+                raise dash.exceptions.PreventUpdate
+                
+            table_name, db_name = selection.split(" ")
+            db_path = get_db_path(db_name)
+            
+            # Get values from all input fields
+            new_record = {}
+            has_required_fields = True
+            
+            # Get column info to check for required fields
+            cols_info = get_table_info(table_name, db_path)
+            required_fields = {field[1] for field in cols_info if field[5]}  # field[5] is pk flag
+            
+            for col in columns:
+                field_name = col['id']
+                input_value = callback_context.inputs.get(f"input-{field_name}.value")
+                
+                # Check if required field is empty
+                if field_name in required_fields and (input_value is None or input_value == ""):
+                    has_required_fields = False
+                    break
+                    
+                new_record[field_name] = input_value if input_value != "" else None
+            
+            if has_required_fields:
+                try:
+                    # Insert the record into the database
+                    engine = create_engine(f'sqlite:///{db_path}')
+                    with engine.connect() as connection:
+                        columns = list(new_record.keys())
+                        placeholders = ",".join([f":{col}" for col in columns])
+                        columns_str = ",".join(columns)
+                        
+                        insert_query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+                        connection.execute(text(insert_query), new_record)
+                        connection.commit()
+                    
+                    # Refresh the table data
+                    col_ids = [field[1] for field in cols_info]
+                    data = query_db(f"SELECT * FROM {table_name}", db_path)
+                    current_data = [dict(zip(col_ids, row)) for row in data]
+                except Exception as e:
+                    logger.error(f"Error adding record: {str(e)}")
+                    return current_data
+                finally:
+                    if 'engine' in locals():
+                        engine.dispose()
+            
+            return current_data
+
+        # Helper function to get primary keys
+        def get_primary_keys(table_name: str, db_path: str) -> List[str]:
+            cols_info = get_table_info(table_name, db_path)
+            return [field[1] for field in cols_info if field[5]]
+
     except Exception as e:
         logger.error(f"Error initializing callbacks: {str(e)}")
         raise
