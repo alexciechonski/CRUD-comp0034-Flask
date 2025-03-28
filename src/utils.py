@@ -25,6 +25,7 @@ from src.config import NON_GRAPHABLE, BASE_PATH
 from src.backend.models import init_db, Base
 import glob
 from pathlib import Path
+import logging
 
 def get_db_path(db_name):
     return BASE_PATH + db_name
@@ -149,9 +150,16 @@ def show_tables(database: str) -> List[str]:
     Returns:
         List[str]: List of table names.
     """
-    engine = create_engine(f'sqlite:///{get_db_path(database)}')
+    logger = logging.getLogger(__name__)
+    
+    db_path = get_db_path(database)
+    logger.info(f"Connecting to database at: {db_path}")
+    
+    engine = create_engine(f'sqlite:///{db_path}')
     inspector = inspect(engine)
     tables = inspector.get_table_names()
+    logger.info(f"Found tables in {database}: {tables}")
+    
     engine.dispose()
     return tables
 
@@ -341,15 +349,24 @@ def get_all_tables():
     Returns:
         List[Dict[str, str]]: List of dictionaries containing table name and database name
     """
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Looking for database files in: {BASE_PATH}")
     db_files = [f for f in os.listdir(BASE_PATH) if f.endswith('.db')]
+    logger.info(f"Found database files: {db_files}")
+    
     tables = []
     for db in db_files:
+        logger.info(f"Getting tables for database: {db}")
         db_tables = show_tables(db)
+        logger.info(f"Found tables in {db}: {db_tables}")
         for table in db_tables:
             tables.append({
                 'name': table,
                 'database': db
             })
+    
+    logger.info(f"Total tables found: {len(tables)}")
     return tables
 
 def get_resp(prompt: str) -> str:
