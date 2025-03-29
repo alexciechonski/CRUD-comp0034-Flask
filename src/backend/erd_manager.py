@@ -299,6 +299,12 @@ class CRUD:
         df = pd.DataFrame(data)
         print(f"DataFrame columns: {df.columns.tolist()}")
         
+        # Convert date format from DD/MM/YYYY to YYYY-MM-DD
+        if 'time' in df.columns:
+            print("Converting date format...")
+            df['time'] = pd.to_datetime(df['time'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
+            print(f"Sample converted date: {df['time'].iloc[0] if not df.empty else 'No data'}")
+        
         # Validate schema
         if not v.val_schema(df):
             raise ValueError("Data schema does not match the required schema")
@@ -310,11 +316,14 @@ class CRUD:
             table = Table(table_name, metadata, autoload_with=self.engine)
             print(f"Table columns: {[c.name for c in table.columns]}")
             
+            # Convert DataFrame back to list of dictionaries
+            data_to_insert = df.to_dict('records')
+            
             # Insert data
             print("Executing insert...")
-            session.execute(table.insert(), data)
+            session.execute(table.insert(), data_to_insert)
             session.commit()
-            print(f"Successfully inserted {len(data)} rows into '{table_name}'")
+            print(f"Successfully inserted {len(data_to_insert)} rows into '{table_name}'")
         except Exception as e:
             print(f"Error during insert: {str(e)}")
             session.rollback()

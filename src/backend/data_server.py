@@ -124,6 +124,7 @@ class DataServer:
             metadata = MetaData()
             table_obj = Table(table, metadata, autoload_with=session.bind)
             
+            # Get the raw data
             result = session.query(
                 table_obj.c.time,
                 table_obj.c.measured_value
@@ -131,7 +132,22 @@ class DataServer:
             
             if not result:
                 return [(None, 0)]
-            return result
+                
+            # Convert dates from DD/MM/YYYY to YYYY-MM-DD
+            processed_data = []
+            for date_str, value in result:
+                try:
+                    # Split the date string into day, month, year
+                    day, month, year = date_str.split('/')
+                    # Create a properly formatted date string
+                    iso_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                    processed_data.append((iso_date, value))
+                except Exception as e:
+                    print(f"Error processing date {date_str}: {str(e)}")
+                    continue
+            
+            return processed_data
+            
         except Exception as e:
             print(f"Error in serve_time_series (custom db): {str(e)}")
             raise

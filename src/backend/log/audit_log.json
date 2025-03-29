@@ -64,5 +64,49 @@
       "table_name": "MHCareCluster"
     },
     "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "custom.db",
+    "table": "MHCareCluster",
+    "prev_data": {
+      "table_name": "MHCareCluster",
+      "schema": [
+        [
+          0,
+          "id",
+          "INTEGER",
+          true,
+          null,
+          1
+        ],
+        [
+          1,
+          "time",
+          "DATE",
+          true,
+          null,
+          0
+        ],
+        [
+          2,
+          "measured_value",
+          "FLOAT",
+          true,
+          null,
+          0
+        ]
+      ]
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "create",
+    "database": "custom.db",
+    "table": "MHCareCluster",
+    "new_data": {
+      "table_name": "MHCareCluster"
+    },
+    "orm_instances": []
   }
 ]
