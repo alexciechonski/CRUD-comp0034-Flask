@@ -509,5 +509,28 @@ def delete_database(db_name: str) -> bool:
         print(f"Error in delete_database: {str(e)}")
         return False
 
+def get_primary_keys(table: str, db_path: str) -> List[str]:
+    """
+    Get primary key columns for a table.
+    
+    Args:
+        table (str): Name of the table
+        db_path (str): Path to the database file
+        
+    Returns:
+        List[str]: List of primary key column names
+    """
+    engine = create_engine(f'sqlite:///{db_path}')
+    inspector = inspect(engine)
+    
+    try:
+        pk_columns = inspector.get_pk_constraint(table)['constrained_columns']
+        return pk_columns
+    except Exception as e:
+        print(f"Error getting primary keys for table {table}: {str(e)}")
+        return []
+    finally:
+        engine.dispose()
+
 if __name__ == "__main__":
     print(get_table_info("deaths", "src/backend/data/custom.db"))

@@ -12,7 +12,7 @@ Dependencies:
 import os
 import sys
 from pathlib import Path
-from flask import request, redirect, flash
+from flask import request, redirect, flash, jsonify
 from functools import lru_cache
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -44,7 +44,8 @@ from src.utils import (
     get_resp,
     get_db_path,
     graphable_tables,
-    get_all_tables
+    get_all_tables,
+    get_primary_keys
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
@@ -53,6 +54,7 @@ from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
 from src.frontend.dash_app import create_dash_app
 from src.backend.log.log_manager import LogManager
+from src.backend.revert_manager import RevertManager
 
 app = Flask(__name__,
             template_folder='templates',
@@ -894,6 +896,157 @@ def audit_log():
     changes_df = log_manager.to_tables()
     
     return render_template('audit_log.html', changes_df=changes_df)
+
+@app.route('/revert-change', methods=['POST'])
+def revert_change():
+    """Handle reverting a change from the audit log"""
+    try:
+        print("\n=== Starting revert process ===")
+        database = request.form.get('database')
+        table = request.form.get('table')
+        change_type = request.form.get('change_type')
+        
+        print(f"Received form data: database={database}, table={table}, change_type={change_type}")
+        
+        # Initialize managers
+        revert_manager = RevertManager(database)
+        log_manager = LogManager()
+        
+        print("Initialized managers")
+        
+        # Get the change to revert
+        changes = log_manager.to_tables()
+        print(f"Found {len(changes)} changes in log")
+        
+        # Find the specific change to revert
+        change_to_revert = changes[
+            (changes['database'] == database) & 
+            (changes['table'] == table) & 
+            (changes['change_type'] == change_type)
+        ]
+        
+        print(f"Found change to revert: {change_to_revert.to_dict('records')}")
+        
+        if change_to_revert.empty:
+            print("No matching change found in log")
+            return redirect(url_for('audit_log'))
+            
+        # Store current state before making changes
+        print("Storing current state...")
+        revert_manager.store_state()
+        
+        # Get the change data
+        change_data = change_to_revert.iloc[0].to_dict()
+        print(f"Change data: {change_data}")
+        
+        # Create database connection
+        engine = create_engine(f'sqlite:///{get_db_path(database)}')
+        connection = engine.connect()
+        
+        try:
+            if change_type == 'create':
+                # For create operations, we need to delete the created record
+                print("Reverting create operation...")
+                # Get primary keys for the table
+                primary_keys = get_primary_keys(table, database)
+                if not primary_keys:
+                    print("No primary keys found, using 'id' as fallback")
+                    primary_keys = ['id']
+                
+                # Construct WHERE clause using primary keys
+                where_clause = []
+                for key in primary_keys:
+                    if key in change_data:
+                        where_clause.append(f"{key} = {change_data[key]}")
+                
+                if where_clause:
+                    delete_query = f"DELETE FROM {table} WHERE {' AND '.join(where_clause)}"
+                    print(f"Executing delete query: {delete_query}")
+                    result = connection.execute(text(delete_query))
+                    print(f"Delete affected {result.rowcount} rows")
+                else:
+                    print("No primary keys found in change data")
+                
+            elif change_type == 'delete':
+                # For delete operations, we need to insert the deleted record
+                print("Reverting delete operation...")
+                # Get the previous data from the change data
+                prev_data = {}
+                for key, value in change_data.items():
+                    if key.startswith('prev_'):
+                        # Remove the 'prev_' prefix
+                        clean_key = key[5:]  # Remove 'prev_' prefix
+                        prev_data[clean_key] = value
+                
+                if prev_data:
+                    # Get column names from the table
+                    inspector = inspect(engine)
+                    columns = [col['name'] for col in inspector.get_columns(table)]
+                    
+                    # Ensure all required columns are present
+                    missing_columns = [col for col in columns if col not in prev_data]
+                    if missing_columns:
+                        print(f"Warning: Missing columns in previous data: {missing_columns}")
+                    
+                    # Construct the insert query
+                    insert_query = f"INSERT INTO {table} ({', '.join(prev_data.keys())}) VALUES ({', '.join([':' + k for k in prev_data.keys()])})"
+                    print(f"Executing insert query: {insert_query}")
+                    print(f"With data: {prev_data}")
+                    
+                    result = connection.execute(text(insert_query), prev_data)
+                    print(f"Insert affected {result.rowcount} rows")
+                else:
+                    print("No previous data found in change data")
+                
+            elif change_type == 'update':
+                # For update operations, we need to restore the previous values
+                print("Reverting update operation...")
+                # Get the previous data
+                prev_data = {k.replace('prev_', ''): v for k, v in change_data.items() if k.startswith('prev_')}
+                if prev_data:
+                    # Get primary keys for the table
+                    primary_keys = get_primary_keys(table, database)
+                    if not primary_keys:
+                        print("No primary keys found, using 'id' as fallback")
+                        primary_keys = ['id']
+                    
+                    # Construct WHERE clause using primary keys
+                    where_clause = []
+                    for key in primary_keys:
+                        if key in change_data:
+                            where_clause.append(f"{key} = {change_data[key]}")
+                    
+                    if where_clause:
+                        # Construct SET clause
+                        set_clause = ', '.join([f"{k} = :{k}" for k in prev_data.keys()])
+                        update_query = f"UPDATE {table} SET {set_clause} WHERE {' AND '.join(where_clause)}"
+                        print(f"Executing update query: {update_query}")
+                        result = connection.execute(text(update_query), prev_data)
+                        print(f"Update affected {result.rowcount} rows")
+                    else:
+                        print("No primary keys found in change data")
+                else:
+                    print("No previous data found")
+            
+            # Commit the transaction
+            connection.commit()
+            print("Transaction committed successfully")
+            
+            # Only remove the change from the log after successful reversion
+            log_manager.remove_change(database, table, change_type)
+            print("Change removed from log")
+            
+            return redirect(url_for('audit_log'))
+            
+        finally:
+            connection.close()
+            engine.dispose()
+            
+    except Exception as e:
+        print(f"\n=== Error in revert_change: {str(e)} ===")
+        print(f"Error type: {type(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return redirect(url_for('audit_log'))
 
 if __name__ == '__main__':
     app.run(debug=True)

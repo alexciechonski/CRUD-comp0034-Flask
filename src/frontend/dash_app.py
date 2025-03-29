@@ -265,11 +265,22 @@ def create_dash_app(server):
                 elif trigger_id == 'save-record-button' and n_clicks > 0:
                     # Handle new record insertion
                     new_record = {}
+                    cols_info = get_table_info(table_name, db_path)
+                    
+                    # First, get all required fields (NOT NULL or primary key)
+                    required_fields = [field[1] for field in cols_info if field[5] or field[3] == 'NOT NULL']
+                    
+                    # Then, get values from input fields
                     for field in input_fields:
                         field_name = field['props']['children'][0]['props']['children'].replace(' *', '')
                         input_value = field['props']['children'][1]['props']['value']
                         if input_value:
                             new_record[field_name] = input_value
+                    
+                    # Check if all required fields are present
+                    missing_fields = [field for field in required_fields if field not in new_record]
+                    if missing_fields:
+                        raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
                     
                     if new_record:
                         # Insert the new record
@@ -286,7 +297,6 @@ def create_dash_app(server):
                             log_manager.create_change(db_name, table_name, new_record)
                             
                             # Refresh the data from the database
-                            cols_info = get_table_info(table_name, db_path)
                             col_ids = [field[1] for field in cols_info]
                             new_data = query_db(f"SELECT * FROM {table_name}", db_path)
                             current_data = [dict(zip(col_ids, row)) for row in new_data]
