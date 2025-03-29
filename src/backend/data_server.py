@@ -76,7 +76,8 @@ class DataServer:
         Returns:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
-        print(f"serve_time_series called with: database={database}, table={table}, restrictions={restrs}")
+        print(f"\n=== serve_time_series ===")
+        print(f"Called with: database={database}, table={table}, restrictions={restrs}")
         if not restrs:
             restrs = []
         
@@ -111,7 +112,10 @@ class DataServer:
                 if not result:
                     print("No results found, returning default value")
                     return [(None, 0)]
-                return result
+
+                # Convert datetime.date objects to ISO format strings
+                processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
+                return processed_result
                 
             except Exception as e:
                 print(f"Error in serve_time_series (covid.db): {str(e)}")
@@ -119,10 +123,13 @@ class DataServer:
         
         session = None
         try:
+            print(f"Using database path: {get_db_path(database)}")
             session = init_db(f'sqlite:///{get_db_path(database)}')()
             # For custom tables, we need to use the table object dynamically
             metadata = MetaData()
             table_obj = Table(table, metadata, autoload_with=session.bind)
+            
+            print(f"Table columns: {[c.name for c in table_obj.columns]}")
             
             # Get the raw data
             result = session.query(
@@ -130,31 +137,48 @@ class DataServer:
                 table_obj.c.measured_value
             ).order_by(table_obj.c.time).all()
             
+            print(f"Raw query result: {result}")
+            
             if not result:
+                print("No data found in table")
                 return [(None, 0)]
                 
-            # Convert dates from DD/MM/YYYY to YYYY-MM-DD
+            # Process the data, handling both string and datetime.date objects
             processed_data = []
-            for date_str, value in result:
+            for date_val, value in result:
                 try:
-                    # Split the date string into day, month, year
-                    day, month, year = date_str.split('/')
-                    # Create a properly formatted date string
-                    iso_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-                    processed_data.append((iso_date, value))
+                    print(f"Processing row: date={date_val}, value={value}")
+                    
+                    # Handle different date formats
+                    if isinstance(date_val, str):
+                        if '/' in date_val:
+                            # Convert DD/MM/YYYY to YYYY-MM-DD
+                            day, month, year = date_val.split('/')
+                            iso_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                        else:
+                            # Already in YYYY-MM-DD format
+                            iso_date = date_val
+                    else:
+                        # Handle datetime.date objects
+                        iso_date = date_val.strftime('%Y-%m-%d')
+                    
+                    processed_data.append((iso_date, float(value)))
+                    print(f"Converted to: date={iso_date}, value={value}")
                 except Exception as e:
-                    print(f"Error processing date {date_str}: {str(e)}")
+                    print(f"Error processing date {date_val}: {str(e)}")
                     continue
             
+            print(f"Processed data: {processed_data}")
             return processed_data
             
         except Exception as e:
             print(f"Error in serve_time_series (custom db): {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise
         finally:
             if session:
                 session.close()
-    
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """
@@ -206,6 +230,9 @@ class DataServer:
         Returns:
             List[tuple]: Processed time series data as (converted_date, measured_value).
         """
+        print(f"\n=== serve_second_series ===")
+        print(f"Called with: db_name={db_name}, table_name={table_name}")
+        
         if not db_name or not table_name:
             print("Missing database name or table name")
             return []
@@ -223,43 +250,53 @@ class DataServer:
                 Session = sessionmaker(bind=engine)
                 session = Session()
 
-            from sqlalchemy import Table, MetaData
+            print(f"Using database path: {get_db_path(db_name)}")
             metadata = MetaData()
             table_obj = Table(table_name, metadata, autoload_with=session.bind)
+            print(f"Table columns: {[c.name for c in table_obj.columns]}")
             
             result = session.query(
                 table_obj.c.time,
                 table_obj.c.measured_value
             ).order_by(table_obj.c.time).all()
             
+            print(f"Raw query result: {result}")
+            
             if not result:
                 print(f"No data found in table {table_name}")
                 return []
 
             processed_data = []
-            for row in result:
+            for date_val, value in result:
                 try:
+                    print(f"Processing row: date={date_val}, value={value}")
                     # Handle different date formats
-                    date_str = str(row[0])
-                    if '/' in date_str:
-                        # M/YYYY format
-                        month, year = date_str.split('/')
-                        from datetime import datetime
-                        date = datetime(int(year), int(month), 1)
+                    if isinstance(date_val, str):
+                        if '/' in date_val:
+                            # Convert DD/MM/YYYY to YYYY-MM-DD
+                            day, month, year = date_val.split('/')
+                            iso_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                        else:
+                            # Already in YYYY-MM-DD format
+                            iso_date = date_val
                     else:
-                        # Try parsing as ISO format
-                        date = pd.to_datetime(date_str)
+                        # Handle datetime.date objects
+                        iso_date = date_val.strftime('%Y-%m-%d')
                     
-                    value = float(row[1]) if row[1] is not None else 0
-                    processed_data.append((date, value))
+                    value = float(value) if value is not None else 0
+                    processed_data.append((iso_date, value))
+                    print(f"Converted to: date={iso_date}, value={value}")
                 except Exception as e:
-                    print(f"Error processing row {row}: {str(e)}")
+                    print(f"Error processing row ({date_val}, {value}): {str(e)}")
                     continue
             
+            print(f"Processed data: {processed_data}")
             return sorted(processed_data, key=lambda x: x[0])
             
         except Exception as e:
             print(f"Error in serve_second_series: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return []
         finally:
             # Only close the session if we created it
