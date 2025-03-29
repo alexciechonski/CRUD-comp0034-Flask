@@ -43,6 +43,11 @@ class Validator:
         Returns:
             bool: False if the table is immutable, otherwise True.
         """
+        # If database is not in IMMUTABLE, all tables are deletable
+        if db_name not in IMMUTABLE:
+            return True
+            
+        # If database is in IMMUTABLE, check if table is in its immutable list
         if table in IMMUTABLE[db_name]:
             return False
         return True
@@ -59,6 +64,11 @@ class Validator:
         Returns:
             bool: False if the table is immutable, otherwise True.
         """
+        # If database is not in IMMUTABLE, all tables are insertable
+        if db_name not in IMMUTABLE:
+            return True
+            
+        # If database is in IMMUTABLE, check if table is in its immutable list
         if table in IMMUTABLE[db_name]:
             return False
         return True

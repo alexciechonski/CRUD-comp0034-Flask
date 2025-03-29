@@ -566,39 +566,60 @@ def delete_table_endpoint():
         # Get data from form instead of JSON
         database = request.form.get('database')
         table_name = request.form.get('table_name')
+        
+        print("\n=== Delete Table Operation ===")
+        print(f"Received request to delete table:")
+        print(f"Database: '{database}'")
+        print(f"Table: '{table_name}'")
 
         if not database or not table_name:
+            print("Error: Missing database or table name")
             flash('Database and table name are required', 'error')
             return redirect(url_for('dataset', database=database))
 
         # Validate table deletion
+        print(f"Validating table deletion...")
         if not v.val_delete_table(database, table_name):
+            print(f"Error: Table {table_name} is immutable")
             flash(f'Table {table_name} cannot be deleted as it is immutable', 'error')
             return redirect(url_for('dataset', database=database))
 
+        print(f"Creating CRUD instance for database: {database}")
         # Create a CRUD instance with the database name
         crud = CRUD(database)
         try:
             # Get table info before deletion for logging
-            table_info = get_table_info(table_name, get_db_path(database))
+            db_path = get_db_path(database)
+            print(f"Getting table info from: {db_path}")
+            table_info = get_table_info(table_name, db_path)
             
+            print(f"Attempting to remove table {table_name} from {database}")
             # Delete the table using the CRUD remove_table method
             crud.remove_table(database, table_name)
             
+            print("Creating log entry...")
             # Log the change
             log_manager = LogManager()
             log_manager.delete_change(database, table_name, {"table_name": table_name, "schema": table_info})
             log_manager.save_log()
             
             flash(f'Table {table_name} deleted successfully', 'success')
+        except Exception as e:
+            print(f"Error in CRUD operations: {str(e)}")
+            raise
         finally:
             # Clean up the CRUD instance
-            crud.engine.dispose()
+            print("Cleaning up CRUD instance...")
+            if hasattr(crud, 'engine') and crud.engine:
+                crud.engine.dispose()
 
         return redirect(url_for('dataset', database=database))
 
     except Exception as e:
-        print(f"Error in delete_table_endpoint: {str(e)}")
+        print(f"\nError in delete_table_endpoint: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 

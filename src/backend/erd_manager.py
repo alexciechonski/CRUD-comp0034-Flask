@@ -150,9 +150,51 @@ class CRUD:
         Args:
             db_name (str): Name of the database to operate on.
         """
+        print(f"\n=== Initializing CRUD ===")
+        print(f"Input database name: '{db_name}'")
+        
+        # Ensure database name ends with .db
+        if not db_name.endswith('.db'):
+            db_name += '.db'
+            print(f"Added .db extension: '{db_name}'")
+            
         self.db_name = db_name
-        self.engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
-        self.Session = sessionmaker(bind=self.engine)
+        self.engine = None
+        self.Session = None
+        print(f"Calling _initialize_engine...")
+        self._initialize_engine()
+
+    def _initialize_engine(self) -> None:
+        """Initialize SQLAlchemy engine and session factory."""
+        try:
+            if self.engine:
+                print("Disposing existing engine...")
+                self.engine.dispose()
+            
+            db_path = get_db_path(self.db_name)
+            print(f"Database path: '{db_path}'")
+            
+            # Check if database file exists
+            import os
+            if not os.path.exists(db_path):
+                print(f"Database file not found!")
+                print(f"Current working directory: {os.getcwd()}")
+                print(f"Directory contents: {os.listdir(os.path.dirname(db_path))}")
+                raise ValueError(f"Database file not found at: {db_path}")
+            
+            print(f"Creating engine with URI: sqlite:///{db_path}")
+            self.engine = create_engine(f'sqlite:///{db_path}')
+            self.Session = sessionmaker(bind=self.engine)
+            
+            # Test connection
+            with self.engine.connect() as conn:
+                print("Successfully connected to database")
+                
+        except Exception as e:
+            print(f"Error in _initialize_engine: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            raise
 
     def add_table(self, table_name: str) -> None:
         """
@@ -190,23 +232,47 @@ class CRUD:
         Raises:
             ValueError: If table is immutable or doesn't exist.
         """
-        if not v.val_delete_table(database, table_name):
-            raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
-
-        # Check if table exists
-        inspector = inspect(self.engine)
-        if table_name not in inspector.get_table_names():
-            raise ValueError(f"Table {table_name} does not exist in database {database}")
-
+        print(f"\n=== Removing Table ===")
+        print(f"Database: '{database}'")
+        print(f"Table: '{table_name}'")
+        print(f"Current db_name: '{self.db_name}'")
+        
         try:
+            # Ensure database name ends with .db
+            if not database.endswith('.db'):
+                database += '.db'
+                print(f"Added .db extension to database: '{database}'")
+                
+            # Update engine if database is different from current one
+            if database != self.db_name:
+                print(f"Switching database from '{self.db_name}' to '{database}'")
+                self.db_name = database
+                self._initialize_engine()
+
+            print("Validating table deletion...")
+            if not v.val_delete_table(database, table_name):
+                raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
+
+            # Check if table exists
+            print("Checking if table exists...")
+            inspector = inspect(self.engine)
+            tables = inspector.get_table_names()
+            print(f"Available tables: {tables}")
+            
+            if table_name not in tables:
+                raise ValueError(f"Table {table_name} does not exist in database {database}")
+
+            print(f"Attempting to drop table {table_name}...")
+            # Drop the table using SQLAlchemy
             metadata = MetaData()
-            # Reflect the table
-            table = Table(table_name, metadata, autoload_with=self.engine)
-            # Drop the table
-            table.drop(self.engine)
-            print(f"Successfully dropped table {table_name}")
+            table = Table(table_name, metadata)
+            table.drop(self.engine, checkfirst=True)
+            print(f"Successfully dropped table {table_name} from {database}")
+                
         except Exception as e:
-            print(f"Error dropping table {table_name}: {str(e)}")
+            print(f"Error in remove_table: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise
 
     def insert_data(self, table_name: str, data: List[Dict]) -> None:
@@ -220,12 +286,18 @@ class CRUD:
         Raises:
             ValueError: If table is immutable or schema validation fails.
         """
+        print(f"\n=== Inserting Data ===")
+        print(f"Table: '{table_name}'")
+        print(f"Number of rows to insert: {len(data)}")
+        print(f"Sample data: {data[0] if data else 'No data'}")
+
         if not v.val_insert(self.db_name, table_name):
             raise ValueError(f"Cannot insert data into table {table_name} as it is immutable")
 
         # Convert data to DataFrame for schema validation
         import pandas as pd
         df = pd.DataFrame(data)
+        print(f"DataFrame columns: {df.columns.tolist()}")
         
         # Validate schema
         if not v.val_schema(df):
@@ -236,13 +308,18 @@ class CRUD:
             # Get table model
             metadata = MetaData()
             table = Table(table_name, metadata, autoload_with=self.engine)
+            print(f"Table columns: {[c.name for c in table.columns]}")
             
             # Insert data
+            print("Executing insert...")
             session.execute(table.insert(), data)
             session.commit()
-            print(f"Inserted {len(data)} rows into '{table_name}' successfully.")
+            print(f"Successfully inserted {len(data)} rows into '{table_name}'")
         except Exception as e:
+            print(f"Error during insert: {str(e)}")
             session.rollback()
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise e
         finally:
             session.close()
@@ -258,8 +335,10 @@ class CRUD:
         return inspector.get_table_names()
 
     def __del__(self):
-        """Cleanup database connection."""
-        self.engine.dispose()
+        """Clean up database connections."""
+        if hasattr(self, 'engine') and self.engine:
+            print("Disposing engine in destructor")
+            self.engine.dispose()
 
 if __name__ == "__main__":
     path = get_db_path('covid.db')

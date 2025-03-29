@@ -20,5 +20,49 @@
       "measured_value": 19
     },
     "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "custom.db",
+    "table": "MHCareCluster",
+    "prev_data": {
+      "table_name": "MHCareCluster",
+      "schema": [
+        [
+          0,
+          "id",
+          "INTEGER",
+          false,
+          null,
+          1
+        ],
+        [
+          1,
+          "time",
+          "INTEGER",
+          true,
+          null,
+          0
+        ],
+        [
+          2,
+          "measured_value",
+          "INTEGER",
+          true,
+          null,
+          0
+        ]
+      ]
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "create",
+    "database": "custom.db",
+    "table": "MHCareCluster",
+    "new_data": {
+      "table_name": "MHCareCluster"
+    },
+    "orm_instances": []
   }
 ]

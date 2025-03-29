@@ -11,7 +11,8 @@
             "DailyRestriction",
             "WeeklyRestriction"
         ],
-        "alex.db": []
+        "alex.db": [],
+        "custom.db": []
     },
     "schema": [
         "id",
