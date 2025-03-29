@@ -418,19 +418,6 @@ def create_database(db_name: str) -> bool:
         # Just connect and disconnect to create the empty file
         engine.connect().close()
         
-        # Update the config.json
-        import json
-        config_path = Path(__file__).parent / 'config.json'
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        
-        # Add empty lists for immutable tables
-        config['immutable'][db_name] = []
-        
-        # Write back the updated config
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=4)
-        
         return True
         
     except Exception as e:
@@ -482,26 +469,6 @@ def delete_database(db_name: str) -> bool:
         print(f"Attempting to delete file at {db_path}")
         db_path.unlink()
         print(f"File deleted successfully. Still exists: {db_path.exists()}")
-        
-        # Update the config.json
-        import json
-        config_path = Path(__file__).parent / 'config.json'
-        print(f"Config path: {config_path}")
-        print(f"Config exists: {config_path.exists()}")
-        
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-            print(f"Current config: {config}")
-        
-        # Remove immutable tables entry
-        if db_name in config['immutable']:
-            print(f"Removing {db_name} from immutable tables")
-            del config['immutable'][db_name]
-        
-        # Write back the updated config
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=4)
-        print("Config file updated successfully")
         
         return True
         

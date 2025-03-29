@@ -693,15 +693,6 @@ def insert_data_endpoint():
                 conn.commit()
                 print(f"Committed {rows_inserted} rows to database")
                 
-                # Log the change
-                log_manager = LogManager()
-                log_manager.create_change(database, table_name, {
-                    "rows_inserted": rows_inserted,
-                    "columns": columns,
-                    "sample_data": data_to_insert[0] if data_to_insert else None
-                })
-                log_manager.save_log()
-                
                 flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
                 return redirect(url_for('dataset', database=database))
             

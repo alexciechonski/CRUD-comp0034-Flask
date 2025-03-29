@@ -11,11 +11,7 @@
             "DailyRestriction",
             "WeeklyRestriction"
         ],
-        "custom.db": [
-            "MHCareCluster"
-        ],
-        "test.db": [],
-        "new.db": []
+        "alex.db": []
     },
     "schema": [
         "id",
@@ -31,5 +27,7 @@
         "DailyRestriction",
         "WeeklyRestriction"
     ],
-    "non_deleteable": ["covid.db"]
+    "non_deleteable": [
+        "covid.db"
+    ]
 }
