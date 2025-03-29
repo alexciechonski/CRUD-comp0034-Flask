@@ -274,17 +274,22 @@ def create_dash_app(server):
                     if new_record:
                         # Insert the new record
                         cols = list(new_record.keys())
-                        values = [new_record[col] for col in cols]
-                        placeholders = ','.join(['?' for _ in cols])
-                        cols_str = ','.join(cols)
+                        placeholders = ",".join([f":{col}" for col in cols])
+                        cols_str = ",".join(cols)
                         insert_query = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders})"
                         
                         with engine.connect() as connection:
-                            connection.execute(text(insert_query), values)
+                            connection.execute(text(insert_query), new_record)
                             connection.commit()
                             
                             # Log the insertion
                             log_manager.create_change(db_name, table_name, new_record)
+                            
+                            # Refresh the data from the database
+                            cols_info = get_table_info(table_name, db_path)
+                            col_ids = [field[1] for field in cols_info]
+                            new_data = query_db(f"SELECT * FROM {table_name}", db_path)
+                            current_data = [dict(zip(col_ids, row)) for row in new_data]
                 
                 log_manager.save_log()
                 return current_data

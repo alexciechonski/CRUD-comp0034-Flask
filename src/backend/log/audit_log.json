@@ -58,5 +58,25 @@
       "time": "2021-07-02",
       "measured_value": 77
     }
+  },
+  {
+    "change": "create",
+    "database": "custom.db",
+    "table": "Deaths",
+    "new_data": {
+      "id": 79,
+      "time": "2021-06-30",
+      "measured_value": 1000
+    }
+  },
+  {
+    "change": "create",
+    "database": "custom.db",
+    "table": "Deaths",
+    "new_data": {
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 888
+    }
   }
 ]
