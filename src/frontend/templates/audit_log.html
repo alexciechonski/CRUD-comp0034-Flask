@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Audit Log</h1>
+
+    {% if changes_df.empty %}
+        <div class="alert alert-info">
+            No changes have been recorded yet.
+        </div>
+    {% else %}
+        {% for _, row in changes_df.iterrows() %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge {% if row['change_type'] == 'create' %}bg-success{% elif row['change_type'] == 'update' %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ row['change_type'] }}
+                    </span>
+                    <span class="ms-2">{{ row['database'] }} - {{ row['table'] }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                {% for column in changes_df.columns if column not in ['change_type', 'database', 'table'] %}
+                                    <tr>
+                                        <th style="width: 200px;">{{ column }}</th>
+                                        <td>{{ row[column] }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %} 

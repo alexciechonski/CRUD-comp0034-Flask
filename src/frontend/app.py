@@ -52,6 +52,7 @@ from src.backend.validation import Validator as v
 from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
 from src.frontend.dash_app import create_dash_app
+from src.backend.log.log_manager import LogManager
 
 app = Flask(__name__,
             template_folder='templates',
@@ -860,6 +861,16 @@ def delete_database_endpoint():
 def table_crud():
     """Render the Table CRUD page with the embedded Dash app."""
     return render_template('table_crud.html')
+
+@app.route('/audit-log')
+def audit_log():
+    # Initialize LogManager
+    log_manager = LogManager()
+    
+    # Get the changes as a DataFrame
+    changes_df = log_manager.to_tables()
+    
+    return render_template('audit_log.html', changes_df=changes_df)
 
 if __name__ == '__main__':
     app.run(debug=True)

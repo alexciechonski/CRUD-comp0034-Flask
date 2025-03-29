@@ -1,6 +1,6 @@
 {
     "base_path": "src/backend/data/",
-    "log_path": "src/backend/log/changes.json",
+    "log_path": "src/backend/log/audit_log.json",
     "immutable": {
         "covid.db": [
             "Date",
