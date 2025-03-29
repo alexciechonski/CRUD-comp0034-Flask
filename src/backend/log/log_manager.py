@@ -217,11 +217,13 @@ class LogManager:
                 }])
                 res.append(df)
             elif change['change'] == 'delete':
+                # For delete operations, include both the deleted data and previous data
                 df = pd.DataFrame([{
                     'change_type': change['change'],
                     'database': change['database'],
                     'table': change['table'],
-                    **change['prev_data']
+                    **change['prev_data'],
+                    **{f'prev_{k}': v for k, v in change['prev_data'].items()}  # Add prev_ prefix for reversion
                 }])
                 res.append(df)
             elif change['change'] == 'update':

@@ -379,11 +379,6 @@
       "id": 76,
       "time": "2021-06-11",
       "measured_value": 1098.0
-    },
-    {
-      "id": 77,
-      "time": "2021-06-18",
-      "measured_value": 987.0
     }
   ],
   "MHCareCluster": [

@@ -997,6 +997,17 @@ def revert_change():
                     print(f"Insert affected {result.rowcount} rows")
                 else:
                     print("No previous data found in change data")
+                    # Try to use the non-prefixed data as fallback
+                    prev_data = {k: v for k, v in change_data.items() 
+                               if k not in ['change_type', 'database', 'table']}
+                    if prev_data:
+                        insert_query = f"INSERT INTO {table} ({', '.join(prev_data.keys())}) VALUES ({', '.join([':' + k for k in prev_data.keys()])})"
+                        print(f"Executing insert query with fallback data: {insert_query}")
+                        print(f"With data: {prev_data}")
+                        result = connection.execute(text(insert_query), prev_data)
+                        print(f"Insert affected {result.rowcount} rows")
+                    else:
+                        print("No data available for reversion")
                 
             elif change_type == 'update':
                 # For update operations, we need to restore the previous values
