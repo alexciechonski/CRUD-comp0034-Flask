@@ -5,6 +5,7 @@ from src.utils import get_all_tables, get_table_info, get_db_path, query_db
 from sqlalchemy import create_engine, text
 from src.backend.erd_manager import CRUD
 from typing import List
+from src.backend.log.log_manager import LogManager
 
 def create_dash_app(server):
     """Create a Dash app and integrate it with Flask."""
@@ -209,6 +210,7 @@ def create_dash_app(server):
             
             try:
                 engine = create_engine(f'sqlite:///{db_path}')
+                log_manager = LogManager()
                 
                 if trigger_id == 'data-table':
                     # Handle cell edits and row deletions
@@ -231,6 +233,10 @@ def create_dash_app(server):
                                     delete_query = f"DELETE FROM {table_name} WHERE {conditions}"
                                     params = dict(zip(pk_columns, pk_tuple))
                                     connection.execute(text(delete_query), params)
+                                    
+                                    # Log the deletion
+                                    deleted_row = previous_dict[pk_tuple]
+                                    log_manager.delete_change(db_name, table_name, deleted_row)
                                 connection.commit()
                         
                         # Handle edits
@@ -249,63 +255,43 @@ def create_dash_app(server):
                                 set_clause = ", ".join([f"{col} = :{col}" for col in changed_cols])
                                 update_query = f"UPDATE {table_name} SET {set_clause} WHERE {conditions}"
                                 
-                                params = {pk: curr_row[pk] for pk in pk_columns}
-                                params.update({col: curr_row[col] for col in changed_cols})
-                                
                                 with engine.connect() as connection:
-                                    connection.execute(text(update_query), params)
+                                    connection.execute(text(update_query), curr_row)
                                     connection.commit()
+                                    
+                                    # Log the update
+                                    log_manager.update_change(db_name, table_name, curr_row, prev_row)
                 
-                elif trigger_id == 'save-record-button':
-                    # Handle new record addition
-                    if columns and input_fields:
-                        new_record = {}
-                        has_required_fields = True
-                        cols_info = get_table_info(table_name, db_path)
-                        required_fields = {field[1] for field in cols_info if field[5]}
+                elif trigger_id == 'save-record-button' and n_clicks > 0:
+                    # Handle new record insertion
+                    new_record = {}
+                    for field in input_fields:
+                        field_name = field['props']['children'][0]['props']['children'].replace(' *', '')
+                        input_value = field['props']['children'][1]['props']['value']
+                        if input_value:
+                            new_record[field_name] = input_value
+                    
+                    if new_record:
+                        # Insert the new record
+                        cols = list(new_record.keys())
+                        values = [new_record[col] for col in cols]
+                        placeholders = ','.join(['?' for _ in cols])
+                        cols_str = ','.join(cols)
+                        insert_query = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders})"
                         
-                        # Extract values from input fields
-                        for input_field in input_fields:
-                            if isinstance(input_field, dict):  # Handle serialized Div
-                                for child in input_field['props']['children']:
-                                    if isinstance(child, dict) and child.get('type') == 'Input':
-                                        field_name = child['props']['id'].split('-')[1]
-                                        input_value = child['props'].get('value')
-                                        
-                                        # Skip empty values for non-required fields
-                                        if field_name not in required_fields and (input_value is None or input_value == ""):
-                                            continue
-                                            
-                                        if field_name in required_fields and (input_value is None or input_value == ""):
-                                            has_required_fields = False
-                                            break
-                                            
-                                        new_record[field_name] = input_value if input_value != "" else None
-                        
-                        # Only proceed if we have required fields and at least one field to insert
-                        if has_required_fields and new_record:
-                            with engine.connect() as connection:
-                                columns = list(new_record.keys())
-                                placeholders = ",".join([f":{col}" for col in columns])
-                                columns_str = ",".join(columns)
-                                
-                                insert_query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-                                connection.execute(text(insert_query), new_record)
-                                connection.commit()
+                        with engine.connect() as connection:
+                            connection.execute(text(insert_query), values)
+                            connection.commit()
+                            
+                            # Log the insertion
+                            log_manager.create_change(db_name, table_name, new_record)
                 
-                # Refresh the data from the database
-                cols_info = get_table_info(table_name, db_path)
-                col_ids = [field[1] for field in cols_info]
-                new_data = query_db(f"SELECT * FROM {table_name}", db_path)
-                current_data = [dict(zip(col_ids, row)) for row in new_data]
+                log_manager.save_log()
+                return current_data
                 
             except Exception as e:
+                print(f"Error in handle_table_updates: {str(e)}")
                 raise
-            finally:
-                if 'engine' in locals():
-                    engine.dispose()
-            
-            return current_data
 
         # Helper function to get primary keys
         def get_primary_keys(table_name: str, db_path: str) -> List[str]:

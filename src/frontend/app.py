@@ -546,6 +546,11 @@ def create_table_endpoint():
         # Create the table using the CRUD add_table method
         crud.add_table(table_name)
 
+        # Log the change
+        log_manager = LogManager()
+        log_manager.create_change(database, table_name, {"table_name": table_name})
+        log_manager.save_log()
+
         flash(f'Table {table_name} created successfully', 'success')
         return redirect(url_for('dataset', database=database))
 
@@ -572,8 +577,17 @@ def delete_table_endpoint():
         # Create a CRUD instance with the database name
         crud = CRUD(database)
         try:
+            # Get table info before deletion for logging
+            table_info = get_table_info(table_name, get_db_path(database))
+            
             # Delete the table using the CRUD remove_table method
             crud.remove_table(database, table_name)
+            
+            # Log the change
+            log_manager = LogManager()
+            log_manager.delete_change(database, table_name, {"table_name": table_name, "schema": table_info})
+            log_manager.save_log()
+            
             flash(f'Table {table_name} deleted successfully', 'success')
         finally:
             # Clean up the CRUD instance
@@ -676,6 +690,15 @@ def insert_data_endpoint():
                 # Commit the transaction
                 conn.commit()
                 print(f"Committed {rows_inserted} rows to database")
+                
+                # Log the change
+                log_manager = LogManager()
+                log_manager.create_change(database, table_name, {
+                    "rows_inserted": rows_inserted,
+                    "columns": columns,
+                    "sample_data": data_to_insert[0] if data_to_insert else None
+                })
+                log_manager.save_log()
                 
                 flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
                 return redirect(url_for('dataset', database=database))
