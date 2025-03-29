@@ -202,8 +202,10 @@ class DataServer:
             elif db_name == 'custom.db':
                 session = self._custom_session
             else:
-                print(f"Unknown database: {db_name}")
-                return []
+                # Create a new session for other databases
+                engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
+                Session = sessionmaker(bind=engine)
+                session = Session()
 
             from sqlalchemy import Table, MetaData
             metadata = MetaData()
@@ -243,6 +245,10 @@ class DataServer:
         except Exception as e:
             print(f"Error in serve_second_series: {str(e)}")
             return []
+        finally:
+            # Only close the session if we created it
+            if db_name not in ['covid.db', 'custom.db'] and session:
+                session.close()
 
     def get_restrictions(self, database: str = 'covid.db') -> List[str]:
         """

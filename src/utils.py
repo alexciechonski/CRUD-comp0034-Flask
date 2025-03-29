@@ -334,14 +334,25 @@ def get_graphable_tables(database: str = None):
     return res
 
 def graphable_tables():
-    db_files = os.listdir(BASE_PATH)
+    """
+    Get list of all graphable tables across all databases.
+    A table is considered graphable if it's not in the NON_GRAPHABLE list.
+    
+    Returns:
+        List[str]: List of graphable tables in the format "database.table"
+    """
+    # Only look for .db files
+    db_files = [f for f in os.listdir(BASE_PATH) if f.endswith('.db')]
     graphable = []
     for db in db_files:
+        # Get the database name without .db extension
+        db_name = db.replace('.db', '')
+        # Get tables using SQLAlchemy to preserve case sensitivity
         tables = show_tables(db)
         for table in tables:
             if table not in NON_GRAPHABLE:
-                graphable.append(f"{db.replace('.db', '')}.{table}")
-    return graphable
+                graphable.append(f"{db_name}.{table}")
+    return sorted(graphable)
 
 def get_all_tables():
     """Get list of all tables with their associated databases
