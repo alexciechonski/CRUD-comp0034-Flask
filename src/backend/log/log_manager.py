@@ -61,7 +61,8 @@ class LogManager:
         
     def to_tables(self):
         res = []
-        for change in self.log:
+        # Convert deque to list and reverse it to show newest changes first
+        for change in reversed(list(self.log)):
             if change['change'] == "create":
                 df = pd.DataFrame([{
                     'change_type': change['change'],
