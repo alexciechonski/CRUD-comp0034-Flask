@@ -511,4 +511,7 @@ def get_primary_keys(table: str, db_path: str) -> List[str]:
         engine.dispose()
 
 if __name__ == "__main__":
-    print(get_table_info("deaths", "src/backend/data/custom.db"))
+    data = query_db("SELECT * FROM MHCareCluster", get_db_path("custom.db"))
+    df = pd.DataFrame(data, columns=['id', 'date', 'measured_value'])
+    df['date'] = df['date'].apply(lambda x: f"01/{int(x.split('/')[0]):02d}/{x.split('/')[1]}")
+    df.to_csv("src/testing/resources/MHCareCluster.csv", index=False)
