@@ -4,25 +4,10 @@ import dash.exceptions
 from src.utils import get_all_tables, get_table_info, get_db_path, query_db
 from sqlalchemy import create_engine, text
 from src.backend.erd_manager import CRUD
-import logging
-import sys
 from typing import List
-
-# Set up logging with more detailed configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 def create_dash_app(server):
     """Create a Dash app and integrate it with Flask."""
-    print("Starting Dash app creation...")  # Direct print for immediate visibility
-    logger.info("Creating Dash app...")
     dash_app = Dash(__name__, server=server, url_base_pathname='/table-crud/')
     
     # Configure the app to work in an iframe
@@ -32,19 +17,12 @@ def create_dash_app(server):
     ]
     
     # Get all available tables
-    print("Getting all tables...")  # Direct print for immediate visibility
-    logger.info("Getting all tables...")
     try:
         all_tables = get_all_tables()
-        print(f"Found tables: {all_tables}")  # Direct print for immediate visibility
-        logger.info(f"Found tables: {all_tables}")
-    except Exception as e:
-        print(f"Error getting tables: {str(e)}")  # Direct print for immediate visibility
-        logger.error(f"Error getting tables: {str(e)}")
+    except Exception:
         all_tables = []
     
     # Define the layout
-    logger.info("Creating layout...")
     try:
         dash_app.layout = html.Div([
             html.Div(
@@ -132,13 +110,10 @@ def create_dash_app(server):
                 ]
             )
         ])
-        logger.info("Layout created successfully")
     except Exception as e:
-        logger.error(f"Error creating layout: {str(e)}")
         raise
     
     # Initialize callbacks
-    logger.info("Initializing callbacks...")
     try:
         # Load table columns and data
         @dash_app.callback(
@@ -149,17 +124,13 @@ def create_dash_app(server):
             Input('table-select', 'value')
         )
         def show_table(selection):
-            logger.info(f"show_table callback triggered with selection: {selection}")
             if not selection:
-                logger.info("No selection, returning no_update")
                 return no_update, no_update, no_update, no_update
                 
             table_name, db_name = selection.split(" ")
             db_path = get_db_path(db_name)
-            logger.info(f"Loading table {table_name} from database {db_name}")
             
             cols_info = get_table_info(table_name, db_path)
-            logger.info(f"Column info: {cols_info}")
             cols = []
             for field in cols_info:
                 field_name = field[1]
@@ -188,7 +159,6 @@ def create_dash_app(server):
             col_ids = [field[1] for field in cols_info]
             
             data = query_db(f"SELECT * FROM {table_name}", db_path)
-            logger.info(f"Found {len(data)} rows of data")
             table_data = [dict(zip(col_ids, row)) for row in data]
             
             # Generate input fields for the form
@@ -213,7 +183,6 @@ def create_dash_app(server):
                     )
                 )
             
-            logger.info("Returning table data and form fields")
             return cols, table_data, table_data, input_fields
 
         # Handle table updates (edits, deletions, additions)
@@ -228,8 +197,6 @@ def create_dash_app(server):
             prevent_initial_call=True
         )
         def handle_table_updates(current_data, n_clicks, previous, selection, columns, input_fields):
-            logger.info("handle_table_updates callback triggered")
-            
             if not selection:
                 raise dash.exceptions.PreventUpdate
                 
@@ -258,7 +225,6 @@ def create_dash_app(server):
                         # Handle deletions
                         deleted_pks = set(previous_dict.keys()) - set(current_dict.keys())
                         if deleted_pks:
-                            logger.info(f"Deleting rows from {table_name} with primary keys: {deleted_pks}")
                             with engine.connect() as connection:
                                 for pk_tuple in deleted_pks:
                                     conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
@@ -279,7 +245,6 @@ def create_dash_app(server):
                                     changed_cols.append(col)
                             
                             if changed_cols:
-                                logger.info(f"Updating row {pk_tuple} with changes in columns: {changed_cols}")
                                 conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
                                 set_clause = ", ".join([f"{col} = :{col}" for col in changed_cols])
                                 update_query = f"UPDATE {table_name} SET {set_clause} WHERE {conditions}"
@@ -307,8 +272,6 @@ def create_dash_app(server):
                                         field_name = child['props']['id'].split('-')[1]
                                         input_value = child['props'].get('value')
                                         
-                                        logger.info(f"Field: {field_name}, Value: {input_value}")
-                                        
                                         # Skip empty values for non-required fields
                                         if field_name not in required_fields and (input_value is None or input_value == ""):
                                             continue
@@ -321,7 +284,6 @@ def create_dash_app(server):
                         
                         # Only proceed if we have required fields and at least one field to insert
                         if has_required_fields and new_record:
-                            logger.info(f"Adding new record to {table_name}: {new_record}")
                             with engine.connect() as connection:
                                 columns = list(new_record.keys())
                                 placeholders = ",".join([f":{col}" for col in columns])
@@ -330,8 +292,6 @@ def create_dash_app(server):
                                 insert_query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
                                 connection.execute(text(insert_query), new_record)
                                 connection.commit()
-                        else:
-                            logger.warning(f"Skipping empty record or missing required fields. Required fields: {required_fields}, New record: {new_record}")
                 
                 # Refresh the data from the database
                 cols_info = get_table_info(table_name, db_path)
@@ -340,7 +300,6 @@ def create_dash_app(server):
                 current_data = [dict(zip(col_ids, row)) for row in new_data]
                 
             except Exception as e:
-                logger.error(f"Error handling table update: {str(e)}")
                 raise
             finally:
                 if 'engine' in locals():
@@ -354,8 +313,6 @@ def create_dash_app(server):
             return [field[1] for field in cols_info if field[5]]
 
     except Exception as e:
-        logger.error(f"Error initializing callbacks: {str(e)}")
         raise
     
-    logger.info("Dash app creation completed successfully")
     return dash_app 
