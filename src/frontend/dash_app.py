@@ -223,10 +223,11 @@ def create_dash_app(server):
              Input('save-record-button', 'n_clicks')],
             [State('data-table', 'data_previous'),
              State('table-select', 'value'),
-             State('data-table', 'columns')],
+             State('data-table', 'columns'),
+             State('input-fields', 'children')],
             prevent_initial_call=True
         )
-        def handle_table_updates(current_data, n_clicks, previous, selection, columns):
+        def handle_table_updates(current_data, n_clicks, previous, selection, columns, input_fields):
             logger.info("handle_table_updates callback triggered")
             
             if not selection:
@@ -292,23 +293,35 @@ def create_dash_app(server):
                 
                 elif trigger_id == 'save-record-button':
                     # Handle new record addition
-                    if columns:
+                    if columns and input_fields:
                         new_record = {}
                         has_required_fields = True
                         cols_info = get_table_info(table_name, db_path)
                         required_fields = {field[1] for field in cols_info if field[5]}
                         
-                        for col in columns:
-                            field_name = col['id']
-                            input_value = ctx.inputs.get(f"input-{field_name}.value")
-                            
-                            if field_name in required_fields and (input_value is None or input_value == ""):
-                                has_required_fields = False
-                                break
-                                
-                            new_record[field_name] = input_value if input_value != "" else None
+                        # Extract values from input fields
+                        for input_field in input_fields:
+                            if isinstance(input_field, dict):  # Handle serialized Div
+                                for child in input_field['props']['children']:
+                                    if isinstance(child, dict) and child.get('type') == 'Input':
+                                        field_name = child['props']['id'].split('-')[1]
+                                        input_value = child['props'].get('value')
+                                        
+                                        logger.info(f"Field: {field_name}, Value: {input_value}")
+                                        
+                                        # Skip empty values for non-required fields
+                                        if field_name not in required_fields and (input_value is None or input_value == ""):
+                                            continue
+                                            
+                                        if field_name in required_fields and (input_value is None or input_value == ""):
+                                            has_required_fields = False
+                                            break
+                                            
+                                        new_record[field_name] = input_value if input_value != "" else None
                         
-                        if has_required_fields:
+                        # Only proceed if we have required fields and at least one field to insert
+                        if has_required_fields and new_record:
+                            logger.info(f"Adding new record to {table_name}: {new_record}")
                             with engine.connect() as connection:
                                 columns = list(new_record.keys())
                                 placeholders = ",".join([f":{col}" for col in columns])
@@ -317,6 +330,8 @@ def create_dash_app(server):
                                 insert_query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
                                 connection.execute(text(insert_query), new_record)
                                 connection.commit()
+                        else:
+                            logger.warning(f"Skipping empty record or missing required fields. Required fields: {required_fields}, New record: {new_record}")
                 
                 # Refresh the data from the database
                 cols_info = get_table_info(table_name, db_path)
