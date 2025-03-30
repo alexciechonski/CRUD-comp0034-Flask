@@ -1,0 +1,100 @@
+{
+  "table_data": {
+    "Date": [],
+    "Source": [],
+    "WeeklyRestriction": []
+  },
+  "table_info": {
+    "Date": [
+      [
+        0,
+        "date",
+        "TEXT",
+        true,
+        null,
+        0
+      ],
+      [
+        1,
+        "date_id",
+        "INTEGER",
+        false,
+        null,
+        1
+      ]
+    ],
+    "Source": [
+      [
+        0,
+        "source",
+        "TEXT",
+        true,
+        null,
+        0
+      ],
+      [
+        1,
+        "source_id",
+        "INTEGER",
+        false,
+        null,
+        1
+      ],
+      [
+        2,
+        "name",
+        "TEXT",
+        true,
+        null,
+        0
+      ]
+    ],
+    "Deaths": [
+      [
+        0,
+        "id",
+        "INTEGER",
+        true,
+        null,
+        1
+      ],
+      [
+        1,
+        "time",
+        "DATE",
+        true,
+        null,
+        0
+      ],
+      [
+        2,
+        "measured_value",
+        "FLOAT",
+        true,
+        null,
+        0
+      ]
+    ]
+  },
+  "db_table":{
+    "covid.db":["DailyRestriction", "Date", "Restriction", "Source", "SummaryRestriction", "Week", "WeeklyRestriction"]
+  },
+  "primary_keys":{
+    "covid.db":{
+      "Date":["date_id"],
+      "Restriction":["restriction_id"]
+    },
+    "custom.db":{
+      "MHCareCluster":["id"]
+    }
+  },
+  "erds":{
+    "covid.db":{"DailyRestriction": [["DATE", "1:N"], ["RESTRICTION", "1:N"]], "Date": [], "Restriction": [], "Source": [], "SummaryRestriction": [["DATE", "1:N"], ["RESTRICTION", "1:N"], ["SOURCE", "1:N"]], "Week": [], "WeeklyRestriction": [["RESTRICTION", "1:N"], ["WEEK", "1:N"]]},
+    "custom.db":{"Deaths": [], "MHCareCluster": []}
+  },
+  "timeline":[["2020-03-17", "Work from home advised", "https://www.gov.uk/government/speeches/prime-ministers-address-to-the-nation-4-january-2021"], ["2020-03-21", "Pubs and hospitality close", "https://www.gov.uk/government/speeches/prime-ministers-statement-on-coronavirus-covid-19-22-september-2020"], ["2020-03-23", "Schools close", "https://www.gov.uk/government/news/pm-confirms-schools-colleges-and-nurseries-on-track-to-begin-phased-reopening"], ["2020-03-24", "Lockdown 1", "https://www.gov.uk/government/speeches/pm-statement-on-coronavirus-16-march-2020"], ["2020-05-11", "Stay alert", "https://www.gov.uk/government/news/schools-colleges-and-early-years-settings-to-close"], ["2020-06-01", "Schools reopen", "https://www.gov.uk/government/speeches/pm-address-to-the-nation-on-coronavirus-10-may-2020"], ["2020-06-15", "Shops reopen", "https://www.gov.uk/government/news/rule-of-six-comes-into-effect-to-tackle-coronavirus"], ["2020-07-04", "Hospitality reopens", "https://www.gov.uk/government/news/prime-minister-announces-new-local-covid-alert-levels"], ["2020-08-01", "Covid secure workplaces introduced", "https://www.gov.uk/government/speeches/prime-ministers-statement-on-coronavirus-covid-19-19-december-2020"], ["2020-08-03", "Eat out to help out", "https://www.gov.uk/government/speeches/pm-address-to-the-nation-on-coronavirus-23-march-2020"], ["2020-08-31", "Eat out to help out", "https://www.gov.uk/government/speeches/pm-address-to-the-nation-on-coronavirus-23-march-2020"], ["2020-09-14", "End of eat out to help out", "https://www.gov.uk/government/news/prime-minister-confirms-move-to-step-4"], ["2020-09-22", "Rule of 6", "https://www.gov.uk/government/publications/step-3-covid-19-restrictions-posters-17-may-2021"], ["2020-09-24", "WFH encouraged again", "https://www.gov.uk/guidance/get-a-discount-with-the-eat-out-to-help-out-scheme"], ["2020-10-14", "Curfew", "https://www.london.gov.uk/press-releases/mayoral/sadiq-issues-statement-on-new-restrictions"], ["2020-10-17", "Tier 1", "https://www.gov.uk/government/speeches/prime-ministers-statement-on-coronavirus-covid-19-31-july-2020"], ["2020-11-05", "Tier 2", "https://www.gov.uk/government/news/prime-minister-confirms-move-to-plan-b-in-england"], ["2020-12-02", "Lockdown 2", "https://www.gov.uk/government/publications/step-2-covid-19-restrictions-posters-12-april-2021"], ["2020-12-16", "Tier 2", "https://www.gov.uk/government/publications/covid-19-winter-plan/covid-19-winter-plan"], ["2020-12-20", "Tier 3", "https://www.gov.uk/government/speeches/pm-commons-statement-on-coronavirus-22-september-2020"], ["2021-01-05", "Tier 4", "https://www.gov.uk/government/speeches/prime-ministers-statement-on-coronavirus-covid-19-16-december-2020"], ["2021-03-08", "Lockdown 3", "https://www.gov.uk/government/news/pm-announces-easing-of-lockdown-restrictions-23-june-2020"], ["2021-03-29", "Roadmap out of lockdown: Step 1.1", "https://www.gov.uk/government/news/government-announces-further-measures-on-social-distancing"], ["2021-04-12", "Roadmap out of lockdown: Step 1.2", "https://www.gov.uk/government/news/prime-minister-announces-new-national-restrictions"], ["2021-05-17", "Roadmap out of lockdown: Step 2", "https://www.gov.uk/government/news/schools-and-colleges-to-reopen-from-tomorrow-as-part-of-step-one-of-the-roadmap"], ["2021-07-19", "Roadmap out of lockdown: Step 3", "https://www.gov.uk/government/news/england-to-return-to-plan-a-following-the-success-of-the-booster-programme"], ["2021-12-13", "Roadmap out of lockdown: Step 4", "https://www.gov.uk/government/speeches/business-secretarys-statement-on-coronavirus-covid-19-9-june-2020"], ["2022-01-27", "Plan B", "https://www.gov.uk/government/speeches/pm-statement-at-coronavirus-press-conference-29-march-2021"]],
+  "time_series": {
+    "covid.db": [["2020-03-01", 1139242.0], ["2020-04-01", 1145537.0], ["2020-05-01", 1142144.0], ["2020-06-01", 1148158.0], ["2020-07-01", 1119842.0], ["2020-08-01", 1148703.0], ["2020-09-01", 1180163.0], ["2020-10-01", 1140157.0], ["2020-11-01", 1085628.0], ["2020-12-01", 1114316.0], ["2021-01-01", 1142849.0], ["2021-02-01", 1124193.0], ["2021-03-01", 1115858.0], ["2021-04-01", 1107582.0], ["2021-05-01", 1096063.0], ["2021-06-01", 1122513.0], ["2021-07-01", 1082603.0], ["2021-08-01", 1148874.0], ["2021-09-01", 1124816.0], ["2021-10-01", 1121761.0]],
+    "custom.db":[["2020-01-03", 1162.0], ["2020-01-10", 1573.0], ["2020-01-17", 1457.0], ["2020-01-24", 1410.0], ["2020-01-31", 1286.0], ["2020-02-07", 1259.0], ["2020-02-14", 1172.0], ["2020-02-21", 1167.0], ["2020-02-28", 1115.0], ["2020-03-06", 1149.0], ["2020-03-13", 1211.0], ["2020-03-20", 1043.0], ["2020-03-27", 1182.0], ["2020-04-03", 1717.0], ["2020-04-10", 1984.0], ["2020-04-17", 2466.0], ["2020-04-24", 2299.0], ["2020-05-01", 1982.0], ["2020-05-08", 1321.0], ["2020-05-15", 1543.0], ["2020-05-22", 1397.0], ["2020-05-29", 1095.0], ["2020-06-05", 1131.0], ["2020-06-12", 1048.0], ["2020-06-19", 927.0], ["2020-06-26", 880.0], ["2020-07-03", 922.0], ["2020-07-10", 999.0], ["2020-07-17", 945.0], ["2020-07-24", 951.0], ["2020-07-31", 949.0], ["2020-08-07", 955.0], ["2020-08-14", 1006.0], ["2020-08-21", 1024.0], ["2020-08-28", 951.0], ["2020-09-04", 806.0], ["2020-09-11", 1052.0], ["2020-09-18", 1023.0], ["2020-09-25", 963.0], ["2020-10-02", 1054.0], ["2020-10-09", 1019.0], ["2020-10-16", 1056.0], ["2020-10-23", 1154.0], ["2020-10-30", 1089.0], ["2020-11-06", 1177.0], ["2020-11-13", 1172.0], ["2020-11-20", 1186.0], ["2020-11-27", 1159.0], ["2020-12-04", 1229.0], ["2020-12-11", 1224.0], ["2020-12-18", 1317.0], ["2020-12-25", 1198.0], ["2021-01-01", 997.0], ["2021-01-08", 2082.0], ["2021-01-15", 2240.0], ["2021-01-22", 2267.0], ["2021-01-29", 2350.0], ["2021-02-05", 2166.0], ["2021-02-12", 1866.0], ["2021-02-19", 1581.0], ["2021-02-26", 1403.0], ["2021-03-05", 1309.0], ["2021-03-12", 1225.0], ["2021-03-19", 1029.0], ["2021-03-26", 988.0], ["2021-04-02", 841.0], ["2021-04-09", 950.0], ["2021-04-16", 1153.0], ["2021-04-23", 1054.0], ["2021-04-30", 1062.0], ["2021-05-07", 841.0], ["2021-05-14", 1031.0], ["2021-05-21", 1013.0], ["2021-05-28", 992.0], ["2021-06-04", 783.0], ["2021-06-11", 1098.0], ["2021-06-18", 987.0], ["2021-06-25", 909.0], ["2021-07-02", 899.0]]
+  }
+}
