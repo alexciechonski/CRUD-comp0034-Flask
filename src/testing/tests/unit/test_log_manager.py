@@ -12,7 +12,8 @@ Base = declarative_base()
 @pytest.fixture
 def temp_log_file(monkeypatch):
     with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as tmp:
-        tmp.write("[]")
+        tmp.write("[]")  # write an empty JSON array to initialize the log
+        tmp.flush()      # make sure it's written to disk
         monkeypatch.setattr(log_module, "LOG_PATH", tmp.name)
         yield tmp.name
         os.remove(tmp.name)
@@ -31,7 +32,7 @@ def in_memory_db(monkeypatch):
 
 def test_create_change(temp_log_file, in_memory_db):
     manager = LogManager()
-    new_data = {"id": 1, "name": "Alice"}
+    new_data = {"id": 1, "time": "2020-01-01", "measured_value":100}
     manager.create_change("test.db", "test_table", new_data)
 
     assert len(manager.log) == 1
