@@ -11,7 +11,8 @@ Base = declarative_base()
 
 @pytest.fixture
 def temp_log_file(monkeypatch):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as tmp:
+        tmp.write("[]")
         monkeypatch.setattr(log_module, "LOG_PATH", tmp.name)
         yield tmp.name
         os.remove(tmp.name)
