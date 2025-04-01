@@ -331,7 +331,13 @@ def time_series():
                 
                 # Get time series data for plotting using the same database session
                 time_series_data = data_server.serve_time_series(selected_restrictions)  # Get restrictions data
-                custom_series_data = data_server.serve_second_series('custom.db', table_name)  # Get custom variable data
+                
+                # Create a new DataServer instance specifically for custom data
+                custom_server = DataServer('custom.db')
+                try:
+                    custom_series_data = custom_server.serve_second_series('custom.db', table_name)  # Get custom variable data
+                finally:
+                    custom_server._db_session.close()
                 
                 # Create time series plot
                 # Create DataFrame for restrictions
