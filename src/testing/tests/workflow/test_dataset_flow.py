@@ -126,55 +126,26 @@ def test_delete_immutable_table(page: Page, db_name, table_name):
     delete_table(page, table_name)
     assert show_tables(f"{db_name.lower()}.db").count(table_name) == 1
 
-
 @pytest.mark.parametrize(
     "db_name, table_name",
     [
-        ("COVID", "Infections"),
-        ("CUSTOM", "MentalHealth"),
-        ("CUSTOM", "MortalityRate")
+        ("COVID", "Date"),
+        ("COVID", "Week"),
+        ("COVID", "Source"),
+        ("COVID", "SummaryRestriction"),
+        ("COVID", "Restriction"),
+        ("COVID", "DailyRestriction"),
+        ("COVID", "WeeklyRestriction"),
     ]
 )
-def test_delete_not_exist(page: Page, db_name, table_name):
+def test_insert_immutable(page: Page, db_name, table_name):
     page.goto("http://127.0.0.1:5000/dataset")
     page.locator("#databaseSelect").select_option(db_name)
 
-    with pytest.raises(ValueError):
-        delete_table(page, table_name)
-
-# @pytest.mark.parametrize(
-#     "db_name, table_name, res",
-#     [
-#         ("covid.db", "Date", False),
-#         ("covid.db", "Week", False),
-#         ("covid.db", "Source", False),
-#         ("covid.db", "SummaryRestriction", False),
-#         ("covid.db", "Restriction", False),
-#         ("covid.db", "DailyRestriction", False),
-#         ("covid.db", "WeeklyRestriction", False),
-#     ]
-# )
-# def test_insert_immutable(page: Page, db_name, table_name, res):
-#     page.goto("http://127.0.0.1:5000/dataset")
-#     page.locator("#databaseSelect").select_option(db_name.upper())
-
-#     insert_data(page, table_name, DEATHS_FILEPATH)
-#     # assert
-
-# @pytest.mark.parametrize(
-#     "db_name, table_name, res",
-#     [
-#         ("covid.db", "Infections", False),
-#         ("custom.db", "MentalHealth", False),
-#         ("deaths.db", "MortalityRate", False)
-#     ]
-# )
-# def test_insert_not_exists(page: Page, db_name, table_name, res):
-#     page.goto("http://127.0.0.1:5000/dataset")
-#     page.locator("#databaseSelect").select_option(db_name.upper())
-
-#     insert_data(page, table_name, DEATHS_FILEPATH)
-#     # assert
+    old_data = query_db(f"SELECT * FROM {table_name};", get_db_path(f"{db_name.lower()}.db"))
+    insert_data(page, table_name, DEATHS_FILEPATH)
+    new_data = query_db(f"SELECT * FROM {table_name};", get_db_path(f"{db_name.lower()}.db"))
+    assert new_data == old_data
 
     
 
