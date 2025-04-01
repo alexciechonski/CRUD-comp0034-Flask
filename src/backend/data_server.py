@@ -30,17 +30,18 @@ class DataServer:
         Session = sessionmaker(bind=engine)
         return Session()
 
-    def __init__(self, db_name: str):
+    def __init__(self, db_name):
         """Initialize the DataServer with database paths
         
         Args:
             db_name (str): Name of the database to connect to
         """
-        self._db_session = self.get_session('covid.db')
-        self._graph_session = self.get_session('graph.db')
-        self._custom_session = self.get_session('custom.db')
+        print(f"\n=== Initializing DataServer ===")
+        print(f"Database name: {db_name}")
+        self._db_session = self.get_session(db_name)
+        print("DataServer initialized successfully")
 
-    def serve_erd(self, graph_id: int) -> Dict:
+    def serve_erd(self) -> Dict:
         """
         Retrieves the adjacency list for a given graph from the ERD manager.
 
@@ -51,7 +52,7 @@ class DataServer:
             dict: Adjacency list of the graph.
         """
         erd = Visualizer(self._db_session)
-        return erd.get_adj_list(graph_id)
+        return erd.get_adj_list()
 
     def serve_table(self, db_name: str, table: str) ->List[tuple]:
         """
@@ -77,12 +78,14 @@ class DataServer:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
         print(f"\n=== serve_time_series ===")
-        print(f"Called with: database={database}, table={table}, restrictions={restrs}")
-        if not restrs:
+        print(f"Parameters: restrs={restrs}, database={database}, table={table}")
+        
+        if restrs is None:
             restrs = []
         
         if database == 'covid.db':
             try:
+                print("Using covid.db database")
                 # Base query joining Date and DailyRestriction
                 query = self._db_session.query(
                     Date.date,
@@ -105,9 +108,7 @@ class DataServer:
                 # Group by date and order by date
                 query = query.group_by(Date.date).order_by(Date.date)
                 
-                print("Executing query...")
                 result = query.all()
-                print(f"Query returned {len(result)} rows")
                 
                 if not result:
                     print("No results found, returning default value")
@@ -115,12 +116,16 @@ class DataServer:
 
                 # Convert datetime.date objects to ISO format strings
                 processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
+                print(f"Processed {len(processed_result)} results")
                 return processed_result
                 
             except Exception as e:
                 print(f"Error in serve_time_series (covid.db): {str(e)}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
                 raise
         
+        print(f"Using custom database: {database}")
         session = None
         try:
             print(f"Using database path: {get_db_path(database)}")
@@ -178,6 +183,7 @@ class DataServer:
             raise
         finally:
             if session:
+                print("Closing custom database session")
                 session.close()
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
@@ -239,16 +245,10 @@ class DataServer:
 
         session = None
         try:
-            # Use the appropriate session based on the database
-            if db_name == 'covid.db':
-                session = self._db_session
-            elif db_name == 'custom.db':
-                session = self._custom_session
-            else:
-                # Create a new session for other databases
-                engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
-                Session = sessionmaker(bind=engine)
-                session = Session()
+            print(f"Creating new session for database: {db_name}")
+            engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
+            Session = sessionmaker(bind=engine)
+            session = Session()
 
             print(f"Using database path: {get_db_path(db_name)}")
             metadata = MetaData()
@@ -301,9 +301,10 @@ class DataServer:
         finally:
             # Only close the session if we created it
             if db_name not in ['covid.db', 'custom.db'] and session:
+                print(f"Closing session for database: {db_name}")
                 session.close()
 
-    def get_restrictions(self, database: str = 'covid.db') -> List[str]:
+    def get_restrictions(self) -> List[str]:
         """
         Gets a list of available restrictions for a specific database.
 
@@ -313,11 +314,8 @@ class DataServer:
         Returns:
             List[str]: List of restriction names.
         """
-        if database == 'covid.db':
-            return [r.restriction for r in self._db_session.query(Restriction).all()]
-        else:
-            # For custom databases, return empty list as they don't have restrictions
-            return []
+        self._db_session = self.get_session("covid.db")
+        return [r.restriction for r in self._db_session.query(Restriction).all()]
 
     def get_date_range(self) -> Tuple[str, str]:
         """
@@ -326,6 +324,7 @@ class DataServer:
         Returns:
             Tuple[str, str]: A tuple containing (earliest_date, latest_date).
         """
+        self._db_session = self.get_session("covid.db")
         result = self._db_session.query(
             func.min(Date.date),
             func.max(Date.date)
@@ -337,16 +336,11 @@ class DataServer:
 
     def __del__(self):
         """Clean up database connections"""
+        print("\n=== Cleaning up DataServer ===")
         if hasattr(self, '_db_session'):
+            print("Closing _db_session")
             self._db_session.close()
-        if hasattr(self, '_custom_session'):
-            self._custom_session.close()
         if hasattr(self, '_db_engine'):
+            print("Disposing _db_engine")
             self._db_engine.dispose()
-        if hasattr(self, '_custom_engine'):
-            self._custom_engine.dispose()
-
-# if __name__ == "__main__":
-#     data_server = DataServer("covid.db")
-#     time_series_data = data_server.serve_time_series(selected_restrictions, database=selected_db, table=table)
-
+        print("DataServer cleanup complete")

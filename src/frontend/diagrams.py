@@ -346,7 +346,6 @@ class Diagrams:
             }
         finally:
             data_server._db_session.close()
-            data_server._custom_session.close()
 
     def correlation(
         self,
@@ -407,7 +406,6 @@ class Diagrams:
             return px.bar(x=restr, y=val, labels={'x': 'Restriction', 'y': 'Total Restrictions'})
         finally:
             data_server._db_session.close()
-            data_server._custom_session.close()
 
     def timeline(self) -> go.Figure:
         """

@@ -33,19 +33,14 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from flask import Flask, render_template, url_for, jsonify, send_file
 from src.backend.data_server import DataServer
 from src.utils import (
-    query_db, 
     get_table_info, 
-    convert_to_date, 
     show_tables, 
-    select_graphable_tables, 
     get_databases, 
-    create_table, 
-    get_graphable_tables,
     get_resp,
     get_db_path,
-    graphable_tables,
     get_all_tables,
-    get_primary_keys
+    get_primary_keys,
+    get_graphable_tables
 )
 from src.backend.erd_manager import Visualizer, CRUD
 from src.frontend.diagrams import Diagrams
@@ -94,7 +89,6 @@ def get_cached_time_series(database, table, restrictions_key):
         return data_server.serve_time_series(restrictions, database=database, table=table)
     finally:
         data_server._db_session.close()
-        data_server._custom_session.close()
 
 # Routes
 @app.route('/')
@@ -164,7 +158,7 @@ def dataset():
                 visualizer = Visualizer(DbSession())
                 
                 # Get adjacency list with relationship types
-                adj_list = visualizer.get_adj_list(selected_db)
+                adj_list = visualizer.get_adj_list()
                 
                 # Check if there are any relationships
                 has_relationships = any(relationships for relationships in adj_list.values())
@@ -300,10 +294,10 @@ def time_series():
         databases = get_databases()
         
         # Get graphable tables for the selected database
-        tables = graphable_tables()
+        tables = get_graphable_tables()
         
         # Get restrictions for the selected database
-        restrictions = data_server.get_restrictions(selected_db)
+        restrictions = data_server.get_restrictions()
         
         # Handle POST request for analysis
         if request.method == 'POST':
@@ -321,9 +315,9 @@ def time_series():
                                      error="Please fill in all required fields")
             
             try:
-                # Extract database and table names from the combined string
-                db_name, table_name = table.split('.')
-                db_name = f"{db_name}.db"  # Add back the .db extension
+                # The table value is already the table name, no need to split
+                table_name = table
+                db_name = selected_db
                 
                 # Create Model instance and get correlation
                 model = Model(selected_restrictions, db_name, table_name)
@@ -335,9 +329,9 @@ def time_series():
                 # Get AI response
                 analysis_result = get_resp(system_prompt + prompt)
                 
-                # Get time series data for plotting
+                # Get time series data for plotting using the same database session
                 time_series_data = data_server.serve_time_series(selected_restrictions, database='covid.db', table=None)  # Get restrictions data
-                custom_series_data = data_server.serve_time_series(selected_restrictions, database=db_name, table=table_name)  # Get custom variable data
+                custom_series_data = data_server.serve_time_series(selected_restrictions, database='covid.db', table=table_name)  # Get custom variable data
                 
                 # Create time series plot
                 # Create DataFrame for restrictions
@@ -433,7 +427,6 @@ def time_series():
                              restrictions=restrictions)
     finally:
         data_server._db_session.close()
-        data_server._custom_session.close()
 
 @app.route('/api/time-series')
 def time_series_data():
@@ -451,7 +444,6 @@ def time_series_data():
         return jsonify(data)
     finally:
         data_server._db_session.close()
-        data_server._custom_session.close()
 
 @app.route('/timeline')
 def timeline():
@@ -467,19 +459,17 @@ def timeline_data():
         return jsonify(data)
     finally:
         data_server._db_session.close()
-        data_server._custom_session.close()
 
 @app.route('/api/restrictions')
 def get_restrictions():
     # Get restrictions for a specific database
-    database = request.args.get('database', 'covid.db')
+    # database = request.args.get('database', 'covid.db')
     data_server = get_data_server()
     try:
-        restrictions = data_server.get_restrictions(database)
+        restrictions = data_server.get_restrictions()
         return jsonify(restrictions)
     finally:
         data_server._db_session.close()
-        data_server._custom_session.close()
 
 @app.route('/api/tables/<database>')
 def get_tables(database):
@@ -640,11 +630,6 @@ def insert_data_endpoint():
             
         if not file.filename.endswith('.csv'):
             flash('File must be a CSV', 'error')
-            return redirect(url_for('dataset', database=database))
-
-        # Validate if data can be inserted into this table
-        if not v.val_insert(database, table_name):
-            flash(f'Cannot insert data into table {table_name} as it is immutable', 'error')
             return redirect(url_for('dataset', database=database))
 
         # Create a temporary file to store the uploaded CSV
@@ -1068,7 +1053,6 @@ def revert_change():
     except Exception as e:
         print(f"\n=== Error in revert_change: {str(e)} ===")
         print(f"Error type: {type(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
         return redirect(url_for('audit_log'))
 
 if __name__ == '__main__':

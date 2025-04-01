@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 from collections import defaultdict
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, inspect, Date
 from sqlalchemy.orm import sessionmaker
-from src.utils import create_table, delete_table, query_db, get_db_path
+from src.utils import get_db_path
 from src.backend.validation import Validator as v
 from src.backend.models import Base, create_custom_table
 
@@ -27,11 +27,10 @@ class Visualizer:
         self._session = session
         self._engine = session.get_bind()
         
-    def get_adj_list(self, db_name: str) -> Dict[str, List[List[str]]]:
+    def get_adj_list(self) -> Dict[str, List[List[str]]]:
         """Get adjacency list representation of database relationships
         
         Args:
-            db_name (str): Name of the database to analyze
             
         Returns:
             Dict[str, List[List[str]]]: Adjacency list where each key is a table name and 
@@ -89,7 +88,7 @@ class Visualizer:
             return adj_list
             
         except Exception as e:
-            print(f"Error creating adjacency list for {db_name}: {str(e)}")
+            print(f"Error creating adjacency list: {str(e)}")
             return {}
             
         finally:
@@ -275,81 +274,9 @@ class CRUD:
             print(f"Traceback: {traceback.format_exc()}")
             raise
 
-    def insert_data(self, table_name: str, data: List[Dict]) -> None:
-        """
-        Inserts data into a table using SQLAlchemy.
-
-        Args:
-            table_name (str): Name of the table to insert data into.
-            data (List[Dict]): List of dictionaries containing the data to insert.
-
-        Raises:
-            ValueError: If table is immutable or schema validation fails.
-        """
-        print(f"\n=== Inserting Data ===")
-        print(f"Table: '{table_name}'")
-        print(f"Number of rows to insert: {len(data)}")
-        print(f"Sample data: {data[0] if data else 'No data'}")
-
-        if not v.val_insert(self.db_name, table_name):
-            raise ValueError(f"Cannot insert data into table {table_name} as it is immutable")
-
-        # Convert data to DataFrame for schema validation
-        import pandas as pd
-        df = pd.DataFrame(data)
-        print(f"DataFrame columns: {df.columns.tolist()}")
-        
-        # Convert date format from DD/MM/YYYY to YYYY-MM-DD
-        if 'time' in df.columns:
-            print("Converting date format...")
-            df['time'] = pd.to_datetime(df['time'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
-            print(f"Sample converted date: {df['time'].iloc[0] if not df.empty else 'No data'}")
-        
-        # Validate schema
-        if not v.val_schema(df):
-            raise ValueError("Data schema does not match the required schema")
-
-        session = self.Session()
-        try:
-            # Get table model
-            metadata = MetaData()
-            table = Table(table_name, metadata, autoload_with=self.engine)
-            print(f"Table columns: {[c.name for c in table.columns]}")
-            
-            # Convert DataFrame back to list of dictionaries
-            data_to_insert = df.to_dict('records')
-            
-            # Insert data
-            print("Executing insert...")
-            session.execute(table.insert(), data_to_insert)
-            session.commit()
-            print(f"Successfully inserted {len(data_to_insert)} rows into '{table_name}'")
-        except Exception as e:
-            print(f"Error during insert: {str(e)}")
-            session.rollback()
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            raise e
-        finally:
-            session.close()
-
-    def get_tables(self) -> List[str]:
-        """
-        Gets a list of all tables in the database.
-
-        Returns:
-            List[str]: List of table names.
-        """
-        inspector = inspect(self.engine)
-        return inspector.get_table_names()
-
     def __del__(self):
         """Clean up database connections."""
         if hasattr(self, 'engine') and self.engine:
             print("Disposing engine in destructor")
             self.engine.dispose()
 
-if __name__ == "__main__":
-    path = get_db_path('covid.db')
-    v = Visualizer(path)
-    print(v.get_adj_list('covid.db'))

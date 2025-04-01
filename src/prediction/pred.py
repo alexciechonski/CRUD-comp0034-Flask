@@ -79,7 +79,6 @@ class Model:
             return merged_df.groupby('restr_value', as_index=False)['custom_value'].mean()
         finally:
             server._db_session.close()
-            server._custom_session.close()
 
     def train_linear(self) -> pd.DataFrame:
         """

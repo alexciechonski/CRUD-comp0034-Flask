@@ -14,8 +14,8 @@
                 <select id="tableSelect" name="table" class="form-select" required>
                     <option value="">Select a table to analyze...</option>
                     {% for table in tables %}
-                    <option value="{{ table }}" {% if selected_table == table %}selected{% endif %}>
-                        {{ table.replace('_', ' ').title() }}
+                    <option value="{{ table.name }}" {% if selected_table == table.name %}selected{% endif %}>
+                        {{ table.name.replace('_', ' ').title() }}
                     </option>
                     {% endfor %}
                 </select>

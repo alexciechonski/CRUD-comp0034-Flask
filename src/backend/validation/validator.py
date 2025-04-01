@@ -74,20 +74,6 @@ class Validator:
         return True
 
     @staticmethod
-    def val_schema(contents_df: pd.DataFrame) -> bool:
-        """
-        Validates if a DataFrame's schema matches the expected schema.
-        For now, we accept any schema since we're working with dynamic tables.
-
-        Args:
-            contents_df (pd.DataFrame): The DataFrame containing the data.
-
-        Returns:
-            bool: Always returns True for now.
-        """
-        return True
-
-    @staticmethod
     def val_delete_database(db_name: str) -> bool:
         """
         Validates if a database can be deleted.

@@ -1,11 +1,10 @@
 Flask==2.3.3
-Werkzeug==2.3.7
-numpy<2.0.0
-pandas<2.0.0
+numpy
+pandas
 plotly==5.3.1
 networkx==2.6.3
 matplotlib<3.8.0
-dash==2.0.0
+dash
 SQLAlchemy==1.4.23
 dash-bootstrap-components==1.0.0
 ollama==0.1.6
@@ -14,5 +13,5 @@ pytest-cov
 dash-daq
 dash-extensions
 pydot
-scikit-learn<1.4.0
+scikit-learn
 playwright
