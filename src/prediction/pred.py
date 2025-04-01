@@ -49,7 +49,7 @@ class Model:
         server = DataServer('covid.db')
         try:
             # Always get restriction data from covid.db
-            restriction_data = server.serve_time_series(self.restrs, database='covid.db', table=None)
+            restriction_data = server.serve_time_series(self.restrs)
             print(f"Restriction data: {restriction_data[:5]}")  # Debug print
             
             # Get custom data from the specified database
@@ -114,3 +114,4 @@ class Model:
 if __name__ == "__main__":
     m = Model([], "custom.db", "Deaths")
     print(m.get_correlation())
+    print(m.prepare())

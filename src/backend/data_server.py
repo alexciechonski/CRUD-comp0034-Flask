@@ -65,7 +65,7 @@ class DataServer:
         db_path = get_db_path(db_name)
         return get_table_info(table, db_path)
 
-    def serve_time_series(self, restrs: List[str], database: str, table: str) -> List[tuple]:
+    def serve_time_series(self, restrs: List[str]) -> List[tuple]:
         """
         Retrieves time-series data using SQLAlchemy.
 
@@ -78,113 +78,51 @@ class DataServer:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
         print(f"\n=== serve_time_series ===")
-        print(f"Parameters: restrs={restrs}, database={database}, table={table}")
         
         if restrs is None:
             restrs = []
         
-        if database == 'covid.db':
-            try:
-                print("Using covid.db database")
-                # Base query joining Date and DailyRestriction
-                query = self._db_session.query(
-                    Date.date,
-                    func.count(DailyRestriction.restriction_id).filter(DailyRestriction.in_place == 1).label('total_restrictions')
-                ).join(
-                    DailyRestriction,
-                    Date.date_id == DailyRestriction.date_id
+        try:
+            print("Using covid.db database")
+            # Base query joining Date and DailyRestriction
+            query = self._db_session.query(
+                Date.date,
+                func.count(DailyRestriction.restriction_id).filter(DailyRestriction.in_place == 1).label('total_restrictions')
+            ).join(
+                DailyRestriction,
+                Date.date_id == DailyRestriction.date_id
+            )
+
+            # Add restriction filter if restrictions are specified
+            if restrs:
+                print(f"Filtering for restrictions: {restrs}")
+                query = query.join(
+                    Restriction,
+                    DailyRestriction.restriction_id == Restriction.restriction_id
+                ).filter(
+                    Restriction.restriction.in_(restrs)
                 )
 
-                # Add restriction filter if restrictions are specified
-                if restrs:
-                    print(f"Filtering for restrictions: {restrs}")
-                    query = query.join(
-                        Restriction,
-                        DailyRestriction.restriction_id == Restriction.restriction_id
-                    ).filter(
-                        Restriction.restriction.in_(restrs)
-                    )
-
-                # Group by date and order by date
-                query = query.group_by(Date.date).order_by(Date.date)
-                
-                result = query.all()
-                
-                if not result:
-                    print("No results found, returning default value")
-                    return [(None, 0)]
-
-                # Convert datetime.date objects to ISO format strings
-                processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
-                print(f"Processed {len(processed_result)} results")
-                return processed_result
-                
-            except Exception as e:
-                print(f"Error in serve_time_series (covid.db): {str(e)}")
-                import traceback
-                print(f"Traceback: {traceback.format_exc()}")
-                raise
-        
-        print(f"Using custom database: {database}")
-        session = None
-        try:
-            print(f"Using database path: {get_db_path(database)}")
-            session = init_db(f'sqlite:///{get_db_path(database)}')()
-            # For custom tables, we need to use the table object dynamically
-            metadata = MetaData()
-            table_obj = Table(table, metadata, autoload_with=session.bind)
+            # Group by date and order by date
+            query = query.group_by(Date.date).order_by(Date.date)
             
-            print(f"Table columns: {[c.name for c in table_obj.columns]}")
-            
-            # Get the raw data
-            result = session.query(
-                table_obj.c.time,
-                table_obj.c.measured_value
-            ).order_by(table_obj.c.time).all()
-            
-            print(f"Raw query result: {result}")
+            result = query.all()
             
             if not result:
-                print("No data found in table")
+                print("No results found, returning default value")
                 return [(None, 0)]
-                
-            # Process the data, handling both string and datetime.date objects
-            processed_data = []
-            for date_val, value in result:
-                try:
-                    print(f"Processing row: date={date_val}, value={value}")
-                    
-                    # Handle different date formats
-                    if isinstance(date_val, str):
-                        if '/' in date_val:
-                            # Convert DD/MM/YYYY to YYYY-MM-DD
-                            day, month, year = date_val.split('/')
-                            iso_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-                        else:
-                            # Already in YYYY-MM-DD format
-                            iso_date = date_val
-                    else:
-                        # Handle datetime.date objects
-                        iso_date = date_val.strftime('%Y-%m-%d')
-                    
-                    processed_data.append((iso_date, float(value)))
-                    print(f"Converted to: date={iso_date}, value={value}")
-                except Exception as e:
-                    print(f"Error processing date {date_val}: {str(e)}")
-                    continue
-            
-            print(f"Processed data: {processed_data}")
-            return processed_data
+
+            # Convert datetime.date objects to ISO format strings
+            processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
+            print(f"Processed {len(processed_result)} results")
+            return processed_result
             
         except Exception as e:
-            print(f"Error in serve_time_series (custom db): {str(e)}")
+            print(f"Error in serve_time_series (covid.db): {str(e)}")
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
             raise
-        finally:
-            if session:
-                print("Closing custom database session")
-                session.close()
+        
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """

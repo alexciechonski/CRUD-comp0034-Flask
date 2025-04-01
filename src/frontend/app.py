@@ -330,8 +330,8 @@ def time_series():
                 analysis_result = get_resp(system_prompt + prompt)
                 
                 # Get time series data for plotting using the same database session
-                time_series_data = data_server.serve_time_series(selected_restrictions, database='covid.db', table=None)  # Get restrictions data
-                custom_series_data = data_server.serve_time_series(selected_restrictions, database='covid.db', table=table_name)  # Get custom variable data
+                time_series_data = data_server.serve_time_series(selected_restrictions)  # Get restrictions data
+                custom_series_data = data_server.serve_second_series('custom.db', table_name)  # Get custom variable data
                 
                 # Create time series plot
                 # Create DataFrame for restrictions
