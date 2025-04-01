@@ -293,7 +293,7 @@ def time_series():
         # Get list of available databases
         databases = get_databases()
         
-        # Get graphable tables for the selected database
+        # Get graphable tables with their database information
         tables = get_graphable_tables()
         
         # Get restrictions for the selected database
@@ -315,9 +315,13 @@ def time_series():
                                      error="Please fill in all required fields")
             
             try:
-                # The table value is already the table name, no need to split
+                # Find the database for the selected table
+                table_info = next((t for t in tables if t['name'] == table), None)
+                if not table_info:
+                    raise ValueError(f"Could not find database information for table {table}")
+                
                 table_name = table
-                db_name = selected_db
+                db_name = table_info['database']
                 
                 # Create Model instance and get correlation
                 model = Model(selected_restrictions, db_name, table_name)
@@ -333,9 +337,9 @@ def time_series():
                 time_series_data = data_server.serve_time_series(selected_restrictions)  # Get restrictions data
                 
                 # Create a new DataServer instance specifically for custom data
-                custom_server = DataServer('custom.db')
+                custom_server = DataServer(db_name)  # Use the database associated with the table
                 try:
-                    custom_series_data = custom_server.serve_second_series('custom.db', table_name)  # Get custom variable data
+                    custom_series_data = custom_server.serve_second_series(db_name, table_name)  # Get custom variable data
                 finally:
                     custom_server._db_session.close()
                 

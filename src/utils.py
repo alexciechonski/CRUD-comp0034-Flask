@@ -301,13 +301,23 @@ def get_primary_keys(table: str, db_path: str) -> List[str]:
         engine.dispose()
 
 def get_graphable_tables():
+    """
+    Get list of tables that can be used for graphing, including their database information.
+    
+    Returns:
+        list: List of dictionaries containing table information with 'name' and 'database' keys.
+    """
+    res = []
     all_tables = get_all_tables()
     for table in all_tables:
-        if table in NON_GRAPHABLE:
-            all_tables.remove(table)
-    return all_tables
+        if table['name'] not in NON_GRAPHABLE:
+            res.append({
+                'name': table['name'],
+                'database': table['database']
+            })
+    return res
 
 
 
 if __name__ == "__main__":
-    print(show_tables("covid.db"))
+    print(get_graphable_tables())
