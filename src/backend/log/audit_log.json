@@ -1,40 +1,5 @@
 [
   {
-    "change": "delete",
-    "database": "new.db",
-    "table": "deaths",
-    "prev_data": {
-      "table_name": "deaths",
-      "schema": [
-        [
-          0,
-          "id",
-          "INTEGER",
-          true,
-          null,
-          1
-        ],
-        [
-          1,
-          "time",
-          "DATE",
-          true,
-          null,
-          0
-        ],
-        [
-          2,
-          "measured_value",
-          "FLOAT",
-          true,
-          null,
-          0
-        ]
-      ]
-    },
-    "orm_instances": []
-  },
-  {
     "change": "create",
     "database": "covid.db",
     "table": "test",
@@ -225,6 +190,41 @@
     "table": "test",
     "prev_data": {
       "table_name": "test",
+      "schema": [
+        [
+          0,
+          "id",
+          "INTEGER",
+          true,
+          null,
+          1
+        ],
+        [
+          1,
+          "time",
+          "DATE",
+          true,
+          null,
+          0
+        ],
+        [
+          2,
+          "measured_value",
+          "FLOAT",
+          true,
+          null,
+          0
+        ]
+      ]
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "custom.db",
+    "table": "Deaths",
+    "prev_data": {
+      "table_name": "Deaths",
       "schema": [
         [
           0,
