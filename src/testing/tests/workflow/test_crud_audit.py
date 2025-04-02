@@ -57,13 +57,26 @@ def revert_last(page: Page):
     page.wait_for_selector(button_path)
     revert_button = page.locator(button_path)
     revert_button.click()
+
+def delete_last_row(page: Page):
+    page.wait_for_load_state("networkidle")
+
+    # Access the iframe containing the Dash table
+    iframe = page.frame_locator("iframe[src='/table-crud/']")
+
+    # Wait until rows are rendered
+    iframe.locator("table tbody tr").first.wait_for(timeout=3000)
+
+    # Select the last row's delete cell (× button)
+    delete_button = iframe.locator("table tbody tr").last.locator("td.dash-delete-cell")
+
+    # Click the delete button
+    delete_button.click()
     
 def test_add(page: Page):
     """Test adding a record"""
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
-    
-    # Select the table using the helper function
     select_table(page, "deaths deaths.db")
 
     fill_record_form(page, '80', '2021-07-15', '1000')
@@ -85,9 +98,32 @@ def test_add(page: Page):
     assert date == '2021-07-02'
     assert val == '899'
 
+def test_delete(page: Page):
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    delete_last_row(page)
+    id, date, val = get_last_row(page)
+    assert id == '78'
+    assert date == '2021-06-25'
+    assert val == '909'
+
+    revert_last(page)
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '899'
+
+
+
+
+
 
 if __name__ == "__main__":
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)  # set headless=True if you want it hidden
         page = browser.new_page()
-        test_add(page)
+        test_delete(page)
