@@ -72,6 +72,28 @@ def delete_last_row(page: Page):
 
     # Click the delete button
     delete_button.click()
+
+def update_value(page: Page, new_value):
+    iframe = page.frame_locator("iframe[src='/table-crud/']")
+
+    # Wait for table to render
+    iframe.locator("table tbody tr").first.wait_for(timeout=3000)
+
+    # Locate the last row
+    last_row = iframe.locator("table tbody tr").last
+
+    # Locate the last cell in that row (assumed to be measured_value)
+    last_cell = last_row.locator("td").last
+
+    # Click to focus/edit
+    last_cell.click()
+    time.sleep(1)
+
+    # Type: Ctrl+A to select all, then type new value and press Enter
+    page.keyboard.press("Control+A")
+    page.keyboard.type(new_value)
+    page.keyboard.press("Enter")
+    time.sleep(3)
     
 def test_add(page: Page):
     """Test adding a record"""
@@ -112,18 +134,39 @@ def test_delete(page: Page):
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
+    time.sleep(1)
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '899'
+
+def test_update(page: Page):
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    update_value(page, "1")
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '1899'
+
+    revert_last(page)
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    time.sleep(1)
     id, date, val = get_last_row(page)
     assert id == '79'
     assert date == '2021-07-02'
     assert val == '899'
 
 
-
-
-
-
 if __name__ == "__main__":
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)  # set headless=True if you want it hidden
         page = browser.new_page()
-        test_delete(page)
+        # test_delete(page)
+        page.goto("http://127.0.0.1:5000/crud-view")
+        page.wait_for_load_state("networkidle")
+        select_table(page, "deaths deaths.db")
+        update_value(page, "1")
