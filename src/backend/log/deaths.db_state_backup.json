@@ -1,0 +1,404 @@
+{
+  "deaths": [
+    {
+      "id": 1,
+      "time": "2020-01-03",
+      "measured_value": 1162.0
+    },
+    {
+      "id": 2,
+      "time": "2020-01-10",
+      "measured_value": 1573.0
+    },
+    {
+      "id": 3,
+      "time": "2020-01-17",
+      "measured_value": 1457.0
+    },
+    {
+      "id": 4,
+      "time": "2020-01-24",
+      "measured_value": 1410.0
+    },
+    {
+      "id": 5,
+      "time": "2020-01-31",
+      "measured_value": 1286.0
+    },
+    {
+      "id": 6,
+      "time": "2020-02-07",
+      "measured_value": 1259.0
+    },
+    {
+      "id": 7,
+      "time": "2020-02-14",
+      "measured_value": 1172.0
+    },
+    {
+      "id": 8,
+      "time": "2020-02-21",
+      "measured_value": 1167.0
+    },
+    {
+      "id": 9,
+      "time": "2020-02-28",
+      "measured_value": 1115.0
+    },
+    {
+      "id": 10,
+      "time": "2020-03-06",
+      "measured_value": 1149.0
+    },
+    {
+      "id": 11,
+      "time": "2020-03-13",
+      "measured_value": 1211.0
+    },
+    {
+      "id": 12,
+      "time": "2020-03-20",
+      "measured_value": 1043.0
+    },
+    {
+      "id": 13,
+      "time": "2020-03-27",
+      "measured_value": 1182.0
+    },
+    {
+      "id": 14,
+      "time": "2020-04-03",
+      "measured_value": 1717.0
+    },
+    {
+      "id": 15,
+      "time": "2020-04-10",
+      "measured_value": 1984.0
+    },
+    {
+      "id": 16,
+      "time": "2020-04-17",
+      "measured_value": 2466.0
+    },
+    {
+      "id": 17,
+      "time": "2020-04-24",
+      "measured_value": 2299.0
+    },
+    {
+      "id": 18,
+      "time": "2020-05-01",
+      "measured_value": 1982.0
+    },
+    {
+      "id": 19,
+      "time": "2020-05-08",
+      "measured_value": 1321.0
+    },
+    {
+      "id": 20,
+      "time": "2020-05-15",
+      "measured_value": 1543.0
+    },
+    {
+      "id": 21,
+      "time": "2020-05-22",
+      "measured_value": 1397.0
+    },
+    {
+      "id": 22,
+      "time": "2020-05-29",
+      "measured_value": 1095.0
+    },
+    {
+      "id": 23,
+      "time": "2020-06-05",
+      "measured_value": 1131.0
+    },
+    {
+      "id": 24,
+      "time": "2020-06-12",
+      "measured_value": 1048.0
+    },
+    {
+      "id": 25,
+      "time": "2020-06-19",
+      "measured_value": 927.0
+    },
+    {
+      "id": 26,
+      "time": "2020-06-26",
+      "measured_value": 880.0
+    },
+    {
+      "id": 27,
+      "time": "2020-07-03",
+      "measured_value": 922.0
+    },
+    {
+      "id": 28,
+      "time": "2020-07-10",
+      "measured_value": 999.0
+    },
+    {
+      "id": 29,
+      "time": "2020-07-17",
+      "measured_value": 945.0
+    },
+    {
+      "id": 30,
+      "time": "2020-07-24",
+      "measured_value": 951.0
+    },
+    {
+      "id": 31,
+      "time": "2020-07-31",
+      "measured_value": 949.0
+    },
+    {
+      "id": 32,
+      "time": "2020-08-07",
+      "measured_value": 955.0
+    },
+    {
+      "id": 33,
+      "time": "2020-08-14",
+      "measured_value": 1006.0
+    },
+    {
+      "id": 34,
+      "time": "2020-08-21",
+      "measured_value": 1024.0
+    },
+    {
+      "id": 35,
+      "time": "2020-08-28",
+      "measured_value": 951.0
+    },
+    {
+      "id": 36,
+      "time": "2020-09-04",
+      "measured_value": 806.0
+    },
+    {
+      "id": 37,
+      "time": "2020-09-11",
+      "measured_value": 1052.0
+    },
+    {
+      "id": 38,
+      "time": "2020-09-18",
+      "measured_value": 1023.0
+    },
+    {
+      "id": 39,
+      "time": "2020-09-25",
+      "measured_value": 963.0
+    },
+    {
+      "id": 40,
+      "time": "2020-10-02",
+      "measured_value": 1054.0
+    },
+    {
+      "id": 41,
+      "time": "2020-10-09",
+      "measured_value": 1019.0
+    },
+    {
+      "id": 42,
+      "time": "2020-10-16",
+      "measured_value": 1056.0
+    },
+    {
+      "id": 43,
+      "time": "2020-10-23",
+      "measured_value": 1154.0
+    },
+    {
+      "id": 44,
+      "time": "2020-10-30",
+      "measured_value": 1089.0
+    },
+    {
+      "id": 45,
+      "time": "2020-11-06",
+      "measured_value": 1177.0
+    },
+    {
+      "id": 46,
+      "time": "2020-11-13",
+      "measured_value": 1172.0
+    },
+    {
+      "id": 47,
+      "time": "2020-11-20",
+      "measured_value": 1186.0
+    },
+    {
+      "id": 48,
+      "time": "2020-11-27",
+      "measured_value": 1159.0
+    },
+    {
+      "id": 49,
+      "time": "2020-12-04",
+      "measured_value": 1229.0
+    },
+    {
+      "id": 50,
+      "time": "2020-12-11",
+      "measured_value": 1224.0
+    },
+    {
+      "id": 51,
+      "time": "2020-12-18",
+      "measured_value": 1317.0
+    },
+    {
+      "id": 52,
+      "time": "2020-12-25",
+      "measured_value": 1198.0
+    },
+    {
+      "id": 53,
+      "time": "2021-01-01",
+      "measured_value": 997.0
+    },
+    {
+      "id": 54,
+      "time": "2021-01-08",
+      "measured_value": 2082.0
+    },
+    {
+      "id": 55,
+      "time": "2021-01-15",
+      "measured_value": 2240.0
+    },
+    {
+      "id": 56,
+      "time": "2021-01-22",
+      "measured_value": 2267.0
+    },
+    {
+      "id": 57,
+      "time": "2021-01-29",
+      "measured_value": 2350.0
+    },
+    {
+      "id": 58,
+      "time": "2021-02-05",
+      "measured_value": 2166.0
+    },
+    {
+      "id": 59,
+      "time": "2021-02-12",
+      "measured_value": 1866.0
+    },
+    {
+      "id": 60,
+      "time": "2021-02-19",
+      "measured_value": 1581.0
+    },
+    {
+      "id": 61,
+      "time": "2021-02-26",
+      "measured_value": 1403.0
+    },
+    {
+      "id": 62,
+      "time": "2021-03-05",
+      "measured_value": 1309.0
+    },
+    {
+      "id": 63,
+      "time": "2021-03-12",
+      "measured_value": 1225.0
+    },
+    {
+      "id": 64,
+      "time": "2021-03-19",
+      "measured_value": 1029.0
+    },
+    {
+      "id": 65,
+      "time": "2021-03-26",
+      "measured_value": 988.0
+    },
+    {
+      "id": 66,
+      "time": "2021-04-02",
+      "measured_value": 841.0
+    },
+    {
+      "id": 67,
+      "time": "2021-04-09",
+      "measured_value": 950.0
+    },
+    {
+      "id": 68,
+      "time": "2021-04-16",
+      "measured_value": 1153.0
+    },
+    {
+      "id": 69,
+      "time": "2021-04-23",
+      "measured_value": 1054.0
+    },
+    {
+      "id": 70,
+      "time": "2021-04-30",
+      "measured_value": 1062.0
+    },
+    {
+      "id": 71,
+      "time": "2021-05-07",
+      "measured_value": 841.0
+    },
+    {
+      "id": 72,
+      "time": "2021-05-14",
+      "measured_value": 1031.0
+    },
+    {
+      "id": 73,
+      "time": "2021-05-21",
+      "measured_value": 1013.0
+    },
+    {
+      "id": 74,
+      "time": "2021-05-28",
+      "measured_value": 992.0
+    },
+    {
+      "id": 75,
+      "time": "2021-06-04",
+      "measured_value": 783.0
+    },
+    {
+      "id": 76,
+      "time": "2021-06-11",
+      "measured_value": 1098.0
+    },
+    {
+      "id": 77,
+      "time": "2021-06-18",
+      "measured_value": 987.0
+    },
+    {
+      "id": 78,
+      "time": "2021-06-25",
+      "measured_value": 909.0
+    },
+    {
+      "id": 79,
+      "time": "2021-07-02",
+      "measured_value": 899.0
+    },
+    {
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000.0
+    }
+  ]
+}

@@ -1,79 +1,42 @@
 [
   {
     "change": "delete",
-    "database": "covid.db",
-    "table": "test",
+    "database": "deaths.db",
+    "table": "deaths",
     "prev_data": {
-      "table_name": "test",
-      "schema": [
-        [
-          0,
-          "id",
-          "INTEGER",
-          true,
-          null,
-          1
-        ],
-        [
-          1,
-          "time",
-          "DATE",
-          true,
-          null,
-          0
-        ],
-        [
-          2,
-          "measured_value",
-          "FLOAT",
-          true,
-          null,
-          0
-        ]
-      ]
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000
     },
     "orm_instances": []
   },
   {
     "change": "delete",
-    "database": "custom.db",
-    "table": "Deaths",
+    "database": "deaths.db",
+    "table": "deaths",
     "prev_data": {
-      "table_name": "Deaths",
-      "schema": [
-        [
-          0,
-          "id",
-          "INTEGER",
-          true,
-          null,
-          1
-        ],
-        [
-          1,
-          "time",
-          "DATE",
-          true,
-          null,
-          0
-        ],
-        [
-          2,
-          "measured_value",
-          "FLOAT",
-          true,
-          null,
-          0
-        ]
-      ]
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000
     },
     "orm_instances": []
   },
   {
-    "change": "create",
+    "change": "delete",
     "database": "deaths.db",
     "table": "deaths",
-    "new_data": {
+    "prev_data": {
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "deaths.db",
+    "table": "deaths",
+    "prev_data": {
       "id": 80,
       "time": "2021-07-15",
       "measured_value": 1000
@@ -103,10 +66,10 @@
     "orm_instances": []
   },
   {
-    "change": "delete",
+    "change": "create",
     "database": "deaths.db",
     "table": "deaths",
-    "prev_data": {
+    "new_data": {
       "id": 80,
       "time": "2021-07-15",
       "measured_value": 1000
@@ -125,32 +88,10 @@
     "orm_instances": []
   },
   {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
-      "id": 80,
-      "time": "2021-07-15",
-      "measured_value": 1000
-    },
-    "orm_instances": []
-  },
-  {
     "change": "create",
     "database": "deaths.db",
     "table": "deaths",
     "new_data": {
-      "id": 80,
-      "time": "2021-07-15",
-      "measured_value": 1000
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
       "id": 80,
       "time": "2021-07-15",
       "measured_value": 1000

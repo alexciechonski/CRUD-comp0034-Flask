@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright, Page, expect
 import pytest
 import time
+from src.testing.helpers.crawl_helpers import accept_dialog
 
 @pytest.fixture(scope="function")
 def page():
@@ -51,16 +52,15 @@ def get_last_row(page: Page):
 def revert_last(page: Page):
     page.goto("http://127.0.0.1:5000/audit-log")
     page.wait_for_load_state("networkidle")
-
-    page.locator('xpath=/html/body/main/div/div[1]/div[2]/div[2]/form/button').click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    button_path = 'xpath=/html/body/main/div/div[1]/div[2]/div[2]/form/button'
+    page.wait_for_selector(button_path)
+    revert_button = page.locator(button_path)
+    revert_button.click()
     
-
-
 def test_add(page: Page):
     """Test adding a record"""
-    # Navigate to the page and wait for load
     page.goto("http://127.0.0.1:5000/crud-view")
-    
     page.wait_for_load_state("networkidle")
     
     # Select the table using the helper function
@@ -74,6 +74,16 @@ def test_add(page: Page):
     assert id == '80'
     assert date == '2021-07-15'
     assert measured_val == '1000'
+
+    revert_last(page)
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    time.sleep(1)
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '899'
 
 
 if __name__ == "__main__":
