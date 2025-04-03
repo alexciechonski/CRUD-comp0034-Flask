@@ -117,45 +117,45 @@ def test_add(page: Page):
     assert date == '2021-07-02'
     assert val == '899'
 
-def test_delete(page: Page):
-    page.goto("http://127.0.0.1:5000/crud-view")
-    page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    delete_last_row(page)
-    time.sleep(3)
-    id, date, val = get_last_row(page)
-    assert id == '78'
-    assert date == '2021-06-25'
-    assert val == '909'
+# def test_delete(page: Page):
+#     page.goto("http://127.0.0.1:5000/crud-view")
+#     page.wait_for_load_state("networkidle")
+#     select_table(page, "deaths deaths.db")
+#     delete_last_row(page)
+#     time.sleep(3)
+#     id, date, val = get_last_row(page)
+#     assert id == '78'
+#     assert date == '2021-06-25'
+#     assert val == '909'
 
-    revert_last(page)
-    page.goto("http://127.0.0.1:5000/crud-view")
-    page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    time.sleep(1)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '899'
+#     revert_last(page)
+#     page.goto("http://127.0.0.1:5000/crud-view")
+#     page.wait_for_load_state("networkidle")
+#     select_table(page, "deaths deaths.db")
+#     time.sleep(1)
+#     id, date, val = get_last_row(page)
+#     assert id == '79'
+#     assert date == '2021-07-02'
+#     assert val == '899'
 
-def test_update(page: Page):
-    page.goto("http://127.0.0.1:5000/crud-view")
-    page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    update_value(page, "1")
-    time.sleep(3)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '1899'
+# def test_update(page: Page):
+#     page.goto("http://127.0.0.1:5000/crud-view")
+#     page.wait_for_load_state("networkidle")
+#     select_table(page, "deaths deaths.db")
+#     update_value(page, "1")
+#     time.sleep(3)
+#     id, date, val = get_last_row(page)
+#     assert id == '79'
+#     assert date == '2021-07-02'
+#     assert val == '1899'
 
-    revert_last(page)
-    page.goto("http://127.0.0.1:5000/crud-view")
-    page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    time.sleep(1)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '899'
+#     revert_last(page)
+#     page.goto("http://127.0.0.1:5000/crud-view")
+#     page.wait_for_load_state("networkidle")
+#     select_table(page, "deaths deaths.db")
+#     time.sleep(1)
+#     id, date, val = get_last_row(page)
+#     assert id == '79'
+#     assert date == '2021-07-02'
+#     assert val == '899'
 

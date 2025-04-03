@@ -1076,10 +1076,12 @@ def revert_change():
             print("Transaction committed successfully")
             
             # Only remove the change from the log after successful reversion
+            print(f"Removing change from log: database={database}, table={table}, change_type={change_type}")
             log_manager.remove_change(database, table, change_type)
             print("Change removed from log")
             
-            return redirect(url_for('audit_log'))
+            # Force a refresh of the audit log page
+            return redirect(url_for('audit_log', _external=True))
             
         finally:
             connection.close()

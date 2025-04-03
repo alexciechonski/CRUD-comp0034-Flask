@@ -176,21 +176,35 @@ class LogManager:
             table_name (str): Name of the table
             change_type (str): Type of change to remove
         """
+        print(f"Attempting to remove change: database={database}, table={table_name}, change_type={change_type}")
+        
         # Convert deque to list for easier manipulation
         log_list = list(self.log)
+        print(f"Current log has {len(log_list)} entries")
         
         # Find and remove the specific change
+        found = False
         for i, entry in enumerate(log_list):
-            if (entry['database'] == database and 
-                entry['table'] == table_name and 
-                entry['change'] == change_type):
+            print(f"Checking entry: database={entry.get('database')}, table={entry.get('table')}, change={entry.get('change')}")
+            if (entry.get('database') == database and 
+                entry.get('table') == table_name and 
+                entry.get('change') == change_type):
                 # Remove only this specific change
                 log_list.pop(i)
+                found = True
+                print(f"Found and removed change at index {i}")
                 break
         
-        # Convert back to deque and update
+        if not found:
+            print(f"Warning: No matching change found to remove")
+        
+        # Update the log with the modified list
         self.log = deque(log_list)
+        
+        # Update the log length and save the changes
+        self.update_length()
         self.save_log()
+        
         print(f"Removed {change_type} change for {table_name} in {database}")
 
     def save_log(self) -> None:
