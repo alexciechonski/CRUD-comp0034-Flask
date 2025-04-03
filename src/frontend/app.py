@@ -55,9 +55,6 @@ app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
 
-# Set a secret key for flash messages
-app.secret_key = 'your-secret-key-here'  # Replace with a secure secret key in production
-
 # Initialize Dash app
 dash_app = create_dash_app(app)
 
