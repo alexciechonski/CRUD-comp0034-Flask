@@ -990,38 +990,60 @@ def revert_change():
                     inspector = inspect(engine)
                     columns = [col['name'] for col in inspector.get_columns(table)]
                     
+                    # Filter out columns that don't exist in the table
+                    filtered_prev_data = {k: v for k, v in prev_data.items() if k in columns}
+                    
                     # Ensure all required columns are present
-                    missing_columns = [col for col in columns if col not in prev_data]
+                    missing_columns = [col for col in columns if col not in filtered_prev_data]
                     if missing_columns:
                         print(f"Warning: Missing columns in previous data: {missing_columns}")
                     
-                    # Construct the insert query
-                    insert_query = f"INSERT INTO {table} ({', '.join(prev_data.keys())}) VALUES ({', '.join([':' + k for k in prev_data.keys()])})"
-                    print(f"Executing insert query: {insert_query}")
-                    print(f"With data: {prev_data}")
-                    
-                    result = connection.execute(text(insert_query), prev_data)
-                    print(f"Insert affected {result.rowcount} rows")
+                    if filtered_prev_data:
+                        # Construct the insert query
+                        insert_query = f"INSERT INTO {table} ({', '.join(filtered_prev_data.keys())}) VALUES ({', '.join([':' + k for k in filtered_prev_data.keys()])})"
+                        print(f"Executing insert query: {insert_query}")
+                        print(f"With data: {filtered_prev_data}")
+                        
+                        result = connection.execute(text(insert_query), filtered_prev_data)
+                        print(f"Insert affected {result.rowcount} rows")
+                    else:
+                        print("No valid columns found in previous data")
                 else:
                     print("No previous data found in change data")
                     # Try to use the non-prefixed data as fallback
                     prev_data = {k: v for k, v in change_data.items() 
                                if k not in ['change_type', 'database', 'table']}
-                    if prev_data:
-                        insert_query = f"INSERT INTO {table} ({', '.join(prev_data.keys())}) VALUES ({', '.join([':' + k for k in prev_data.keys()])})"
+                    
+                    # Get column names from the table
+                    inspector = inspect(engine)
+                    columns = [col['name'] for col in inspector.get_columns(table)]
+                    
+                    # Filter out columns that don't exist in the table
+                    filtered_prev_data = {k: v for k, v in prev_data.items() if k in columns}
+                    
+                    if filtered_prev_data:
+                        insert_query = f"INSERT INTO {table} ({', '.join(filtered_prev_data.keys())}) VALUES ({', '.join([':' + k for k in filtered_prev_data.keys()])})"
                         print(f"Executing insert query with fallback data: {insert_query}")
-                        print(f"With data: {prev_data}")
-                        result = connection.execute(text(insert_query), prev_data)
+                        print(f"With data: {filtered_prev_data}")
+                        result = connection.execute(text(insert_query), filtered_prev_data)
                         print(f"Insert affected {result.rowcount} rows")
                     else:
-                        print("No data available for reversion")
+                        print("No valid columns found in fallback data")
                 
             elif change_type == 'update':
                 # For update operations, we need to restore the previous values
                 print("Reverting update operation...")
                 # Get the previous data
                 prev_data = {k.replace('prev_', ''): v for k, v in change_data.items() if k.startswith('prev_')}
+                
                 if prev_data:
+                    # Get column names from the table
+                    inspector = inspect(engine)
+                    columns = [col['name'] for col in inspector.get_columns(table)]
+                    
+                    # Filter out columns that don't exist in the table
+                    filtered_prev_data = {k: v for k, v in prev_data.items() if k in columns}
+                    
                     # Get primary keys for the table
                     primary_keys = get_primary_keys(table, database)
                     if not primary_keys:
@@ -1034,15 +1056,18 @@ def revert_change():
                         if key in change_data:
                             where_clause.append(f"{key} = {change_data[key]}")
                     
-                    if where_clause:
+                    if where_clause and filtered_prev_data:
                         # Construct SET clause
-                        set_clause = ', '.join([f"{k} = :{k}" for k in prev_data.keys()])
+                        set_clause = ', '.join([f"{k} = :{k}" for k in filtered_prev_data.keys()])
                         update_query = f"UPDATE {table} SET {set_clause} WHERE {' AND '.join(where_clause)}"
                         print(f"Executing update query: {update_query}")
-                        result = connection.execute(text(update_query), prev_data)
+                        result = connection.execute(text(update_query), filtered_prev_data)
                         print(f"Update affected {result.rowcount} rows")
                     else:
-                        print("No primary keys found in change data")
+                        if not where_clause:
+                            print("No primary keys found in change data")
+                        if not filtered_prev_data:
+                            print("No valid columns found in previous data")
                 else:
                     print("No previous data found")
             

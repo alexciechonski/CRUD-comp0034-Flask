@@ -136,15 +136,25 @@ class RevertManager:
             
             # For each table in the backup
             for table_name, rows in self._state_backup.items():
+                if table_name not in metadata.tables:
+                    print(f"Warning: Table {table_name} not found in database, skipping")
+                    continue
+                    
                 table = metadata.tables[table_name]
+                
+                # Get current table columns
+                current_columns = {col.name for col in table.columns}
                 
                 # Clear existing data
                 session.execute(table.delete())
                 
                 # Insert backup data
                 for row in rows:
-                    insert_stmt = table.insert().values(**row)
-                    session.execute(insert_stmt)
+                    # Filter out columns that don't exist in the current table
+                    filtered_row = {k: v for k, v in row.items() if k in current_columns}
+                    if filtered_row:  # Only insert if there are valid columns
+                        insert_stmt = table.insert().values(**filtered_row)
+                        session.execute(insert_stmt)
             
             # Commit the transaction
             session.commit()

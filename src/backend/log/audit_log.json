@@ -55,23 +55,6 @@
     "orm_instances": []
   },
   {
-    "change": "update",
-    "database": "deaths.db",
-    "table": "deaths",
-    "new_data": {
-      "id": 78,
-      "time": "2021-06-25",
-      "measured_value": 1909
-    },
-    "prev_data": {
-      "id": 78,
-      "time": "2021-06-25",
-      "measured_value": 909
-    },
-    "new_orm_instances": [],
-    "prev_orm_instances": []
-  },
-  {
     "change": "create",
     "database": "new.db",
     "table": "deaths",
