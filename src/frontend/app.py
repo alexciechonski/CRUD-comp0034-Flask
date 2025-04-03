@@ -79,26 +79,10 @@ def get_data_server():
         db_name='covid.db'
     )
 
-# Add caching for time series data
-@lru_cache(maxsize=32)
-def get_cached_time_series(database, table, restrictions_key):
-    """Cache time series data to improve performance"""
-    restrictions = () if restrictions_key == 'all' else tuple(restrictions_key.split(','))
-    data_server = get_data_server()
-    try:
-        return data_server.serve_time_series(restrictions, database=database, table=table)
-    finally:
-        data_server._db_session.close()
-
 # Routes
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/api/databases')
-def fetch_databases():
-    """Get list of available databases excluding graph.db"""
-    return get_databases()
 
 @app.route('/dataset')
 def dataset():
@@ -438,58 +422,10 @@ def time_series():
     finally:
         data_server._db_session.close()
 
-# @app.route('/api/time-series')
-# def time_series_data():
-#     # Get data server instance
-#     data_server = get_data_server()
-#     try:
-#         # Get parameters from request
-#         database = request.args.get('database', 'covid.db')
-#         table = request.args.get('table')
-#         restrictions = request.args.getlist('restrictions[]')
-        
-#         # Get time series data
-#         data = data_server.serve_time_series(restrictions, database=database, table=table)
-        
-#         return jsonify(data)
-#     finally:
-#         data_server._db_session.close()
-
 @app.route('/timeline')
 def timeline():
     # Render the timeline template
     return render_template('timeline.html')
-
-# @app.route('/api/timeline')
-# def timeline_data():
-#     # Get timeline data as JSON
-#     data_server = get_data_server()
-#     try:
-#         data = data_server.serve_timeline()
-#         return jsonify(data)
-#     finally:
-#         data_server._db_session.close()
-
-@app.route('/api/restrictions')
-def get_restrictions():
-    # Get restrictions for a specific database
-    # database = request.args.get('database', 'covid.db')
-    data_server = get_data_server()
-    try:
-        restrictions = data_server.get_restrictions()
-        return jsonify(restrictions)
-    finally:
-        data_server._db_session.close()
-
-@app.route('/api/tables/<database>')
-def get_tables(database):
-    """Get list of available tables for a given database"""
-    try:
-        data_server = get_data_server()
-        tables = show_tables(database)
-        return jsonify(tables)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/create-database', methods=['POST'])
 def create_database_endpoint():
@@ -726,123 +662,6 @@ def insert_data_endpoint():
         print(f"Unexpected error: {str(e)}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
-
-@app.route('/api/regression')
-def regression_data():
-    try:
-        # Get parameters
-        selected_restrictions = request.args.getlist('restrictions[]')
-        database = request.args.get('database', 'covid.db')
-        table = request.args.get('table')
-
-        print(f"Regression request with: database={database}, table={table}, restrictions={selected_restrictions}")
-
-        if not database:
-            return jsonify({'error': 'Missing database parameter'}), 400
-            
-        # Only require table parameter for non-COVID database
-        if database != 'covid.db' and not table:
-            return jsonify({'error': 'Missing table parameter'}), 400
-
-        # Create Model instance and get regression data
-        try:
-            model = Model(selected_restrictions, database, table)
-            df = model.prepare()
-            
-            if df.empty:
-                return jsonify({
-                    'error': 'No data available for regression analysis',
-                    'details': 'Could not find matching data points between restrictions and custom data'
-                }), 404
-
-            # Calculate regression line
-            x = df['restr_value'].values
-            y = df['custom_value'].values / 1000  # Convert to thousands
-            
-            if len(x) < 2:
-                return jsonify({
-                    'error': 'Insufficient data for regression analysis',
-                    'details': 'Need at least 2 data points to calculate regression'
-                }), 400
-            
-            # Calculate correlation coefficient
-            correlation = np.corrcoef(x, y)[0, 1]
-            
-            # Calculate regression line parameters
-            slope, intercept = np.polyfit(x, y, 1)
-            
-            return jsonify({
-                'points': list(zip(x.tolist(), y.tolist())),
-                'slope': float(slope),
-                'intercept': float(intercept),
-                'correlation': float(correlation)
-            })
-
-        except Exception as model_error:
-            print(f"Model error: {str(model_error)}")
-            return jsonify({
-                'error': 'Failed to calculate regression',
-                'details': str(model_error)
-            }), 500
-
-    except Exception as e:
-        print(f"Error in regression_data: {str(e)}")
-        return jsonify({
-            'error': 'Failed to process regression request',
-            'details': str(e),
-            'params': {
-                'database': database,
-                'table': table,
-                'restrictions': selected_restrictions
-            }
-        }), 500
-
-@app.route('/api/analyze')
-def analyze_data():
-    try:
-        # Get parameters
-        prompt = request.args.get('prompt')
-        selected_restrictions = request.args.getlist('restrictions[]')
-        database = request.args.get('database', 'covid.db')
-        table = request.args.get('table')
-
-        if not prompt:
-            return jsonify({'error': 'Missing prompt parameter'}), 400
-        if not database:
-            return jsonify({'error': 'Missing database parameter'}), 400
-        if database != 'covid.db' and not table:
-            return jsonify({'error': 'Missing table parameter'}), 400
-
-        # Create Model instance and get correlation
-        try:
-            model = Model(selected_restrictions, database, table)
-            correlation = model.get_correlation()
-            
-            # Create system prompt with correlation information
-            variable = table if table else "restrictions"
-            system_prompt = f"The correlation between number of restrictions and {variable} is {correlation:.3f}. "
-            
-            # Get AI response
-            response = get_resp(system_prompt + prompt)
-            
-            return jsonify({
-                'analysis': response,
-                'correlation': correlation
-            })
-
-        except Exception as model_error:
-            print(f"Model error: {str(model_error)}")
-            return jsonify({
-                'error': 'Failed to analyze data',
-                'details': str(model_error)
-            }), 500
-
-    except Exception as e:
-        print(f"Error in analyze_data: {str(e)}")
-        return jsonify({
-            'error': 'Failed to process analysis request',
-            'details': str(e)
-        }), 500
 
 @app.route('/api/delete-database', methods=['POST'])
 def delete_database_endpoint():
