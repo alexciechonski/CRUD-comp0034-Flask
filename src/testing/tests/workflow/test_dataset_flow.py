@@ -44,12 +44,12 @@ def test_flow(page: Page):
 
     # check schema
     schema = get_schema_contents(page, "deaths")
-    print(schema)
-    assert schema == [
+    expected = [
         {'name': 'id', 'type': 'INTEGER', 'constraints': 'NOT NULL PRIMARY KEY'},
         {'name': 'time', 'type': 'DATE', 'constraints': 'NOT NULL'},
         {'name': 'measured_value', 'type': 'FLOAT', 'constraints': 'NOT NULL'}
-        ]
+    ]
+    assert schema == expected
 
     # check contents
     table_data = pd.DataFrame(query_db("SELECT * FROM deaths;", get_db_path("deaths.db")), columns=["id", "time", "measured_value"])

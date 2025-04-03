@@ -62,7 +62,7 @@ jobs:
       #     ollama serve &
       #     sleep 5
 
-      - name: Start Dash app
+      - name: Start Flask app
         run: |
           source venv/bin/activate
           echo %PYTHONPATH%
