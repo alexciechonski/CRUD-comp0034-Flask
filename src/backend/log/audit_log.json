@@ -1,10 +1,10 @@
 [
   {
     "change": "delete",
-    "database": "covid.db",
-    "table": "test",
+    "database": "new.db",
+    "table": "deaths",
     "prev_data": {
-      "table_name": "test",
+      "table_name": "deaths",
       "schema": [
         [
           0,
@@ -79,21 +79,13 @@
     "orm_instances": []
   },
   {
-    "change": "update",
-    "database": "deaths.db",
+    "change": "create",
+    "database": "new.db",
     "table": "deaths",
     "new_data": {
-      "id": 77,
-      "time": "2021-06-18",
-      "measured_value": 987
+      "table_name": "deaths"
     },
-    "prev_data": {
-      "id": 77,
-      "time": "2021-06-18",
-      "measured_value": 1987
-    },
-    "new_orm_instances": [],
-    "prev_orm_instances": []
+    "orm_instances": []
   },
   {
     "change": "delete",

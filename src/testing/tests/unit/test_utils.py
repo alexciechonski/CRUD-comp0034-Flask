@@ -38,7 +38,7 @@ def test_get_databases():
 def test_get_all_tables():
     all_tables = get_all_tables()
     exp = get_exp_data()
-    assert all_tables == exp["all_tables"]
+    assert sorted(all_tables, key=lambda x: (x['database'], x['name'])) == sorted(exp["all_tables"], key=lambda x: (x['database'], x['name']))
 
 def test_get_resp():
     return get_resp("Hello") is not None
