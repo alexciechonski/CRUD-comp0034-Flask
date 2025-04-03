@@ -6,7 +6,7 @@ from datetime import datetime
 @pytest.fixture(scope="function")
 def page():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # set headless=True if you want it hidden
+        browser = p.chromium.launch()  # set headless=True if you want it hidden
         context = browser.new_context()
         page = context.new_page()
         yield page
