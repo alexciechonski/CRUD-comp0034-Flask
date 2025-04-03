@@ -150,24 +150,18 @@ def get_all_tables():
     Returns:
         List[Dict[str, str]]: List of dictionaries containing table name and database name
     """
-    logger = logging.getLogger(__name__)
     
-    logger.info(f"Looking for database files in: {BASE_PATH}")
     db_files = [f for f in os.listdir(BASE_PATH) if f.endswith('.db')]
-    logger.info(f"Found database files: {db_files}")
     
     tables = []
     for db in db_files:
-        logger.info(f"Getting tables for database: {db}")
         db_tables = show_tables(db)
-        logger.info(f"Found tables in {db}: {db_tables}")
         for table in db_tables:
             tables.append({
                 'name': table,
                 'database': db
             })
     
-    logger.info(f"Total tables found: {len(tables)}")
     return tables
 
 def get_resp(prompt: str) -> str:
@@ -320,4 +314,4 @@ def get_graphable_tables():
 
 
 if __name__ == "__main__":
-    print(get_graphable_tables())
+    print(get_table_info("MHCareCluster", "src/backend/data/custom.db"))

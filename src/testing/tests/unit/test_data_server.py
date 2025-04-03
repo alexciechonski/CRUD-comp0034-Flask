@@ -28,7 +28,7 @@ def test_serve_erd(db_name):
     [
         ("Date", "covid.db"),
         ("Source", "covid.db"),
-        ("Deaths", "custom.db")
+        ("MHCareCluster", "custom.db")
     ]
 )
 def test_serve_table(table, db_name):
@@ -36,22 +36,20 @@ def test_serve_table(table, db_name):
     server = DataServer(db_name)
     assert server.serve_table(db_name, table.lower()) == [tuple(row) for row in exp["table_info"][table]]
 
-# @pytest.mark.parametrize(
-#     "db_name, table",
-#     [
-#         "custom.db", "MHCareCluster",
-#         "deaths.db", "Deaths"
-#     ]
-# )
-# def test_time_series(db_name, table):
-#     server = DataServer(db_name)
-#     data = server.serve_time_series([], db_name, table)
-#     data = [list(x) for x in data]
-#     exp = get_exp_data
-#     assert data == exp["time_series"][table.lower()]
+def test_time_series():
+    server = DataServer("covid.db")
+    data = server.serve_time_series([])
+    exp = get_exp_data()
+    assert exp['restriction_series']['0-5'] == [list(t) for t in data[0:5]]
+    assert exp['restriction_series']['100-105'] == [list(t) for t in data[100:105]]
+    assert exp['restriction_series']['450-455'] == [list(t) for t in data[450:455]]
+    assert exp['restriction_series']['750-755'] == [list(t) for t in data[750:755]]
 
-# def test_restr_distr():
-#     pass
+def test_serve_second_series():
+    server = DataServer("custom.db")
+    data = server.serve_second_series("custom.db", "MHCareCluster")
+    exp = get_exp_data()
+    assert [list(t) for t in data] == exp['custom_var_data']
 
 def test_serve_timeline():
     server = DataServer("covid.db")
@@ -60,9 +58,6 @@ def test_serve_timeline():
     exp = get_exp_data()
     assert converted == exp['timeline']
 
-# def serve_second_series():
-#     pass
-
 def test_get_restrictions():
     server = DataServer("covid.db")
     assert server.get_restrictions() == ['schools_closed', 'pubs_closed', 'shops_closed', 'eating_places_closed', 'stay_at_home', 'household_mixing_indoors_banned', 'wfh', 'rule_of_6_indoors', 'curfew', 'eat_out_to_help_out']
@@ -70,3 +65,11 @@ def test_get_restrictions():
 def test_get_data_range():
     server = DataServer("covid.db")
     assert server.get_date_range() == (datetime.date(2020, 3, 1), datetime.date(2024, 1, 14))
+
+if __name__ == "__main__":
+    server = DataServer("custom.db")
+    end_date = '2021-06-15'
+    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    data = server.serve_restr_distr(end_date)
+    print(data)
+

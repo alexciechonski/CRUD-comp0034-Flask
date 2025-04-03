@@ -14,15 +14,12 @@ from src.testing.helpers.unit_helpers import get_exp_data
 def test_get_db_path(input_db_name, expected_path):
     assert get_db_path(input_db_name) == expected_path
 
-def test_query_db():
-    pass
-
 @pytest.mark.parametrize(
     "table, db_path",
     [
         ("Date", "src/backend/data/covid.db"),
         ("Source", "src/backend/data/covid.db"),
-        ("Deaths", "src/backend/data/custom.db")
+        ("MHCareCluster", "src/backend/data/custom.db")
     ]
 )
 def test_get_table_info(table, db_path):
@@ -39,7 +36,9 @@ def test_get_databases():
     assert set(dbs) == {"covid.db", "custom.db", "deaths.db"}
 
 def test_get_all_tables():
-    pass 
+    all_tables = get_all_tables()
+    exp = get_exp_data()
+    assert all_tables == exp["all_tables"]
 
 def test_get_resp():
     return get_resp("Hello") is not None
@@ -71,5 +70,4 @@ def test_get_primary_keys(table, db_name):
     assert get_primary_keys(table.lower(), get_db_path(db_name)) == exp["primary_keys"][db_name][table]
 
 if __name__ == "__main__":
-    exp = get_exp_data()
-    print(exp['table_info']['Date'])
+    print(get_all_tables())
