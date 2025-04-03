@@ -43,7 +43,6 @@ from src.utils import (
     get_graphable_tables
 )
 from src.backend.erd_manager import Visualizer, CRUD
-from src.frontend.diagrams import Diagrams
 from src.backend.validation import Validator as v
 from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
@@ -58,17 +57,10 @@ app = Flask(__name__,
 # Initialize Dash app
 dash_app = create_dash_app(app)
 
+app.secret_key = 'your-secret-key-here'
+
 # Register blueprints
 app.register_blueprint(restriction_bp, url_prefix='')
-
-# Initialize SQLAlchemy session
-engine = create_engine(f'sqlite:///{get_db_path("covid.db")}')
-Session = sessionmaker(bind=engine)
-
-# Initialize Diagrams
-diagrams = Diagrams(
-    db_name='covid.db'
-)
 
 def get_data_server():
     """Create a new DataServer instance for each request"""
@@ -499,12 +491,6 @@ def delete_table_endpoint():
         # Get data from form instead of JSON
         database = request.form.get('database')
         table_name = request.form.get('table_name')
-        
-        print("\n=== Delete Table Operation ===")
-        print(f"Received request to delete table:")
-        print(f"Database: '{database}'")
-        print(f"Table: '{table_name}'")
-
         if not database or not table_name:
             print("Error: Missing database or table name")
             flash('Database and table name are required', 'error')

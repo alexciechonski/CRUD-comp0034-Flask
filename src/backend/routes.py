@@ -31,9 +31,7 @@ def format_restriction_name(name):
 @bp.route('/restriction-distribution')
 def restriction_distribution():
     """Render the restriction distribution page."""
-    print("=== Starting restriction_distribution route ===")  # Debug print
     end_date = request.args.get('end_date', '2021-06-15')
-    print(f"Received end_date: {end_date}")  # Debug print
     
     try:
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
