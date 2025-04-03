@@ -120,8 +120,8 @@ def test_add(page: Page):
     assert measured_val == '1000'
 
     revert_last(page)
-    print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
-    print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
+    # print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
+    # print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
@@ -143,8 +143,8 @@ def test_delete(page: Page):
     assert val == '909'
 
     revert_last(page)
-    print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
-    print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
+    # print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
+    # print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
@@ -166,8 +166,8 @@ def test_update(page: Page):
     assert val == '1899'
 
     revert_last(page)
-    print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
-    print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
+    # print("CHECK IF IT IS BEING REVERTED ON THE BACKEND")
+    # print(query_db("SELECT * FROM deaths", get_db_path("deaths.db"))[-1])
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")

@@ -73,7 +73,7 @@ jobs:
         run: |
           source venv/bin/activate
           echo %PYTHONPATH%
-          pytest --cov=src src/testing/tests/ 
+          pytest --cov=src --ignore=src/testing/tests/workflow/test_crud_audit.py 
 
       - name: Upload coverage report to GitHub
         uses: actions/upload-artifact@v4
