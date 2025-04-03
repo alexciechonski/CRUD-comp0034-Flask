@@ -438,37 +438,37 @@ def time_series():
     finally:
         data_server._db_session.close()
 
-@app.route('/api/time-series')
-def time_series_data():
-    # Get data server instance
-    data_server = get_data_server()
-    try:
-        # Get parameters from request
-        database = request.args.get('database', 'covid.db')
-        table = request.args.get('table')
-        restrictions = request.args.getlist('restrictions[]')
+# @app.route('/api/time-series')
+# def time_series_data():
+#     # Get data server instance
+#     data_server = get_data_server()
+#     try:
+#         # Get parameters from request
+#         database = request.args.get('database', 'covid.db')
+#         table = request.args.get('table')
+#         restrictions = request.args.getlist('restrictions[]')
         
-        # Get time series data
-        data = data_server.serve_time_series(restrictions, database=database, table=table)
+#         # Get time series data
+#         data = data_server.serve_time_series(restrictions, database=database, table=table)
         
-        return jsonify(data)
-    finally:
-        data_server._db_session.close()
+#         return jsonify(data)
+#     finally:
+#         data_server._db_session.close()
 
 @app.route('/timeline')
 def timeline():
     # Render the timeline template
     return render_template('timeline.html')
 
-@app.route('/api/timeline')
-def timeline_data():
-    # Get timeline data as JSON
-    data_server = get_data_server()
-    try:
-        data = data_server.serve_timeline()
-        return jsonify(data)
-    finally:
-        data_server._db_session.close()
+# @app.route('/api/timeline')
+# def timeline_data():
+#     # Get timeline data as JSON
+#     data_server = get_data_server()
+#     try:
+#         data = data_server.serve_timeline()
+#         return jsonify(data)
+#     finally:
+#         data_server._db_session.close()
 
 @app.route('/api/restrictions')
 def get_restrictions():
