@@ -100,11 +100,8 @@ def test_add(page: Page):
     page.goto("http://127.0.0.1:5000/crud-view")
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
-
     fill_record_form(page, '80', '2021-07-15', '1000')
-
     time.sleep(3)
-    
     id, date, measured_val = get_last_row(page)
     assert id == '80'
     assert date == '2021-07-15'
@@ -125,6 +122,7 @@ def test_delete(page: Page):
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
     delete_last_row(page)
+    time.sleep(3)
     id, date, val = get_last_row(page)
     assert id == '78'
     assert date == '2021-06-25'
@@ -145,6 +143,7 @@ def test_update(page: Page):
     page.wait_for_load_state("networkidle")
     select_table(page, "deaths deaths.db")
     update_value(page, "1")
+    time.sleep(3)
     id, date, val = get_last_row(page)
     assert id == '79'
     assert date == '2021-07-02'
@@ -160,13 +159,3 @@ def test_update(page: Page):
     assert date == '2021-07-02'
     assert val == '899'
 
-
-if __name__ == "__main__":
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # set headless=True if you want it hidden
-        page = browser.new_page()
-        # test_delete(page)
-        page.goto("http://127.0.0.1:5000/crud-view")
-        page.wait_for_load_state("networkidle")
-        select_table(page, "deaths deaths.db")
-        update_value(page, "1")
