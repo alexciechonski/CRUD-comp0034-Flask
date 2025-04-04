@@ -18,13 +18,7 @@ def temp_db_and_patch(monkeypatch):
 
     yield os.path.basename(db_path), db_path  # return db_name, full path
 
-    # Clean up the database file
     os.remove(db_path)
-    
-    # Clean up any backup files created during the tests
-    backup_file = os.path.join(os.path.dirname(revert_module.LOG_PATH), f"{os.path.basename(db_path)}_state_backup.json")
-    if os.path.exists(backup_file):
-        os.remove(backup_file)
 
 
 @pytest.fixture
@@ -49,6 +43,7 @@ def test_store_state_creates_backup_file(revert_manager):
         data = json.load(f)
         assert "test_table" in data
         assert data["test_table"][0]["name"] == "Alice"
+    os.remove(backup_path)
 
 
 def test_restore_state_reverts_changes(revert_manager):
@@ -69,3 +64,7 @@ def test_restore_state_reverts_changes(revert_manager):
         result = conn.execute(text("SELECT * FROM test_table")).fetchall()
         assert result[0]["name"] == "Alice"
         assert result[0]["id"] == 1
+
+    backup_path = os.path.join(revert_manager.revert_dir, f"{revert_manager.database}_state_backup.json")
+    if os.path.exists(backup_path):
+        os.remove(backup_path)

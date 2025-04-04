@@ -1,72 +1,22 @@
 [
   {
-    "change": "delete",
-    "database": "covid.db",
-    "table": "test",
-    "prev_data": {
-      "table_name": "test",
-      "schema": [
-        [
-          0,
-          "id",
-          "INTEGER",
-          true,
-          null,
-          1
-        ],
-        [
-          1,
-          "time",
-          "DATE",
-          true,
-          null,
-          0
-        ],
-        [
-          2,
-          "measured_value",
-          "FLOAT",
-          true,
-          null,
-          0
-        ]
-      ]
+    "change": "create",
+    "database": "test.db",
+    "table": "test_table",
+    "new_data": {
+      "id": 1,
+      "name": "A"
     },
     "orm_instances": []
   },
   {
-    "change": "update",
-    "database": "deaths.db",
+    "change": "create",
+    "database": "new.db",
     "table": "deaths",
     "new_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 899
+      "table_name": "deaths"
     },
-    "prev_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 1898
-    },
-    "new_orm_instances": [],
-    "prev_orm_instances": []
-  },
-  {
-    "change": "update",
-    "database": "deaths.db",
-    "table": "deaths",
-    "new_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 1899
-    },
-    "prev_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 899
-    },
-    "new_orm_instances": [],
-    "prev_orm_instances": []
+    "orm_instances": []
   },
   {
     "change": "delete",
@@ -148,21 +98,48 @@
     "orm_instances": []
   },
   {
-    "change": "update",
-    "database": "deaths.db",
-    "table": "deaths",
+    "change": "create",
+    "database": "covid.db",
+    "table": "test",
     "new_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 1899
+      "table_name": "test"
     },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "covid.db",
+    "table": "test",
     "prev_data": {
-      "id": 79,
-      "time": "2021-07-02",
-      "measured_value": 899
+      "table_name": "test",
+      "schema": [
+        [
+          0,
+          "id",
+          "INTEGER",
+          true,
+          null,
+          1
+        ],
+        [
+          1,
+          "time",
+          "DATE",
+          true,
+          null,
+          0
+        ],
+        [
+          2,
+          "measured_value",
+          "FLOAT",
+          true,
+          null,
+          0
+        ]
+      ]
     },
-    "new_orm_instances": [],
-    "prev_orm_instances": []
+    "orm_instances": []
   },
   {
     "change": "create",
