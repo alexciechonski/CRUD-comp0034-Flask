@@ -1,10 +1,10 @@
 [
   {
     "change": "delete",
-    "database": "covid.db",
-    "table": "test",
+    "database": "new.db",
+    "table": "deaths",
     "prev_data": {
-      "table_name": "test",
+      "table_name": "deaths",
       "schema": [
         [
           0,

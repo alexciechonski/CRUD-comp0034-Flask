@@ -26,6 +26,9 @@ from src.backend.models import init_db, Base
 import glob
 from pathlib import Path
 import logging
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from typing import Optional, Any
 
 def get_db_path(db_name):
     return BASE_PATH + db_name
@@ -42,22 +45,20 @@ def query_db(query: str, db_path: str, param: tuple = ()) -> Optional[list[tuple
     Returns:
         Optional[list[tuple[Any, ...]]]: Query results as a list of tuples (if applicable).
     """
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
-        try:
-            if param is not None:
-                cursor.execute(query, param)
-            else:
-                cursor.execute(query)
+    engine = create_engine(f"sqlite:///{db_path}")
+    try:
+        with engine.connect() as conn:
+            stmt = text(query)
+            result = conn.execute(stmt, param)
+            
             if query.strip().upper().startswith("SELECT"):
-                results = cursor.fetchall()
-                return results
+                return result.fetchall()
             else:
                 conn.commit()
-        except sqlite3.IntegrityError as int_err:
-            raise sqlite3.IntegrityError("Database query failed") from int_err
-        except sqlite3.DatabaseError as db_err:
-            raise sqlite3.DatabaseError("Database query failed") from db_err
+    except IntegrityError as int_err:
+        raise IntegrityError("Database query failed") from int_err
+    except SQLAlchemyError as db_err:
+        raise SQLAlchemyError("Database query failed") from db_err
 
 def get_table_info(table: str, db_path: str) -> List[Tuple]:
     """

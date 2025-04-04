@@ -115,11 +115,3 @@ def accept_dialog(dialog):
 
 def dialog_appeared(dialog):
     return dialog.message is not None and dialog.message != ""
-
-if __name__ == "__main__":
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto("http://127.0.0.1:5000/dataset")
-        time.sleep(3)
-        print(get_schema_contents(page, "Date"))
