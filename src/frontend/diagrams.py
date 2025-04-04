@@ -15,6 +15,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.backend.erd_manager import Visualizer
 import plotly.io as pio
+from src.backend.revert_manager import RevertManager
+from src.backend.log.log_manager import LogManager
+from sqlalchemy import text, inspect
+from src.utils import get_primary_keys
 
 matplotlib.use('Agg')
 
@@ -224,3 +228,93 @@ class TimeSeries:
                          labels={'restr_value': 'Number of Restrictions',
                                  'custom_value': f'{table_name} Value'})
         return pio.to_html(fig, full_html=False)
+
+
+class RevertChange:
+    def __init__(self, database, table, change_type):
+        self.database = database
+        self.table = table
+        self.change_type = change_type
+        self.revert_manager = RevertManager(database)
+        self.log_manager = LogManager()
+        self.engine = self.revert_manager.engine
+        self.session = self.revert_manager.Session()
+
+    def find_change(self):
+        changes = self.log_manager.to_tables()
+        match = changes[
+            (changes['database'] == self.database) &
+            (changes['table'] == self.table) &
+            (changes['change_type'] == self.change_type)
+        ]
+        if match.empty:
+            return None
+        return match.iloc[0].to_dict()
+
+    def revert(self, change_data):
+        self.revert_manager.store_state()
+
+        if self.change_type == 'create':
+            self._revert_create(change_data)
+        elif self.change_type == 'delete':
+            self._revert_delete(change_data)
+        elif self.change_type == 'update':
+            self._revert_update(change_data)
+
+        self.session.commit()
+        self.log_manager.remove_change(self.database, self.table, self.change_type)
+
+    def _revert_create(self, change_data):
+        primary_keys = get_primary_keys(self.table, self.database) or ['id']
+        where_clause = [f"{key} = {change_data[key]}" for key in primary_keys if key in change_data]
+
+        if not where_clause:
+            print("No primary keys found in change data")
+            return
+
+        delete_query = f"DELETE FROM {self.table} WHERE {' AND '.join(where_clause)}"
+        self.session.execute(text(delete_query))
+
+    def _revert_delete(self, change_data):
+        prev_data = {
+            k[5:]: v for k, v in change_data.items() if k.startswith('prev_')
+        } or {
+            k: v for k, v in change_data.items()
+            if k not in ['change_type', 'database', 'table']
+        }
+
+        inspector = inspect(self.engine)
+        table_columns = [col['name'] for col in inspector.get_columns(self.table)]
+        valid_data = {k: v for k, v in prev_data.items() if k in table_columns}
+
+        if not valid_data:
+            print("No valid columns found in previous data")
+            return
+
+        insert_query = f"INSERT INTO {self.table} ({', '.join(valid_data)}) VALUES ({', '.join([':' + k for k in valid_data])})"
+        self.session.execute(text(insert_query), valid_data)
+
+    def _revert_update(self, change_data):
+        prev_data = {k.replace('prev_', ''): v for k, v in change_data.items() if k.startswith('prev_')}
+        inspector = inspect(self.engine)
+        table_columns = [col['name'] for col in inspector.get_columns(self.table)]
+        valid_data = {k: v for k, v in prev_data.items() if k in table_columns}
+
+        primary_keys = get_primary_keys(self.table, self.database) or ['id']
+        where_clause = [f"{key} = {change_data[key]}" for key in primary_keys if key in change_data]
+
+        if not where_clause or not valid_data:
+            if not where_clause:
+                print("No primary keys found in change data")
+            if not valid_data:
+                print("No valid columns found in previous data")
+            return
+
+        set_clause = ', '.join([f"{k} = :{k}" for k in valid_data])
+        update_query = f"UPDATE {self.table} SET {set_clause} WHERE {' AND '.join(where_clause)}"
+        self.session.execute(text(update_query), valid_data)
+        self.log_manager.update_length()
+
+    def cleanup(self):
+        self.session.close()
+        self.engine.dispose()
