@@ -271,7 +271,7 @@ def delete_database(db_name: str) -> bool:
         print(f"Error in delete_database: {str(e)}")
         return False
 
-def get_primary_keys(table: str, db_path: str) -> List[str]:
+def get_primary_keys(table: str, db_name: str) -> List[str]:
     """
     Get primary key columns for a table.
     
@@ -282,7 +282,7 @@ def get_primary_keys(table: str, db_path: str) -> List[str]:
     Returns:
         List[str]: List of primary key column names
     """
-    engine = create_engine(f'sqlite:///{db_path}')
+    engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
     inspector = inspect(engine)
     
     try:
@@ -314,4 +314,5 @@ def get_graphable_tables():
 
 
 if __name__ == "__main__":
-    print(get_table_info("MHCareCluster", "src/backend/data/custom.db"))
+    from pathlib import Path
+    print(os.path.exists('/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db'))
