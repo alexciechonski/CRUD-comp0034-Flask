@@ -4,16 +4,6 @@ import time
 from src.testing.helpers.crawl_helpers import accept_dialog
 from src.utils import query_db, get_db_path
 
-@pytest.fixture(scope="function")
-def page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch()  # set headless=True if you want it hidden
-        context = browser.new_context()
-        page = context.new_page()
-        yield page
-        context.close()
-        browser.close()
-
 def select_table(page: Page, option_text):
     page.wait_for_load_state("networkidle")
 

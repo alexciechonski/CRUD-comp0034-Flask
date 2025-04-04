@@ -6,16 +6,6 @@ import pytest
 from src.testing.helpers.crawl_helpers import insert_data, create_new_table, delete_table, get_schema_contents, accept_dialog, dialog_appeared
 import time
 
-@pytest.fixture(scope="function")
-def page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch()  # set headless=True if you want it hidden
-        context = browser.new_context()
-        page = context.new_page()
-        yield page
-        context.close()
-        browser.close()
-
 def test_flow(page: Page):
     page.goto("http://127.0.0.1:5000/dataset")
 

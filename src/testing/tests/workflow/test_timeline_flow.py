@@ -2,16 +2,6 @@ from playwright.sync_api import sync_playwright, Page, expect
 import pytest
 import time
 
-@pytest.fixture(scope="function")
-def page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch()  # set headless=True if you want it hidden
-        context = browser.new_context()
-        page = context.new_page()
-        yield page
-        context.close()
-        browser.close()
-
 @pytest.mark.parametrize(
     "date, res_url",
     [
