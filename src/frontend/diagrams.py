@@ -10,10 +10,11 @@ import matplotlib
 from src.backend.data_server import DataServer
 from src.prediction.pred import Model
 from src.utils import table_not_empty
-from src.utils import get_databases, get_table_info, show_tables, get_db_path
+from src.utils import get_databases, get_table_info, show_tables, get_db_path, get_graphable_tables, get_resp
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.backend.erd_manager import Visualizer
+import plotly.io as pio
 
 matplotlib.use('Agg')
 
@@ -123,3 +124,103 @@ class ERD:
                      style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
             </div>
         '''
+
+
+class TimeSeries:
+    def __init__(self, selected_db: str):
+        self.selected_db = selected_db
+        self.databases = get_databases()
+        self.tables = get_graphable_tables()
+        self.data_server = DataServer('covid.db')
+        self.restrictions = self.data_server.get_restrictions()
+
+    def validate_form_data(self, form):
+        table = form.get('table')
+        selected_restrictions = form.getlist('restrictions[]')
+        prompt = form.get('prompt')
+
+        if not table or not selected_restrictions or not prompt:
+            raise ValueError("Please fill in all required fields")
+
+        table_info = next((t for t in self.tables if t['name'] == table), None)
+        if not table_info:
+            raise ValueError(f"Could not find database information for table {table}")
+
+        return table_info['database'], table, selected_restrictions, prompt
+
+    def analyze(self, db_name, table_name, selected_restrictions, prompt):
+        model = Model(selected_restrictions, db_name, table_name)
+        correlation = model.get_correlation()
+        system_prompt = f"The correlation between number of restrictions and {table_name} is {correlation:.3f}. "
+        analysis_result = get_resp(system_prompt + prompt)
+
+        ts_data = self.data_server.serve_time_series(selected_restrictions)
+        custom_server = DataServer(db_name)
+        try:
+            custom_data = custom_server.serve_second_series(db_name, table_name)
+        finally:
+            custom_server._db_session.close()
+
+        time_series_plot = self._build_time_series_plot(ts_data, custom_data, table_name)
+        regression_plot = self._build_regression_plot(model, table_name)
+
+        return {
+            'analysis_result': analysis_result,
+            'time_series_plot': time_series_plot,
+            'regression_plot': regression_plot
+        }
+
+    def _build_time_series_plot(self, restrictions_data, custom_data, table_name):
+        restrictions_df = pd.DataFrame(restrictions_data, columns=['date', 'total_restrictions'])
+        restrictions_df['date'] = pd.to_datetime(restrictions_df['date'])
+
+        custom_df = pd.DataFrame(custom_data, columns=['date', 'measured_value'])
+        custom_df['date'] = pd.to_datetime(custom_df['date'])
+
+        merged_df = pd.merge_asof(restrictions_df, custom_df, on='date', direction='nearest')
+
+        fig = px.line(merged_df, x='date', y='total_restrictions', title='Time Series Analysis')
+        fig.add_scatter(x=merged_df['date'], y=merged_df['measured_value'],
+                        name=table_name, yaxis='y2')
+
+        fig.update_layout(
+            yaxis=dict(
+                title=dict(
+                    text='Number of Restrictions',
+                    font=dict(color='blue')
+                ),
+                tickfont=dict(color='blue')
+            ),
+            yaxis2=dict(
+                title=dict(
+                    text=f'{table_name} Value',
+                    font=dict(color='red')
+                ),
+                tickfont=dict(color='red'),
+                overlaying='y',
+                side='right'
+            ),
+            xaxis=dict(
+                title=dict(
+                    text='Date'
+                )
+            ),
+            showlegend=True
+        )
+
+
+        fig.data[0].name = 'Restrictions'
+        fig.data[0].line.color = 'blue'
+        fig.data[1].line.color = 'red'
+
+        return pio.to_html(fig, full_html=False)
+
+    def _build_regression_plot(self, model, table_name):
+        df = model.prepare()
+        if df.empty:
+            return None
+        fig = px.scatter(df, x='restr_value', y='custom_value',
+                         title='Correlation Analysis',
+                         labels={'restr_value': 'Number of Restrictions',
+                                 'custom_value': f'{table_name} Value'})
+        return pio.to_html(fig, full_html=False)

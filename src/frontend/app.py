@@ -26,7 +26,7 @@ import pandas as pd
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from src.frontend.diagrams import ERD
+from src.frontend.diagrams import ERD, TimeSeries
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -73,6 +73,7 @@ def get_data_server():
 @app.route('/')
 def index():
     return render_template('index.html')
+
 @app.route('/dataset')
 def dataset():
     selected_db = request.args.get('database', 'covid.db')
@@ -100,162 +101,43 @@ def dataset():
             selected_db=selected_db,
             databases=databases
         )
-
 @app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
-    # Get selected database from query parameters, default to covid.db
     selected_db = request.args.get('database', 'covid.db')
-    
-    # Get data server instance with the selected database
-    data_server = get_data_server()
-    try:
-        # Get list of available databases
-        databases = get_databases()
-        
-        # Get graphable tables with their database information
-        tables = get_graphable_tables()
-        
-        # Get restrictions for the selected database
-        restrictions = data_server.get_restrictions()
-        
-        # Handle POST request for analysis
-        if request.method == 'POST':
-            # Get form data
-            table = request.form.get('table')
-            selected_restrictions = request.form.getlist('restrictions[]')
-            prompt = request.form.get('prompt')
-            
-            if not table or not selected_restrictions or not prompt:
-                return render_template('time_series.html',
-                                     databases=databases,
-                                     selected_db=selected_db,
-                                     tables=tables,
-                                     restrictions=restrictions,
-                                     error="Please fill in all required fields")
-            
-            try:
-                # Find the database for the selected table
-                table_info = next((t for t in tables if t['name'] == table), None)
-                if not table_info:
-                    raise ValueError(f"Could not find database information for table {table}")
-                
-                table_name = table
-                db_name = table_info['database']
-                
-                # Create Model instance and get correlation
-                model = Model(selected_restrictions, db_name, table_name)
-                correlation = model.get_correlation()
-                
-                # Create system prompt with correlation information
-                system_prompt = f"The correlation between number of restrictions and {table_name} is {correlation:.3f}. "
-                
-                # Get AI response
-                analysis_result = get_resp(system_prompt + prompt)
-                
-                # Get time series data for plotting using the same database session
-                time_series_data = data_server.serve_time_series(selected_restrictions)  # Get restrictions data
-                
-                # Create a new DataServer instance specifically for custom data
-                custom_server = DataServer(db_name)  # Use the database associated with the table
-                try:
-                    custom_series_data = custom_server.serve_second_series(db_name, table_name)  # Get custom variable data
-                finally:
-                    custom_server._db_session.close()
-                
-                # Create time series plot
-                # Create DataFrame for restrictions
-                restrictions_df = pd.DataFrame(time_series_data, columns=['date', 'total_restrictions'])
-                restrictions_df['date'] = pd.to_datetime(restrictions_df['date'])
-                
-                # Create DataFrame for custom variable
-                custom_df = pd.DataFrame(custom_series_data, columns=['date', 'measured_value'])
-                custom_df['date'] = pd.to_datetime(custom_df['date'])
-                
-                # Merge the dataframes
-                merged_df = pd.merge_asof(restrictions_df, custom_df, on='date', direction='nearest')
-                
-                # Create figure with secondary y-axis
-                fig = px.line(merged_df, x='date', y='total_restrictions',
-                            title='Time Series Analysis')
-                
-                # Add second trace on secondary y-axis
-                fig.add_scatter(x=merged_df['date'], y=merged_df['measured_value'],
-                              name=f'{table_name}',
-                              yaxis='y2')
-                
-                # Update layout for dual axes
-                fig.update_layout(
-                    yaxis=dict(
-                        title=dict(
-                            text='Number of Restrictions',
-                            font=dict(color='blue')
-                        ),
-                        tickfont=dict(color='blue')
-                    ),
-                    yaxis2=dict(
-                        title=dict(
-                            text=f'{table_name} Value',
-                            font=dict(color='red')
-                        ),
-                        tickfont=dict(color='red'),
-                        overlaying='y',
-                        side='right'
-                    ),
-                    xaxis=dict(
-                        title=dict(
-                            text='Date'
-                        )
-                    ),
-                    showlegend=True
-                )
-                
-                # Update first trace name and color
-                fig.data[0].name = 'Restrictions'
-                fig.data[0].line.color = 'blue'
-                fig.data[1].line.color = 'red'
-                
-                time_series_plot = pio.to_html(fig, full_html=False)
-                
-                # Create regression plot
-                regression_data = model.prepare()
-                if not regression_data.empty:
-                    fig = px.scatter(regression_data, x='restr_value', y='custom_value',
-                                   title='Correlation Analysis',
-                                   labels={'restr_value': 'Number of Restrictions',
-                                          'custom_value': f'{table_name} Value'})
-                    regression_plot = pio.to_html(fig, full_html=False)
-                else:
-                    regression_plot = None
-                
-                return render_template('time_series.html',
-                                   databases=databases,
+    service = TimeSeries(selected_db)
+
+    if request.method == 'POST':
+        try:
+            db_name, table, selected_restrictions, prompt = service.validate_form_data(request.form)
+            result = service.analyze(db_name, table, selected_restrictions, prompt)
+
+            return render_template('time_series.html',
+                                   databases=service.databases,
                                    selected_db=selected_db,
-                                   tables=tables,
-                                   restrictions=restrictions,
+                                   tables=service.tables,
+                                   restrictions=service.restrictions,
                                    selected_table=table,
                                    selected_restrictions=selected_restrictions,
                                    prompt=prompt,
-                                   time_series_plot=time_series_plot,
-                                   regression_plot=regression_plot,
-                                   analysis_result=analysis_result)
-                
-            except Exception as e:
-                print(f"Error in time series analysis: {str(e)}")  # Add debug print
-                return render_template('time_series.html',
-                                     databases=databases,
-                                     selected_db=selected_db,
-                                     tables=tables,
-                                     restrictions=restrictions,
-                                     error=str(e))
-        
-        # Handle GET request
+                                   time_series_plot=result['time_series_plot'],
+                                   regression_plot=result['regression_plot'],
+                                   analysis_result=result['analysis_result'])
+
+        except Exception as e:
+            print(f"Error in time series analysis: {str(e)}")
+            return render_template('time_series.html',
+                                   databases=service.databases,
+                                   selected_db=selected_db,
+                                   tables=service.tables,
+                                   restrictions=service.restrictions,
+                                   error=str(e))
+    else:
         return render_template('time_series.html',
-                             databases=databases,
-                             selected_db=selected_db,
-                             tables=tables,
-                             restrictions=restrictions)
-    finally:
-        data_server._db_session.close()
+                               databases=service.databases,
+                               selected_db=selected_db,
+                               tables=service.tables,
+                               restrictions=service.restrictions)
+
 
 @app.route('/timeline')
 def timeline():
