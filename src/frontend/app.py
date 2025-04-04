@@ -710,7 +710,6 @@ def audit_log():
 def revert_change():
     """Handle reverting a change from the audit log"""
     try:
-        print(1, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
         database = request.form.get('database')
         table = request.form.get('table')
         change_type = request.form.get('change_type')
@@ -720,14 +719,12 @@ def revert_change():
         # Initialize managers
         revert_manager = RevertManager(database)
         log_manager = LogManager()
-        print(2, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
         
         print("Initialized managers")
         
         # Get the change to revert
         changes = log_manager.to_tables()
         print(f"Found {len(changes)} changes in log")
-        print(3, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
         
         # Find the specific change to revert
         change_to_revert = changes[
@@ -741,23 +738,19 @@ def revert_change():
         if change_to_revert.empty:
             print("No matching change found in log")
             return redirect(url_for('audit_log'))
-        print(4, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
             
         # Store current state before making changes
         print("Storing current state...")
         revert_manager.store_state()
-        print(5, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
 
         # Get the change data
         change_data = change_to_revert.iloc[0].to_dict()
         print(f"Change data: {change_data}")
-        print(6, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
         
         # Use RevertManager's engine and session
         engine = revert_manager.engine
         session = revert_manager.Session()
         
-        print(7, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
         try:
             if change_type == 'create':
                 # For create operations, we need to delete the created record
@@ -841,7 +834,6 @@ def revert_change():
             elif change_type == 'update':
                 # For update operations, we need to restore the previous values
                 print("Reverting update operation...")
-                print(8, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
                 prev_data = {k.replace('prev_', ''): v for k, v in change_data.items() if k.startswith('prev_')}
                 
                 if prev_data:
@@ -853,13 +845,10 @@ def revert_change():
                     filtered_prev_data = {k: v for k, v in prev_data.items() if k in columns}
                     
                     # Get primary keys for the table
-                    print(9, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
                     primary_keys = get_primary_keys(table, database)
-                    print(10.5, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
                     if not primary_keys:
                         print("No primary keys found, using 'id' as fallback")
                         primary_keys = ['id']
-                    print(10, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
 
                     # Construct WHERE clause using primary keys
                     where_clause = []
@@ -879,10 +868,10 @@ def revert_change():
                             print("No primary keys found in change data")
                         if not filtered_prev_data:
                             print("No valid columns found in previous data")
+                    log_manager.update_length()
                 else:
                     print("No previous data found")
 
-            print(11, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
             
             # Commit the transaction
             session.commit()
@@ -892,7 +881,6 @@ def revert_change():
             print(f"Removing change from log: database={database}, table={table}, change_type={change_type}")
             log_manager.remove_change(database, table, change_type)
             print("Change removed from log")
-            print(12, os.path.exists("/Users/alexanderciechonski/Desktop/comp0034cw2/deaths.db"))
             
             # Force a refresh of the audit log page
             return redirect(url_for('audit_log', _external=True))
