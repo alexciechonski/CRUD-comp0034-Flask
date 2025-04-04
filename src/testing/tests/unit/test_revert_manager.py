@@ -18,7 +18,13 @@ def temp_db_and_patch(monkeypatch):
 
     yield os.path.basename(db_path), db_path  # return db_name, full path
 
+    # Clean up the database file
     os.remove(db_path)
+    
+    # Clean up any backup files created during the tests
+    backup_file = os.path.join(os.path.dirname(revert_module.LOG_PATH), f"{os.path.basename(db_path)}_state_backup.json")
+    if os.path.exists(backup_file):
+        os.remove(backup_file)
 
 
 @pytest.fixture
