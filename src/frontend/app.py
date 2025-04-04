@@ -26,6 +26,7 @@ import pandas as pd
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
+from src.frontend.diagrams import ERD
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -72,188 +73,33 @@ def get_data_server():
 @app.route('/')
 def index():
     return render_template('index.html')
-
 @app.route('/dataset')
 def dataset():
-    # Get selected database from query parameters, default to covid.db
     selected_db = request.args.get('database', 'covid.db')
-    
+
     try:
-        # Get list of available databases using get_databases() function
         db_names = get_databases()
-        # Format database names as objects with label and value attributes
         databases = [{'label': db, 'value': db} for db in db_names]
-        
-        # Get all tables for the selected database
-        tables = show_tables(selected_db)
-        
-        # Get table info and format it properly
-        table_info = {}
-        for table in tables:
-            try:
-                # Get table schema information using get_table_info
-                schema_info = get_table_info(table, get_db_path(selected_db))
-                if schema_info:
-                    # Format schema info into a list of dictionaries
-                    formatted_info = [{
-                        'Column Name': col[1],  # name
-                        'Type': col[2],         # type
-                        'Constraints': ' '.join(filter(None, [
-                            'NOT NULL' if col[3] else '',  # notnull
-                            'PRIMARY KEY' if col[5] else '' # pk
-                        ]))
-                    } for col in schema_info]
-                    table_info[table] = formatted_info
-                else:
-                    table_info[table] = []
-            except Exception as table_error:
-                print(f"Error getting schema for table {table}: {str(table_error)}")
-                table_info[table] = []
 
-        # Get ERD visualization using Visualizer
-        try:
-            # If there are no tables, show a message instead of trying to create a graph
-            if not tables:
-                erd_html = '''
-                    <div class="erd-container">
-                        <div class="alert alert-info">
-                            <h4 class="alert-heading">Empty Database</h4>
-                            <p>This database has no tables yet. Create a table to get started!</p>
-                        </div>
-                    </div>
-                '''
-            else:
-                # Create engine and session for the selected database
-                db_engine = create_engine(f'sqlite:///{get_db_path(selected_db)}')
-                DbSession = sessionmaker(bind=db_engine)
-                
-                # Create Visualizer instance with the correct session
-                visualizer = Visualizer(DbSession())
-                
-                # Get adjacency list with relationship types
-                adj_list = visualizer.get_adj_list()
-                
-                # Check if there are any relationships
-                has_relationships = any(relationships for relationships in adj_list.values())
-                
-                # Create a NetworkX graph
-                G = nx.DiGraph()
-                
-                # Create a case mapping dictionary to ensure consistent case
-                case_mapping = {}
-                
-                # Add all tables as nodes, regardless of relationships
-                for table in tables:
-                    G.add_node(table)
-                
-                if has_relationships:
-                    # First pass: collect all table names and determine canonical case
-                    all_tables = set()
-                    for source_table, relationships in adj_list.items():
-                        all_tables.add(source_table.lower())
-                        for target_table, _ in relationships:
-                            all_tables.add(target_table.lower())
-                    
-                    # Create case mapping using actual table names from database
-                    actual_tables = {table.lower(): table for table in tables}
-                    
-                    # Update case mapping for tables with relationships
-                    for table_lower in all_tables:
-                        if table_lower in actual_tables:
-                            canonical_name = actual_tables[table_lower]
-                            case_mapping[table_lower] = canonical_name
-                    
-                    # Add edges with relationship types using correct case
-                    for source_table, relationships in adj_list.items():
-                        source_lower = source_table.lower()
-                        if source_lower in case_mapping:
-                            source_canonical = case_mapping[source_lower]
-                            for target_table, rel_type in relationships:
-                                target_lower = target_table.lower()
-                                if target_lower in case_mapping:
-                                    target_canonical = case_mapping[target_lower]
-                                    G.add_edge(source_canonical, target_canonical, relationship=rel_type)
-                
-                edge_count = len(G.edges())
-                print(f"\nTotal edges found: {edge_count}")
-                if edge_count > 0:
-                    print(f"Graph edges with relationships: {list(G.edges(data=True))}")
-                
-                # Create visualization
-                plt.figure(figsize=(12, 10))
-                
-                # Use spring layout with optimized parameters for connected graphs
-                # Use circular layout for disconnected nodes
-                pos = nx.spring_layout(G, k=2, iterations=50) if edge_count > 0 else nx.circular_layout(G)
-                
-                # Draw nodes
-                nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
-                                     node_size=3000, alpha=0.7)
-                
-                # Draw node labels
-                nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
-                
-                if edge_count > 0:
-                    # Draw edges with arrows and relationship labels
-                    nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, 
-                                         arrowsize=20, width=1.5)
-                    
-                    # Add edge labels (relationship types)
-                    edge_labels = nx.get_edge_attributes(G, 'relationship')
-                    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
-                                               font_size=8, font_color='red')
-                
-                # Add padding around the graph
-                plt.margins(0.2)
-                
-                # Convert plot to image
-                img = io.BytesIO()
-                plt.savefig(img, format='png', bbox_inches='tight', dpi=200)
-                img.seek(0)
-                plt.close()
-                
-                # Convert to base64 for embedding in HTML
-                title = "Entity Relationship Diagram"
-                desc = "Showing tables" + (" and their relationships (1:1, 1:N, N:M)" if edge_count > 0 else " (no relationships)")
-                    
-                erd_html = f'''
-                    <div class="erd-container">
-                        <h4 class="text-center mb-3">{title}</h4>
-                        <p class="text-muted text-center mb-3">{desc}</p>
-                        <img src="data:image/png;base64,{base64.b64encode(img.getvalue()).decode()}" 
-                             class="img-fluid" 
-                             style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
-                    </div>
-                '''
-            
-        except Exception as e:
-            print(f"Error generating ERD: {str(e)}")
-            erd_html = f'''
-                <div class="alert alert-danger">
-                    <h4 class="alert-heading">Error Generating ERD</h4>
-                    <p>{str(e)}</p>
-                    <hr>
-                    <p class="mb-0">Please check the database connection and schema.</p>
-                </div>
-            '''
-        finally:
-            # Clean up database resources
-            if 'db_engine' in locals():
-                db_engine.dispose()
+        erd = ERD(selected_db)
+        erd_html = erd.render_erd_html()
 
-        return render_template('dataset.html', 
-                             table_info=table_info,
-                             selected_db=selected_db,
-                             databases=databases,
-                             erd_html=erd_html)
+        return render_template(
+            'dataset.html',
+            table_info=erd.table_info,
+            selected_db=selected_db,
+            databases=databases,
+            erd_html=erd_html
+        )
     except Exception as e:
-        # Format database names as objects with label and value attributes
         db_names = get_databases()
         databases = [{'label': db, 'value': db} for db in db_names]
-        return render_template('dataset.html', 
-                             error=str(e),
-                             selected_db=selected_db,
-                             databases=databases)
+        return render_template(
+            'dataset.html',
+            error=str(e),
+            selected_db=selected_db,
+            databases=databases
+        )
 
 @app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
