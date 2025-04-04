@@ -67,7 +67,7 @@ def test_delete_database():
 )
 def test_get_primary_keys(table, db_name):
     exp = get_exp_data()
-    assert get_primary_keys(table.lower(), get_db_path(db_name)) == exp["primary_keys"][db_name][table]
+    assert get_primary_keys(table.lower(), db_name) == exp["primary_keys"][db_name][table]
 
 if __name__ == "__main__":
-    print(get_all_tables())
+    print(get_databases())
