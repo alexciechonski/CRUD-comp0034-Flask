@@ -18,8 +18,8 @@ import pytest
         ("deaths.db", "MortalityRate", True)
     ]
 )
-def test_val_create_table(db_name, table, res):
-    assert val.val_create_table(db_name, table) == res
+def test_val_create_table(db_name, table, res, test_validator):
+    assert test_validator.val_create_table(db_name, table) == res
 
 @pytest.mark.parametrize(
     "db_name, table, res",
@@ -38,8 +38,8 @@ def test_val_create_table(db_name, table, res):
         ("deaths.db", "MortalityRate", True)
     ]
 )
-def test_val_delete_table(db_name, table, res):
-    assert val.val_delete_table(db_name, table) == res
+def test_val_delete_table(db_name, table, res, test_validator):
+    assert test_validator.val_delete_table(db_name, table) == res
 
 @pytest.mark.parametrize(
     "db_name, table, res",
@@ -58,8 +58,8 @@ def test_val_delete_table(db_name, table, res):
         ("deaths.db", "MortalityRate", True)
     ]
 )
-def test_val_insert(db_name, table, res):
-    assert val.val_insert(db_name, table) == res
+def test_val_insert(db_name, table, res, test_validator):
+    assert test_validator.val_insert(db_name, table) == res
 
 @pytest.mark.parametrize(
     "db_name, res",
@@ -69,5 +69,5 @@ def test_val_insert(db_name, table, res):
         ("deaths.db", True)
     ]
 )
-def test_delete_database(db_name, res):
-    assert val.val_delete_database(db_name) == res
+def test_delete_database(db_name, res, test_validator):
+    assert test_validator.val_delete_database(db_name) == res
