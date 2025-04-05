@@ -77,48 +77,48 @@ def update_value(page: Page, new_value):
     page.keyboard.press("Enter")
     time.sleep(3)
     
-# def test_add(page: Page):
-#     """Test adding a record"""
-#     page.goto("http://127.0.0.1:5000/crud-view")
-#     page.wait_for_load_state("networkidle")
-#     select_table(page, "deaths deaths.db")
-#     fill_record_form(page, '80', '2021-07-15', '1000')
-#     time.sleep(3)
-#     id, date, measured_val = get_last_row(page)
-#     assert id == '80'
-#     assert date == '2021-07-15'
-#     assert measured_val == '1000'
+def test_add(page: Page):
+    """Test adding a record"""
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    fill_record_form(page, '80', '2021-07-15', '1000')
+    time.sleep(3)
+    id, date, measured_val = get_last_row(page)
+    assert id == '80'
+    assert date == '2021-07-15'
+    assert measured_val == '1000'
 
-#     revert_last(page)
-#     page.goto("http://127.0.0.1:5000/crud-view")
-#     page.wait_for_load_state("networkidle")
-#     select_table(page, "deaths deaths.db")
-#     time.sleep(1)
-#     id, date, val = get_last_row(page)
-#     assert id == '79'
-#     assert date == '2021-07-02'
-#     assert val == '899'
+    revert_last(page)
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    time.sleep(1)
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '899'
 
-# def test_delete(page: Page):
-#     page.goto("http://127.0.0.1:5000/crud-view")
-#     page.wait_for_load_state("networkidle")
-#     select_table(page, "deaths deaths.db")
-#     delete_last_row(page)
-#     time.sleep(3)
-#     id, date, val = get_last_row(page)
-#     assert id == '78'
-#     assert date == '2021-06-25'
-#     assert val == '909'
+def test_delete(page: Page):
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    delete_last_row(page)
+    time.sleep(3)
+    id, date, val = get_last_row(page)
+    assert id == '78'
+    assert date == '2021-06-25'
+    assert val == '909'
 
-#     revert_last(page)
-#     page.goto("http://127.0.0.1:5000/crud-view")
-#     page.wait_for_load_state("networkidle")
-#     select_table(page, "deaths deaths.db")
-#     time.sleep(1)
-#     id, date, val = get_last_row(page)
-#     assert id == '79'
-#     assert date == '2021-07-02'
-#     assert val == '899'
+    revert_last(page)
+    page.goto("http://127.0.0.1:5000/crud-view")
+    page.wait_for_load_state("networkidle")
+    select_table(page, "deaths deaths.db")
+    time.sleep(1)
+    id, date, val = get_last_row(page)
+    assert id == '79'
+    assert date == '2021-07-02'
+    assert val == '899'
 
 def test_update(page: Page):
     page.goto("http://127.0.0.1:5000/crud-view")

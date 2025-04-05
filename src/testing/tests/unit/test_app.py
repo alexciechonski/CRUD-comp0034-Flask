@@ -1,6 +1,13 @@
 import pytest
 from src.frontend.app import app
 
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
+    app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
+    return app.test_client()
+
 def test_index(client):
     response = client.get('/')
     assert response.status_code == 200
