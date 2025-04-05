@@ -13,14 +13,10 @@ TABLE_NAME = "deaths deaths.db"
 
 def select_table(page: Page, option_text):
     page.wait_for_load_state("networkidle")
-
-    # Step 1: Click the dropdown (inside iframe)
-    iframe = page.frame_locator("iframe[src='/table-crud/']")
+    iframe = page.frame_locator(IFRAME_SRC)
     dropdown = iframe.locator("#table-select")
     dropdown.wait_for(timeout=5000)
     dropdown.click(force=True)
-
-    # Step 2: Type into the input field inside iframe
     table_input = iframe.locator("input")
     table_input.wait_for(timeout=5000)
     table_input.fill(option_text)
@@ -28,7 +24,7 @@ def select_table(page: Page, option_text):
 
 def fill_record_form(page: Page, id_value: str, time_value: str, measured_value: str):
     page.wait_for_load_state("networkidle")
-    iframe = page.frame_locator("iframe[src='/table-crud/']")
+    iframe = page.frame_locator(IFRAME_SRC)
     id_input = iframe.locator("label:has-text('id') + input")
     id_input.wait_for(timeout=5000)
     id_input.fill(id_value)
@@ -43,14 +39,21 @@ def fill_record_form(page: Page, id_value: str, time_value: str, measured_value:
     save_button.click()
 
 def get_last_row(page: Page):
-    iframe = page.frame_locator("iframe[src='/table-crud/']")
-    last_row = iframe.locator("table tbody tr").last
+    iframe = page.frame_locator(IFRAME_SRC)
+    last_row = iframe.locator(TABLE_ROWS).last
     cells = last_row.locator("td")
+    cells.first.wait_for(timeout=5000)
     cell_values = [cells.nth(i).inner_text() for i in range(cells.count())]    
     return cell_values[2], cell_values[3], cell_values[4]
 
+def check_last_row(page, exp_id, exp_date, exp_val):
+    id, date, val = get_last_row(page)
+    assert exp_id == id
+    assert exp_date == date
+    assert exp_val == val
+
 def revert_last(page: Page):
-    page.goto("http://127.0.0.1:5000/audit-log")
+    page.goto(AUDIT_LOG_URL)
     page.wait_for_load_state("networkidle")
     page.once("dialog", lambda dialog: dialog.accept())
     button_path = 'xpath=/html/body/main/div/div[1]/div[2]/div[2]/form/button'
@@ -60,83 +63,57 @@ def revert_last(page: Page):
 
 def delete_last_row(page: Page):
     page.wait_for_load_state("networkidle")
-    iframe = page.frame_locator("iframe[src='/table-crud/']")
-    iframe.locator("table tbody tr").first.wait_for(timeout=3000)
-    delete_button = iframe.locator("table tbody tr").last.locator("td.dash-delete-cell")
+    iframe = page.frame_locator(IFRAME_SRC)
+    iframe.locator(TABLE_ROWS).first.wait_for(timeout=3000)
+    delete_button = iframe.locator(TABLE_ROWS).last.locator("td.dash-delete-cell")
     delete_button.click()
 
 def update_value(page: Page, new_value):
-    iframe = page.frame_locator("iframe[src='/table-crud/']")
-    iframe.locator("table tbody tr").first.wait_for(timeout=3000)
-    last_row = iframe.locator("table tbody tr").last
+    iframe = page.frame_locator(IFRAME_SRC)
+    iframe.locator(TABLE_ROWS).first.wait_for(timeout=3000)
+    last_row = iframe.locator(TABLE_ROWS).last
     last_cell = last_row.locator("td").last
     last_cell.click()
-    time.sleep(1)
     page.keyboard.press("Control+A")
     page.keyboard.type(new_value)
     page.keyboard.press("Enter")
-    time.sleep(3)
     
 def test_add(page: Page):
     """Test adding a record"""
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
+    select_table(page, TABLE_NAME)
     fill_record_form(page, '80', '2021-07-15', '1000')
-    time.sleep(3)
-    id, date, measured_val = get_last_row(page)
-    assert id == '80'
-    assert date == '2021-07-15'
-    assert measured_val == '1000'
+    check_last_row(page, '80', '2021-07-15', '1000')
 
     revert_last(page)
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    time.sleep(1)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '899'
+    select_table(page, TABLE_NAME)
+    check_last_row(page, '79', '2021-07-02', '899')
 
 def test_delete(page: Page):
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
+    select_table(page, TABLE_NAME)
     delete_last_row(page)
-    time.sleep(3)
-    id, date, val = get_last_row(page)
-    assert id == '78'
-    assert date == '2021-06-25'
-    assert val == '909'
+    check_last_row(page, '78', '2021-06-25', '909')
 
     revert_last(page)
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    time.sleep(1)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '899'
+    select_table(page, TABLE_NAME)
+    check_last_row(page, '79', '2021-07-02', '899')
 
 def test_update(page: Page):
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
+    select_table(page, TABLE_NAME)
     update_value(page, "1")
-    time.sleep(3)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '1899'
+    check_last_row(page, '79', '2021-07-02', '1899')
 
     revert_last(page)
-    page.goto("http://127.0.0.1:5000/crud-view")
+    page.goto(CRUD_VIEW_URL)
     page.wait_for_load_state("networkidle")
-    select_table(page, "deaths deaths.db")
-    time.sleep(1)
-    id, date, val = get_last_row(page)
-    assert id == '79'
-    assert date == '2021-07-02'
-    assert val == '899'
+    select_table(page, TABLE_NAME)
+    check_last_row(page, '79', '2021-07-02', '899')

@@ -1,82 +1,5 @@
 [
   {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
-      "id": 80,
-      "measured_value": 1000,
-      "time": "2021-07-15"
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
-      "id": 80,
-      "measured_value": 1000,
-      "time": "2021-07-15"
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "create",
-    "database": "deaths.db",
-    "table": "deaths",
-    "new_data": {
-      "id": 80,
-      "time": "2021-07-15",
-      "measured_value": 1000
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "create",
-    "database": "deaths.db",
-    "table": "deaths",
-    "new_data": {
-      "id": 80,
-      "time": "2021-07-15",
-      "measured_value": 1000
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
-      "id": 79,
-      "measured_value": 899,
-      "time": "2021-07-02"
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "create",
-    "database": "deaths.db",
-    "table": "deaths",
-    "new_data": {
-      "id": 80,
-      "time": "2021-07-15",
-      "measured_value": 1000
-    },
-    "orm_instances": []
-  },
-  {
-    "change": "delete",
-    "database": "deaths.db",
-    "table": "deaths",
-    "prev_data": {
-      "id": 79,
-      "measured_value": 899,
-      "time": "2021-07-02"
-    },
-    "orm_instances": []
-  },
-  {
     "change": "create",
     "database": "new.db",
     "table": "deaths",
@@ -161,6 +84,61 @@
           0
         ]
       ]
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "deaths.db",
+    "table": "deaths",
+    "prev_data": {
+      "id": 79,
+      "measured_value": 899,
+      "time": "2021-07-02"
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "create",
+    "database": "deaths.db",
+    "table": "deaths",
+    "new_data": {
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "deaths.db",
+    "table": "deaths",
+    "prev_data": {
+      "id": 79,
+      "measured_value": 899,
+      "time": "2021-07-02"
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "create",
+    "database": "deaths.db",
+    "table": "deaths",
+    "new_data": {
+      "id": 80,
+      "time": "2021-07-15",
+      "measured_value": 1000
+    },
+    "orm_instances": []
+  },
+  {
+    "change": "delete",
+    "database": "deaths.db",
+    "table": "deaths",
+    "prev_data": {
+      "id": 79,
+      "measured_value": 899,
+      "time": "2021-07-02"
     },
     "orm_instances": []
   }
