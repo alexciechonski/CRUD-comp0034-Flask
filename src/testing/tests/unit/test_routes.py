@@ -9,6 +9,10 @@ def test_client():
     # Use absolute path for templates
     template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/templates"))
     app = Flask(__name__, template_folder=template_dir)
+    
+    # Add secret key for CSRF protection
+    app.config['SECRET_KEY'] = 'test-secret-key'
+    app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
 
     # Dummy routes for other dependencies used in templates
     @app.route('/', endpoint='index')
