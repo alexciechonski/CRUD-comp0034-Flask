@@ -36,10 +36,7 @@ class DataServer:
         Args:
             db_name (str): Name of the database to connect to
         """
-        print(f"\n=== Initializing DataServer ===")
-        print(f"Database name: {db_name}")
         self._db_session = self.get_session(db_name)
-        print("DataServer initialized successfully")
 
     def serve_erd(self) -> Dict:
         """
