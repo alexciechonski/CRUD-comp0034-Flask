@@ -224,43 +224,43 @@ def create_dash_app(server):
                         previous_dict = {tuple(row[pk] for pk in pk_columns): row for row in previous}
                         current_dict = {tuple(row[pk] for pk in pk_columns): row for row in current_data}
                         
-                        # Handle deletions
-                        deleted_pks = set(previous_dict.keys()) - set(current_dict.keys())
-                        if deleted_pks:
-                            with engine.connect() as connection:
-                                for pk_tuple in deleted_pks:
-                                    conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
-                                    delete_query = f"DELETE FROM {table_name} WHERE {conditions}"
-                                    params = dict(zip(pk_columns, pk_tuple))
-                                    connection.execute(text(delete_query), params)
-                                    
-                                    # Log the deletion
-                                    deleted_row = previous_dict[pk_tuple]
-                                    log_manager.delete_change(db_name, table_name, deleted_row)
-                                connection.commit()
-                        
-                        # Handle edits
-                        for pk_tuple in set(previous_dict.keys()) & set(current_dict.keys()):
-                            prev_row = previous_dict[pk_tuple]
-                            curr_row = current_dict[pk_tuple]
+                        # Create a single connection for all operations
+                        with engine.connect() as connection:
+                            # Handle deletions
+                            deleted_pks = set(previous_dict.keys()) - set(current_dict.keys())
+                            if deleted_pks:
+                                with connection.begin():
+                                    for pk_tuple in deleted_pks:
+                                        conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
+                                        delete_query = f"DELETE FROM {table_name} WHERE {conditions}"
+                                        params = dict(zip(pk_columns, pk_tuple))
+                                        connection.execute(text(delete_query), params)
+                                        
+                                        # Log the deletion
+                                        deleted_row = previous_dict[pk_tuple]
+                                        log_manager.delete_change(db_name, table_name, deleted_row)
                             
-                            # Find changed columns
-                            changed_cols = []
-                            for col in col_names:
-                                if col not in pk_columns and prev_row[col] != curr_row[col]:
-                                    changed_cols.append(col)
-                            
-                            if changed_cols:
-                                conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
-                                set_clause = ", ".join([f"{col} = :{col}" for col in changed_cols])
-                                update_query = f"UPDATE {table_name} SET {set_clause} WHERE {conditions}"
+                            # Handle edits
+                            for pk_tuple in set(previous_dict.keys()) & set(current_dict.keys()):
+                                prev_row = previous_dict[pk_tuple]
+                                curr_row = current_dict[pk_tuple]
                                 
-                                with engine.connect() as connection:
-                                    connection.execute(text(update_query), curr_row)
-                                    connection.commit()
+                                # Find changed columns
+                                changed_cols = []
+                                for col in col_names:
+                                    if col not in pk_columns and prev_row[col] != curr_row[col]:
+                                        changed_cols.append(col)
+                                
+                                if changed_cols:
+                                    conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
+                                    set_clause = ", ".join([f"{col} = :{col}" for col in changed_cols])
+                                    update_query = f"UPDATE {table_name} SET {set_clause} WHERE {conditions}"
                                     
-                                    # Log the update
-                                    log_manager.update_change(db_name, table_name, curr_row, prev_row)
+                                    with connection.begin():
+                                        connection.execute(text(update_query), curr_row)
+                                        
+                                        # Log the update
+                                        log_manager.update_change(db_name, table_name, curr_row, prev_row)
                 
                 elif trigger_id == 'save-record-button' and n_clicks > 0:
                     # Handle new record insertion
@@ -290,16 +290,17 @@ def create_dash_app(server):
                         insert_query = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders})"
                         
                         with engine.connect() as connection:
-                            connection.execute(text(insert_query), new_record)
-                            connection.commit()
-                            
-                            # Log the insertion
-                            log_manager.create_change(db_name, table_name, new_record)
-                            
-                            # Refresh the data from the database
-                            col_ids = [field[1] for field in cols_info]
-                            new_data = query_db(f"SELECT * FROM {table_name}", db_path)
-                            current_data = [dict(zip(col_ids, row)) for row in new_data]
+                            with connection.begin():
+                                connection.execute(text(insert_query), new_record)
+                                
+                                # Log the insertion
+                                log_manager.create_change(db_name, table_name, new_record)
+                                
+                                # Get the updated data from the database
+                                col_ids = [field[1] for field in cols_info]
+                                query = text(f"SELECT * FROM {table_name}")
+                                result = connection.execute(query)
+                                current_data = [dict(zip(col_ids, row)) for row in result]
                 
                 log_manager.save_log()
                 return current_data
