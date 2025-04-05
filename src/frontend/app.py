@@ -60,10 +60,10 @@ app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
 
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+
 # Initialize Dash app
 dash_app = create_dash_app(app)
-
-app.secret_key = 'your-secret-key-here'
 
 # Register blueprints
 app.register_blueprint(restriction_bp, url_prefix='')

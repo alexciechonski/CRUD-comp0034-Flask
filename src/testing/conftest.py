@@ -24,6 +24,9 @@ from src.backend.log.log_manager import LogManager
 import src.backend.log.log_manager as log_module  # to patch get_db_path + LOG_PATH
 import tempfile
 from playwright.sync_api import sync_playwright, Page
+from flask import Flask
+from src.backend.routes import bp
+from src.frontend.dash_app import create_dash_app
 
 # Add the project root to Python path
 project_root = str(Path(__file__).parent.parent.parent.parent)
@@ -55,9 +58,21 @@ def test_validator():
 
 @pytest.fixture
 def client():
-    with app.test_client() as client:
-        yield client
+    app = Flask(__name__,
+                template_folder='templates',
+                static_folder='static')
 
+    app.config['SECRET_KEY'] = 'test-key'
+    app.config['WTF_CSRF_ENABLED'] = False
+
+    # Register blueprints and setup
+    app.register_blueprint(bp)
+    create_dash_app(app)  # if you’re using a Dash integration
+
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
+            
 @pytest.fixture
 def temp_log_file(monkeypatch):
     with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as tmp:
@@ -82,7 +97,7 @@ def in_memory_db(monkeypatch):
 @pytest.fixture(scope="function")
 def page():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False) 
+        browser = p.chromium.launch() 
         context = browser.new_context()
         page = context.new_page()
         yield page
