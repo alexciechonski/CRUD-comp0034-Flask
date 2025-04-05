@@ -27,6 +27,7 @@ from playwright.sync_api import sync_playwright, Page
 from flask import Flask
 from src.backend.routes import bp
 from src.frontend.dash_app import create_dash_app
+from src.prediction.pred import Model
 
 # Add the project root to Python path
 project_root = str(Path(__file__).parent.parent.parent.parent)
@@ -72,7 +73,7 @@ def client():
     with app.test_client() as client:
         with app.app_context():
             yield client
-            
+
 @pytest.fixture
 def temp_log_file(monkeypatch):
     with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as tmp:
