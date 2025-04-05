@@ -7,21 +7,26 @@ the effects of enforcing restrictions on chosen variables.
 - [Project Structure](#project-structure)
 - [Setup and Installation](#setup-and-installation)
 - [Dataset](#dataset)
-- [Project Limitations](#project-limitations-and-possible-improvements)
 - [Linting](#linting)
 
 # Functionality #
-The app consists of 4 pages, each with a unique functionality:
+The app consists of 6 pages, each with a unique functionality:
 ### Dataset ###
-The dataset page consists of a CRUD functionality, which allows for creating, deleting and modifying tables through data insertion from csv. The user has a choice to perform operations on the original database (covid.db), which contains data on restrictions enforced in time, or a custom database (custom.db), which contains 2 examplary tables with data.
+The dataset page consists of a CRUD functionality, which allows for creating, deleting and modifying tables through data insertion from csv. It also allows for creating and deleting databases. When inserting data the user has to follow a specific schema in order for it to be plotted later.
 
 The databases are represented as an entity-relationship diagram and enable the user to view table properties by clicking on them.
 
+### Table CRUD ###
+This page offers a functionality of creating, updating and deleting records of a chosen table. The page supports modifications using the editable table or by filling out a form depending on the type of operation to be performed.
+
 ### Restriction Distribution ###
-The restriction distribution page consists of interactive bar chart, which allows the user to specify a list of restrictions and end date and represents how many days each of the selected restrictions has been in place.
+The restriction distribution page consists of interactive bar chart, which allows the user to specify a list of restrictions and an end date. The bar chart represents how many days each of the selected restrictions has been in place.
 
 ### Time Series ###
 The time series page allows the user to graph the number of restrictions in time and plot it against any other variable from a table in one the databases to find patterns and correlation. It creates a linear regression model for the two variables and enables the usage of a local LLM to comment on the results.
+
+### Audit Log ###
+The audit log page allows the user to check the 10 latest CRUD modifications and revert them. 
 
 ### Timeline ###
 The timeline page allows the users to see how restrictions have been enforced in time on a timeline and allows to view the source for each restriction by clicking on it.
@@ -38,43 +43,70 @@ comp0034-cw-alexciechonski/
 │   │   ├── data/
 │   │   │   ├── covid.db
 │   │   │   ├── custom.db
-│   │   │   └── graph.db
+│   │   │   └── deaths.db
+│   │   ├── log/
+│   │   │   ├── audit_log.json
+│   │   │   ├── covid.db_state_backup.json
+│   │   │   ├── custom.db_state_backup.json
+│   │   │   ├── deaths.db_state_backup.json
+│   │   │   └── log_manager.py
+│   │   ├── validation/
+│   │   │   ├── __init__.py
+│   │   │   └── validator.py
 │   │   ├── __init__.py
 │   │   ├── data_server.py
-│   │   └── erd_manager.py
+│   │   ├── erd_manager.py
+│   │   ├── models.py
+│   │   ├── revert_manager.py
+│   │   └── routes.py
 │   ├── frontend/
-│   │   ├── assets/
-│   │   │   └── styles.css
-│   │   ├── pages/
-│   │   │   ├── dataset.py
-│   │   │   ├── home.py
-│   │   │   ├── restriction_distribution.py
-│   │   │   ├── time_series.py
-│   │   │   └──timeline.py
+│   │   ├── static/
+│   │   │   └── css/
+|   │   │      └── styles.css
+│   │   ├── templates/
+│   │   │   ├── audit_log.html
+│   │   │   ├── base.html
+│   │   │   ├── dataset.html
+│   │   │   ├── index.html
+│   │   │   ├── restriction_distribution.html
+│   │   │   ├── table_crud.html
+│   │   │   ├── time_series.html
+│   │   │   └── timeline.html
 │   │   ├── __init__.py
 │   │   ├── app.py
-│   │   ├── diagrams.py
-│   │   ├── index.py
-│   │   └── input_validation.py
+│   │   ├── dash_app.py
+│   │   └── diagrams.py
 │   ├── prediction/
 │   │   └──pred.py
 │   ├── testing/
 │   │   ├── helpers/
-│   │   │   └──crud_actions.py
+│   │   │   ├── crawl_helpers.py
+│   │   │   └── unit_helpers.py
 │   │   ├── resources/
 │   │   │   ├── bad_schema.csv
 │   │   │   ├── deaths.csv
+│   │   │   ├── MHCareCluster.csv
 │   │   │   └── test.csv
 │   │   ├── tests/
-│   │   │   ├── __init__.py
-│   │   │   ├── test_crud_exceptions.py
-│   │   │   ├── test_crud.py
-│   │   │   ├── test_distr.py
-│   │   │   ├── test_navigation.py
-│   │   │   ├── test_time_series.py
-│   │   │   ├── test_timeline.py
-│   │   │   └── test.workflow.py
-│   │   └──__init__.py
+│   │   │   ├── unit
+│   │   │   │   ├── test_app.py
+│   │   │   │   ├── test_data_server.py
+│   │   │   │   ├── test_erd_manager.py
+│   │   │   │   ├── test_log_manager.py
+│   │   │   │   ├── test_models.py
+│   │   │   │   ├── test_revert_manager.py
+│   │   │   │   ├── test_routes.py
+│   │   │   │   ├── test_utils.py
+│   │   │   │   └── test_validation.py
+│   │   │   └── workflow
+│   │   │       ├── test_crud.py
+│   │   │       ├── test_dataset_flow.py
+│   │   │       ├── test_restr_distr_flow.py
+│   │   │       ├── test_time_serise_flow.py
+│   │   │       └── test_timeline_flow.py
+│   │   ├── __init__.py
+│   │   ├── conftest.py
+│   │   └── exp_outputs.json
 │   ├── __init__.py
 │   ├── config.json
 │   ├── config.py
@@ -82,7 +114,7 @@ comp0034-cw-alexciechonski/
 ├── venv/
 │
 ├── .gitignore
-├── coursework1.pdf
+├── coursework2.pdf
 ├── pyproject.toml
 ├── README.md
 └── requirements.txt
@@ -151,7 +183,6 @@ The setup for this project consists of 4 steps:
 
 # Dataset #
 
-### Original Dataset ###
 The original dataset used in this project is sourced from https://data.london.gov.uk/dataset/covid-19-restrictions-timeseries. It is licensed under the UK Open Government Licence, which can be found here https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/.
 
 ### MHCareCluster ###
@@ -170,25 +201,6 @@ To run them use:
 pytest --cov=src/testing/tests --cov-report=term-missing
 ```
 The results of the tests can be seen in the actions tab.
-
-# Project Limitations and Possible Improvements #
-
-The current version of the application works completely; however, there are a few improvements that can be made to optimize its performance and improve the user experience:
-
-### Graph Database ###
-To keep track of relationships and produce ERDs a graph.db has been implemented, which is a local sqlite file. It consists of tables to keep track of graphs, nodes, edges and edge types with its primary purpose being retrieving adjacency lists for each database. Usage of an API like GraphQL would improve the performance and simplify the code.
-
-### ORM ###
-The application does not use an ORM and instead executes all SQL queries directly, which impacts performance and reduces scalability. An ORM was not implemented due to the complexity introduced by graph.db, which stores tables from all databases along with their relationships. For that reason, more time was allocated to testing and other features to enhance the user experience, as the app is not designed to be large-scale. However, using an ORM like SQLAlchemy would improve both performance and scalability in the long run.
-
-### Relationships ###
-The app does not provide users with the ability to create relationships between tables through the GUI, which helps keep both the frontend and backend code simpler while making it easier to validate the schema of newly created tables. However, the database is designed in a way that allows for the implementation of this feature in the future. To support table creation based on foreign keys, a functionality would need to be added that lets users select specific fields from existing tables and include them as foreign keys in new tables. Additionally, users would need the ability to choose a combination of fields from multiple tables to send data to the machine learning pipeline. This could be done through an SQL console or an interactive table interface. Proper data validation should also be implemented on the backend. While adding this functionality would significantly increase the complexity of the app, it could improve data management and usability.
-
-### Record Modification ###
-The app does not allow the user to create, update and delete individual records; therefore, the only way to modify a table is by deleting it, creating it again and inserting a new csv file. Such implementaion simplifies the code; however, can make it difficult for users to fix errors in data. To improve the user experience a functionality can be added that allows the user to create, update and delete records in individual tables. 
-
-### LLM Response Quality ###
-The LLM runs locally using Ollama. The only open-source model that performs fast enough to maintain a smooth user experience is TinyLlama. However, this model is highly prone to hallucinations, particularly when handling complex queries. To improve accuracy, a more robust LLM could be hosted on a server, or an API could be used to fetch responses from more advanced models.
 
 # Linting #
 PyLint has been used for lining, ensuring the code meets the PEP8 Python style standards
