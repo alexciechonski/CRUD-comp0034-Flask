@@ -12,7 +12,7 @@ from src.testing.helpers.unit_helpers import get_exp_data
 def test_prepare(db_name, table):
     model  = Model([], db_name, table)
     exp = get_exp_data()
-    return model.prepare()['custom_value'].tolist() == exp['prepped_reg_data'][table]
+    assert model.prepare()['custom_value'].tolist() == exp['prepped_reg_data'][table]
 
 @pytest.mark.parametrize(
     "db_name, table",
@@ -24,7 +24,7 @@ def test_prepare(db_name, table):
 def test_train_linear(db_name, table):
     model  = Model([], db_name, table)
     exp = get_exp_data()
-    return model.train_linear()['predicted'].tolist() == exp['predicted_data'][table]
+    assert model.train_linear()['predicted'].tolist() == exp['predicted_data'][table]
 
 @pytest.mark.parametrize(
     "db_name, table",
@@ -36,4 +36,4 @@ def test_train_linear(db_name, table):
 def test_get_correlation(db_name, table):
     model  = Model([], db_name, table)
     exp = get_exp_data()
-    return model.get_correlation == exp['correlation_value'][table]
+    assert model.get_correlation() == exp['correlation_value'][table]

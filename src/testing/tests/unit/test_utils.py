@@ -49,11 +49,11 @@ def test_get_all_tables():
     assert sorted(all_tables, key=lambda x: (x['database'], x['name'])) == sorted(exp["all_tables"], key=lambda x: (x['database'], x['name']))
 
 def test_get_resp():
-    return get_resp("Hello") is not None
+    assert get_resp("Hello") is not None
 
 def test_create_database():
     create_database("test.db")
-    return "test.db" in get_databases()
+    assert "test.db" in get_databases()
 
 def test_table_not_empty(test_db_engine):
     with test_db_engine.connect() as conn:
@@ -64,7 +64,7 @@ def test_table_not_empty(test_db_engine):
 
 def test_delete_database():
     delete_database("test.db")
-    return "test.db" not in get_databases()
+    assert "test.db" not in get_databases()
 
 @pytest.mark.parametrize(
     "table, db_name",

@@ -73,7 +73,7 @@ class Model:
             # Merge the datasets based on nearest date match
             merged_df = pd.merge_asof(
                 time_series_df, second_series_df, on='date', direction='nearest'
-            ).interpolate(method='pad')
+            ).ffill()
 
             # Group by restriction value and calculate mean of custom values
             return merged_df.groupby('restr_value', as_index=False)['custom_value'].mean()
