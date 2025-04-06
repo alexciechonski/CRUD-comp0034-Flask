@@ -124,8 +124,8 @@ comp0034-cw-alexciechonski/
 The setup for this project consists of 4 steps:
 1. Clone the repository:
     ```
-    git clone https://github.com/ucl-comp0035/comp0034-cw-alexciechonski
-    cd comp0034-cw-alexciechonski
+    git clone https://github.com/ucl-comp0035/comp0034-cw2-alexciechonski
+    cd comp0034-cw2-alexciechonski
     ```
 
 2. Create and activate a virtual environment:
@@ -186,19 +186,19 @@ The setup for this project consists of 4 steps:
 The original dataset used in this project is sourced from https://data.london.gov.uk/dataset/covid-19-restrictions-timeseries. It is licensed under the UK Open Government Licence, which can be found here https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/.
 
 ### MHCareCluster ###
-The MHCareCluster Dataset has been used as a metric of mental health. It has been derived from NHS Monthly Statistics:
+The MHCareCluster Dataset has been used as a metric of mental health. It has been inspired by the NHS Monthly Statistics and modified for the purpose of the coursework.
  
 NHS Digital, Mental Health Services Monthly Statistics, Performance December 2020, Provisional January 2021, Published 2021. Available at: https://digital.nhs.uk/data-and-information/publications/statistical/mental-health-services-monthly-statistics/performance-december-2020-provisional-january-2021. Licensed under the Open Government Licence v3.0
 
 ### Deaths ###
-The Deaths dataset has been derived from the Financial Times Github repository:
+The Deaths dataset has been inspired by from the Financial Times Github repository and modified for the pruposes of the coursework:
 Financial Times, Coronavirus Excess Mortality Data, GitHub Repository. Available at: https://github.com/Financial-Times/coronavirus-excess-mortality-data.
 
 # Testing #
 Tests have been designed to test each callback and each functionality.
 To run them use:
 ```
-pytest --cov=src/testing/tests --cov-report=term-missing
+pytest --cov=src src/testing/tests/
 ```
 The results of the tests can be seen in the actions tab.
 
