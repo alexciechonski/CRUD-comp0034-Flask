@@ -65,10 +65,10 @@ def test_empty_form_submission(page: Page):
     page.click("button.submit-button")
     
     # Wait for and verify the error message for the required field (table)
-    # error_div = page.locator(".select-group .alert-danger")
-    error_div = page.locator('xpath="/html/body/main/div/div/div"')
+    error_div = page.locator("div.alert-danger")
+    page.wait_for_selector("div.alert-danger")
     expect(error_div).to_be_visible()
-    expect(error_div).to_contain_text("This field is required")
+    expect(error_div).to_contain_text("Please fill in all required fields")
 
 def test_prompt_input(page: Page):
     """Test that the prompt input works correctly"""
