@@ -32,6 +32,7 @@ from src.config import load_config
 import traceback
 import tempfile
 import pandas as pd
+from src.forms.time_series_form import TimeSeriesForm
 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -106,42 +107,43 @@ def dataset():
             selected_db=selected_db,
             databases=databases
         )
+        
 @app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
     selected_db = request.args.get('database', 'covid.db')
     service = TimeSeries(selected_db)
+    form = TimeSeriesForm()
 
-    if request.method == 'POST':
+    # Populate form choices
+    form.table.choices = [(table['name'], table['name'].replace('_', ' ').title()) for table in service.tables]
+    form.restrictions.choices = [(restriction, restriction.replace('_', ' ').title()) for restriction in service.restrictions]
+
+    if request.method == 'POST' and form.validate():
         try:
-            db_name, table, selected_restrictions, prompt = service.validate_form_data(request.form)
+            # Get validated data directly from the form
+            db_name, table, selected_restrictions, prompt = service.validate_form_data(form)
             result = service.analyze(db_name, table, selected_restrictions, prompt)
 
             return render_template('time_series.html',
-                                   databases=service.databases,
-                                   selected_db=selected_db,
-                                   tables=service.tables,
-                                   restrictions=service.restrictions,
-                                   selected_table=table,
-                                   selected_restrictions=selected_restrictions,
-                                   prompt=prompt,
-                                   time_series_plot=result['time_series_plot'],
-                                   regression_plot=result['regression_plot'],
-                                   analysis_result=result['analysis_result'])
+                                form=form,
+                                databases=service.databases,
+                                selected_db=selected_db,
+                                time_series_plot=result['time_series_plot'],
+                                regression_plot=result['regression_plot'],
+                                analysis_result=result['analysis_result'])
 
         except Exception as e:
             print(f"Error in time series analysis: {str(e)}")
             return render_template('time_series.html',
-                                   databases=service.databases,
-                                   selected_db=selected_db,
-                                   tables=service.tables,
-                                   restrictions=service.restrictions,
-                                   error=str(e))
+                                form=form,
+                                databases=service.databases,
+                                selected_db=selected_db,
+                                error=str(e))
     else:
         return render_template('time_series.html',
-                               databases=service.databases,
-                               selected_db=selected_db,
-                               tables=service.tables,
-                               restrictions=service.restrictions)
+                            form=form,
+                            databases=service.databases,
+                            selected_db=selected_db)
 
 
 @app.route('/timeline')

@@ -25,27 +25,29 @@ def test_time_series_analysis(page: Page, table, restrictions, prompt, expected_
     page.goto("http://127.0.0.1:5000/time-series")
     
     # Wait for the page to load
-    page.wait_for_selector("#tableSelect")
+    page.wait_for_selector("select[name='table']")
     
     # Select the table
-    page.locator("#tableSelect").select_option(table)
+    page.select_option("select[name='table']", table)
     
     # Wait for and select restrictions using the multi-select
-    page.wait_for_selector("#restrictionSelect")
-    page.locator("#restrictionSelect").select_option(restrictions)
+    page.wait_for_selector("select[name='restrictions']")
+    page.select_option("select[name='restrictions']", restrictions)
     
     # Enter analysis prompt in the textarea
-    page.locator("textarea#analysisInput").fill(prompt)
+    page.fill("textarea[name='prompt']", prompt)
     
     # Submit the form
-    page.locator("button.submit-button").click()
+    page.click("button.submit-button")
     
     # Wait for analysis to complete and verify results
     for element in expected_elements:
         if element == "time_series_plot":
-            expect(page.locator(".js-plotly-plot")).to_be_visible(timeout=10000)
+            # Check specifically for time series plot
+            expect(page.locator(".chart-container").first.locator(".js-plotly-plot")).to_be_visible(timeout=10000)
         elif element == "regression_plot":
-            expect(page.locator(".js-plotly-plot")).to_be_visible(timeout=10000)
+            # Check specifically for regression plot
+            expect(page.locator(".chart-container").nth(1).locator(".js-plotly-plot")).to_be_visible(timeout=10000)
         elif element == "analysis-content":
             expect(page.locator(".analysis-content")).to_be_visible(timeout=10000)
             content = page.locator(".analysis-content").inner_text()
@@ -60,19 +62,20 @@ def test_empty_form_submission(page: Page):
     page.wait_for_selector("form")
     
     # Submit the form without filling in any fields
-    page.locator("form").evaluate("form => form.submit()")
+    page.click("button.submit-button")
     
-    # Wait for and verify the error message
-    error_div = page.locator(".alert.alert-danger.mt-4")
+    # Wait for and verify the error message for the required field (table)
+    # error_div = page.locator(".select-group .alert-danger")
+    error_div = page.locator('xpath="/html/body/main/div/div/div"')
     expect(error_div).to_be_visible()
-    expect(error_div).to_contain_text("Please fill in all required fields")
+    expect(error_div).to_contain_text("This field is required")
 
 def test_prompt_input(page: Page):
     """Test that the prompt input works correctly"""
     page.goto("http://127.0.0.1:5000/time-series")
     
     # Find the prompt input
-    prompt_input = page.locator("textarea#analysisInput")
+    prompt_input = page.locator("textarea[name='prompt']")
     expect(prompt_input).to_be_visible()
     
     # Test input

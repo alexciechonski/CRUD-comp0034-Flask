@@ -139,9 +139,10 @@ class TimeSeries:
         self.restrictions = self.data_server.get_restrictions()
 
     def validate_form_data(self, form):
-        table = form.get('table')
-        selected_restrictions = form.getlist('restrictions[]')
-        prompt = form.get('prompt')
+        """Validate form data from WTForms"""
+        table = form.table.data
+        selected_restrictions = form.restrictions.data
+        prompt = form.prompt.data
 
         if not table or not selected_restrictions or not prompt:
             raise ValueError("Please fill in all required fields")

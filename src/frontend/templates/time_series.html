@@ -9,34 +9,44 @@
     
     <div class="analysis-container">
         <form method="POST" action="{{ url_for('time_series') }}">
+            {{ form.csrf_token }}
+            
             <div class="select-group">
-                <label for="tableSelect">Select Data to Analyze</label>
-                <select id="tableSelect" name="table" class="form-select" required>
-                    <option value="">Select a table to analyze...</option>
-                    {% for table in tables %}
-                    <option value="{{ table.name }}" {% if selected_table == table.name %}selected{% endif %}>
-                        {{ table.name.replace('_', ' ').title() }}
-                    </option>
-                    {% endfor %}
-                </select>
+                {{ form.table.label }}
+                {{ form.table(class="form-select") }}
+                {% if form.table.errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.table.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <small class="help-text">Choose the data you want to analyze against restrictions</small>
             </div>
 
             <div class="select-group" id="restrictionSelectGroup">
-                <label for="restrictionSelect">Restrictions</label>
-                <select id="restrictionSelect" name="restrictions[]" class="form-select" multiple>
-                    {% for restriction in restrictions %}
-                    <option value="{{ restriction }}" {% if restriction in selected_restrictions %}selected{% endif %}>
-                        {{ restriction.replace('_', ' ').title() }}
-                    </option>
-                    {% endfor %}
-                </select>
+                {{ form.restrictions.label }}
+                {{ form.restrictions(class="form-select") }}
+                {% if form.restrictions.errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.restrictions.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <small class="help-text">Hold Ctrl/Cmd to select multiple restrictions</small>
             </div>
 
             <div class="input-container">
-                <label for="analysisInput">Analysis Prompt</label>
-                <textarea id="analysisInput" name="prompt" class="analysis-textarea" placeholder="Enter your analysis request here...">{{ prompt }}</textarea>
+                {{ form.prompt.label }}
+                {{ form.prompt(class="analysis-textarea", placeholder="Enter your analysis request here...") }}
+                {% if form.prompt.errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.prompt.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <button type="submit" class="submit-button">Analyze Data</button>
             </div>
         </form>
