@@ -1,8 +1,8 @@
 import os
 import tempfile
-import pytest
 import json
-from sqlalchemy import create_engine, inspect, text
+import pytest
+from sqlalchemy import create_engine, text
 from src.backend.revert_manager import RevertManager
 import src.backend.revert_manager as revert_module
 

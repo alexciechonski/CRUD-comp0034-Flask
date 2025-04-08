@@ -3,18 +3,15 @@ Backend routes for the Flask application.
 
 This module defines routes for handling restriction distribution and timeline views.
 """
-from flask import Blueprint, render_template, jsonify, request
-from datetime import datetime
+from datetime import datetime, date
+from flask import Blueprint, render_template, request
 from sqlalchemy import func, create_engine
 from sqlalchemy.orm import sessionmaker
-from .models import Date, Restriction, DailyRestriction, init_db
-from src.utils import get_db_path
-from .data_server import DataServer
-import os
 import plotly.graph_objects as go
-import json
+from src.utils import get_db_path
 from src.forms.end_date_form import RestrictionForm
-from datetime import date
+from .models import Date, Restriction, DailyRestriction
+from .data_server import DataServer
 
 bp = Blueprint('restriction_distribution', __name__)
 
@@ -33,7 +30,7 @@ def format_restriction_name(name):
 @bp.route('/restriction-distribution', methods=['GET', 'POST'])
 def restriction_distribution():
     form = RestrictionForm()
-    
+
     if form.validate_on_submit():
         end_date = form.end_date.data
     else:
@@ -129,11 +126,11 @@ def timeline():
     try:
         # Get timeline data from DataServer
         timeline_data = data_server.serve_timeline()
-        
+
         # Sort events by date
         timeline_data.sort(key=lambda x: x[0])
-        
+
         return render_template('timeline.html', events=timeline_data)
     except Exception as e:
         print(f"Error in timeline: {str(e)}")
-        return render_template('timeline.html', events=[], error="An error occurred while loading the timeline data.") 
+        return render_template('timeline.html', events=[], error="An error occurred while loading the timeline data.")

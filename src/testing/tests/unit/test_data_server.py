@@ -1,9 +1,8 @@
-from src.backend.data_server import *
+import datetime
 import pytest
 from sqlalchemy.orm import Session
 from src.testing.helpers.unit_helpers import get_exp_data
-import datetime
-from src.utils import get_db_path
+from src.backend.data_server import DataServer
 
 
 def test_get_session_returns_valid_session(monkeypatch, test_db_path):
@@ -60,11 +59,3 @@ def test_get_restrictions(covid_server):
 
 def test_get_data_range(covid_server):
     assert covid_server.get_date_range() == (datetime.date(2020, 3, 1), datetime.date(2024, 1, 14))
-
-if __name__ == "__main__":
-    server = DataServer("custom.db")
-    end_date = '2021-06-15'
-    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    data = server.serve_restr_distr(end_date)
-    print(data)
-

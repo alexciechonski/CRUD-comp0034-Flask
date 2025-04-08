@@ -1,37 +1,25 @@
-EXP_OUTPUTS = "src/testing/exp_outputs.json"
-DEATHS_FILEPATH = "src/testing/resources/deaths.csv"
-BAD_SCHEMA_PATH = "src/testing/resources/bad_schema.csv"
-
-import pytest
 import os
 import sys
 from pathlib import Path
-import sqlite3
-import pandas as pd
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from src.backend.data_server import DataServer
-from src.backend.erd_manager import CRUD
-from src.backend.log.log_manager import LogManager
-from src.backend.revert_manager import RevertManager
-from src.backend.validation import Validator as v
-from src.utils import get_db_path, get_table_info, show_tables
-from src.backend.erd_manager import Visualizer
-from src.frontend.app import app
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
-from sqlalchemy.orm import declarative_base
-from src.backend.log.log_manager import LogManager
-import src.backend.log.log_manager as log_module  # to patch get_db_path + LOG_PATH
 import tempfile
-from playwright.sync_api import sync_playwright, Page
+import pytest
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
+from playwright.sync_api import sync_playwright
 from flask import Flask
+from src.backend.data_server import DataServer
+from src.backend.validation import Validator as v
+from src.utils import get_db_path
+import src.backend.log.log_manager as log_module  # to patch get_db_path + LOG_PATH
 from src.backend.routes import bp
 from src.frontend.dash_app import create_dash_app
-from src.prediction.pred import Model
 
 # Add the project root to Python path
-project_root = str(Path(__file__).parent.parent.parent.parent)
-sys.path.append(project_root)
+PROJECT_ROOT = str(Path(__file__).parent.parent.parent.parent)
+sys.path.append(PROJECT_ROOT)
+
+EXP_OUTPUTS = "src/testing/exp_outputs.json"
+DEATHS_FILEPATH = "src/testing/resources/deaths.csv"
+BAD_SCHEMA_PATH = "src/testing/resources/bad_schema.csv"
 
 @pytest.fixture
 def test_db_path():
@@ -97,8 +85,8 @@ def in_memory_db(monkeypatch):
 
 @pytest.fixture(scope="function")
 def page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch() 
+    with sync_playwright() as pw_instance:
+        browser = pw_instance.chromium.launch()
         context = browser.new_context()
         page = context.new_page()
         yield page

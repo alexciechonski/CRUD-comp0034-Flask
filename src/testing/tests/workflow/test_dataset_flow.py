@@ -1,10 +1,9 @@
-from playwright.sync_api import sync_playwright, Page
-from src.testing.conftest import DEATHS_FILEPATH, BAD_SCHEMA_PATH
-from src.utils import query_db, get_db_path, show_tables, get_databases
+from playwright.sync_api import Page
 import pandas as pd
 import pytest
-from src.testing.helpers.crawl_helpers import insert_data, create_new_table, delete_table, get_schema_contents, accept_dialog, dialog_appeared
-import time
+from src.testing.conftest import DEATHS_FILEPATH, BAD_SCHEMA_PATH
+from src.utils import query_db, get_db_path, show_tables, get_databases
+from src.testing.helpers.crawl_helpers import insert_data, delete_table, get_schema_contents, accept_dialog
 
 def test_flow(page: Page):
     page.goto("http://127.0.0.1:5000/dataset")
@@ -136,6 +135,3 @@ def test_insert_immutable(page: Page, db_name, table_name):
     insert_data(page, table_name, DEATHS_FILEPATH)
     new_data = query_db(f"SELECT * FROM {table_name};", get_db_path(f"{db_name.lower()}.db"))
     assert new_data == old_data
-
-    
-

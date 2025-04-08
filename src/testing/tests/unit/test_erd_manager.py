@@ -1,14 +1,9 @@
-from src.backend.erd_manager import Visualizer, CRUD
-from src.backend.erd_manager import CRUD as crud_module
-import pytest
+import os
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
+from src.backend.erd_manager import Visualizer, CRUD
 from src.utils import get_db_path
 from src.testing.helpers.unit_helpers import get_exp_data, create_tmp_db
-import tempfile 
-import os
-import pandas as pd
-from src.utils import get_db_path
 
 def test_get_adj_list():
     engine = create_engine(f'sqlite:///{get_db_path("covid.db")}')

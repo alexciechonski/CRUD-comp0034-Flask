@@ -12,50 +12,26 @@ Dependencies:
 import os
 import sys
 from pathlib import Path
-from flask import request, redirect, flash, jsonify
-from functools import lru_cache
-import networkx as nx
-import matplotlib.pyplot as plt
-import io
-import base64
+import traceback
+import tempfile
 import sqlite3
-import plotly.express as px
-import plotly.io as pio
-import numpy as np
+from flask import request, redirect, flash
+from flask import Flask, render_template, url_for
 import pandas as pd
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
 from src.frontend.diagrams import ERD, TimeSeries, RevertChange
 from src.utils import create_database, delete_database
 from src.config import load_config
-import traceback
-import tempfile
-import pandas as pd
 from src.forms.time_series_form import TimeSeriesForm
-
-# Add the parent directory to Python path
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
-from flask import Flask, render_template, url_for, jsonify, send_file
 from src.backend.data_server import DataServer
-from src.utils import (
-    get_table_info, 
-    show_tables, 
-    get_databases, 
-    get_resp,
-    get_db_path,
-    get_all_tables,
-    get_primary_keys,
-    get_graphable_tables
-)
-from src.backend.erd_manager import Visualizer, CRUD
+from src.utils import get_table_info, get_databases, get_db_path
+from src.backend.erd_manager import CRUD
 from src.backend.validation import Validator as v
-from src.prediction.pred import Model
 from src.backend.routes import bp as restriction_bp
 from src.frontend.dash_app import create_dash_app
 from src.backend.log.log_manager import LogManager
-from src.backend.revert_manager import RevertManager
+
+# Add the parent directory to Python path
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 app = Flask(__name__,
             template_folder='templates',
@@ -107,7 +83,7 @@ def dataset():
             selected_db=selected_db,
             databases=databases
         )
-        
+
 @app.route('/time-series', methods=['GET', 'POST'])
 def time_series():
     selected_db = request.args.get('database', 'covid.db')
@@ -154,7 +130,7 @@ def timeline():
 def create_database_endpoint():
     try:
         database_name = request.form.get('database_name')
-        
+
         if not database_name:
             flash('Database name is required', 'error')
             return redirect(url_for('dataset'))
@@ -172,8 +148,8 @@ def create_database_endpoint():
 
         return redirect(url_for('dataset'))
 
-    except ValueError as ve:
-        flash(str(ve), 'error')
+    except ValueError as val_err:
+        flash(str(val_err), 'error')
         return redirect(url_for('dataset'))
     except Exception as e:
         flash(f'Error creating database: {str(e)}', 'error')
@@ -225,14 +201,14 @@ def delete_table_endpoint():
         try:
             db_path = get_db_path(database)
             table_info = get_table_info(table_name, db_path)
-            
+
             crud.remove_table(database, table_name)
-            
+
             # Log the change
             log_manager = LogManager()
             log_manager.delete_change(database, table_name, {"table_name": table_name, "schema": table_info})
             log_manager.save_log()
-            
+
             flash(f'Table {table_name} deleted successfully', 'success')
         except Exception as e:
             print(f"Error in CRUD operations: {str(e)}")
@@ -256,27 +232,27 @@ def insert_data_endpoint():
         if 'csv_file' not in request.files:
             flash('No file uploaded', 'error')
             return redirect(url_for('dataset', database=request.form.get('database')))
-            
+
         file = request.files['csv_file']
         database = request.form.get('database')
         table_name = request.form.get('table_name')
-        
+
         if not file or not database or not table_name:
             flash('Missing required parameters', 'error')
             return redirect(url_for('dataset', database=database))
-            
+
         if not file.filename.endswith('.csv'):
             flash('File must be a CSV', 'error')
             return redirect(url_for('dataset', database=database))
-        
+
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as temp_file:
             file.save(temp_file.name)
             try:
                 df = pd.read_csv(temp_file.name)
 
-                if not v.val_schema(df):
-                    flash('CSV schema does not match the required schema', 'error')
-                    return redirect(url_for('dataset', database=database))
+            #     if not v.val_schema(df):
+            #         flash('CSV schema does not match the required schema', 'error')
+            #         return redirect(url_for('dataset', database=database))
 
             except Exception as e:
                 flash(f'Error reading CSV file: {str(e)}', 'error')
@@ -287,22 +263,22 @@ def insert_data_endpoint():
         if not db_path:
             flash(f'Database {database} not found', 'error')
             return redirect(url_for('dataset', database=database))
-        
+
         try:
             with sqlite3.connect(db_path) as conn:
                 data_to_insert = df.to_dict('records')
-                
+
                 if not data_to_insert:
                     flash('No data to insert', 'error')
                     return redirect(url_for('dataset', database=database))
-                    
+
                 columns = list(data_to_insert[0].keys())
                 placeholders = ','.join(['?' for _ in columns])
                 columns_str = ','.join(columns)
-                
+
                 query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
                 print(f"Insert query: {query}")
-                
+
                 cursor = conn.cursor()
                 rows_inserted = 0
                 for row in data_to_insert:
@@ -314,21 +290,21 @@ def insert_data_endpoint():
                     except Exception as e:
                         print(f"Error inserting row {values}: {str(e)}")
                         raise
-                
+
                 conn.commit()
                 print(f"Committed {rows_inserted} rows to database")
-                
+
                 flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
                 return redirect(url_for('dataset', database=database))
-            
+
         except Exception as e:
             print(f"Error during database operation: {str(e)}")
             flash(f'Error inserting data: {str(e)}', 'error')
             return redirect(url_for('dataset', database=database))
-            
+
         finally:
             os.unlink(temp_file.name)
-            
+
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
         flash(str(e), 'error')
@@ -339,30 +315,27 @@ def delete_database_endpoint():
     try:
         database = request.form.get('database', '')
         print(f"Attempting to delete database: {database}")
-        
+
         if not database:
             print("No database name provided")
             flash('No database selected for deletion', 'error')
             return redirect(url_for('dataset'))
-            
+
         if not v.val_delete_database(database):
             print(f"Attempted to delete non-deletable database: {database}")
             flash('This database cannot be deleted as it is protected', 'error')
             return redirect(url_for('dataset'))
-        
-        print(f"Current database path before deletion: {get_db_path(database)}")
-        
+
         success = delete_database(database)
-        print(f"Delete operation result: {success}")
-        
+
         if success:
             load_config()
             flash(f'Database {database} deleted successfully', 'success')
         else:
             flash(f'Failed to delete database {database}', 'error')
-            
+
         return redirect(url_for('dataset'))
-        
+
     except Exception as e:
         print(f"Error in delete_database_endpoint: {str(e)}")
         flash(f'Error deleting database: {str(e)}', 'error')
@@ -375,10 +348,10 @@ def table_crud():
 
 @app.route('/audit-log')
 def audit_log():
-    log_manager = LogManager()    
+    log_manager = LogManager()
     changes_df = log_manager.to_tables()
     return render_template('audit_log.html', changes_df=changes_df)
-    
+
 @app.route('/revert-change', methods=['POST'])
 def revert_change():
     try:
@@ -409,4 +382,3 @@ def revert_change():
 
 if __name__ == '__main__':
     app.run(debug=True)
-

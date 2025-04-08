@@ -5,8 +5,7 @@ This module provides the `Validator` class, which includes static methods
 to validate table creation, deletion, data insertion, and schema compliance
 based on predefined database constraints.
 """
-import pandas as pd
-from src.config import IMMUTABLE, SCHEMA, NON_DELETEABLE
+from src.config import IMMUTABLE, NON_DELETEABLE
 from src.utils import show_tables
 
 class Validator:
@@ -46,7 +45,7 @@ class Validator:
         # If database is not in IMMUTABLE, all tables are deletable
         if db_name not in IMMUTABLE:
             return True
-            
+
         # If database is in IMMUTABLE, check if table is in its immutable list
         if table in IMMUTABLE[db_name]:
             return False
@@ -67,7 +66,7 @@ class Validator:
         # If database is not in IMMUTABLE, all tables are insertable
         if db_name not in IMMUTABLE:
             return True
-            
+
         # If database is in IMMUTABLE, check if table is in its immutable list
         if table in IMMUTABLE[db_name]:
             return False

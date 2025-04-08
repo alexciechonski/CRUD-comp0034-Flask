@@ -1,6 +1,5 @@
-from playwright.sync_api import sync_playwright, Page, expect
+from playwright.sync_api import Page, expect
 import pytest
-import time
 
 @pytest.mark.parametrize(
     "date, res_url",
@@ -39,10 +38,10 @@ def test_timeline(page: Page, date, res_url):
     try:
         # Navigate to timeline page
         page.goto("http://127.0.0.1:5000/timeline")
-        
+
         # Wait for timeline container to be visible
         page.wait_for_selector(".timeline-container", timeout=10000)
-        
+
         # Wait for timeline cards to be visible
         expect(page.locator(".timeline-card").first).to_be_visible(timeout=10000)
 
@@ -51,48 +50,44 @@ def test_timeline(page: Page, date, res_url):
 
         # Print total number of cards for debugging
         total_cards = cards.count()
-        print(f"Found {total_cards} timeline cards")
 
         for i in range(total_cards):
             card = cards.nth(i)
-            
+
             # Wait for date element to be visible
             expect(card.locator(".timeline-date")).to_be_visible(timeout=5000)
-            
+
             # Get and normalize the date
             card_date = card.locator(".timeline-date").inner_text().strip()
             normalized_card_date = card_date.lower().replace(",", "").strip()
             normalized_expected_date = date.lower().replace(",", "").strip()
-            
-            print(f"Checking card {i}: {card_date} (normalized: {normalized_card_date})")
-            
+
             if normalized_card_date == normalized_expected_date:
                 # Wait for source link to be visible and clickable
                 link = card.locator(".timeline-source a")
                 expect(link).to_be_visible(timeout=5000)
-                
+
                 # Verify link attributes
                 href = link.get_attribute("href")
                 target = link.get_attribute("target")
                 rel = link.get_attribute("rel")
-                
+
                 assert href == res_url, f"Link URL mismatch. Expected: {res_url}, Got: {href}"
                 assert target == "_blank", "Link should open in new tab"
                 assert rel == "noopener noreferrer", "Link should have security attributes"
-                
+
                 # Verify link text
                 link_text = link.inner_text()
                 assert link_text == "Source →", "Link should have correct text"
-                
+
                 found = True
                 print(f"Successfully verified link for date {date}")
                 break
 
         if not found:
             raise AssertionError(f"No timeline card found with date '{date}' (normalized to '{normalized_expected_date}')")
-            
+
     except Exception as e:
         print(f"Test failed with error: {str(e)}")
         # Take a screenshot on failure
-        page.screenshot(path=f"timeline_test_failure_{int(time.time())}.png")
         raise

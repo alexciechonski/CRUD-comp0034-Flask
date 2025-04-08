@@ -1,4 +1,3 @@
-from src.backend.validation import Validator as val
 import pytest
 
 @pytest.mark.parametrize(

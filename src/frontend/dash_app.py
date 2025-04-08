@@ -1,10 +1,8 @@
-from flask import Flask
+from typing import List
 from dash import Dash, html, dcc, dash_table, Input, Output, State, no_update, callback_context
 import dash.exceptions
 from sqlalchemy import create_engine, text
-from typing import List
 from src.utils import get_all_tables, get_table_info, get_db_path, query_db
-from src.backend.erd_manager import CRUD
 from src.backend.log.log_manager import LogManager
 
 def create_dash_app(server):
@@ -183,7 +181,7 @@ def generate_input_fields(cols_info):
     return fields
 
 
-def handle_edits_and_deletions(engine, log_manager, table, db, db_path, prev, curr):
+def handle_edits_and_deletions(engine, log_manager, table, database, db_path, prev, curr):
     pk_columns = get_primary_keys(table, db_path)
     cols_info = get_table_info(table, db_path)
     col_names = [f[1] for f in cols_info]
@@ -198,7 +196,7 @@ def handle_edits_and_deletions(engine, log_manager, table, db, db_path, prev, cu
             conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
             delete_query = f"DELETE FROM {table} WHERE {conditions}"
             connection.execute(text(delete_query), dict(zip(pk_columns, pk_tuple)))
-            log_manager.delete_change(db, table, prev_dict[pk_tuple])
+            log_manager.delete_change(database, table, prev_dict[pk_tuple])
 
         # Handle edits
         for pk_tuple in set(prev_dict.keys()) & set(curr_dict.keys()):
@@ -208,12 +206,12 @@ def handle_edits_and_deletions(engine, log_manager, table, db, db_path, prev, cu
                 set_clause = ", ".join([f"{col} = :{col}" for col in changed])
                 conditions = " AND ".join([f"{pk} = :{pk}" for pk in pk_columns])
                 connection.execute(text(f"UPDATE {table} SET {set_clause} WHERE {conditions}"), curr_row)
-                log_manager.update_change(db, table, curr_row, prev_row)
+                log_manager.update_change(database, table, curr_row, prev_row)
 
     return curr
 
 
-def insert_new_record(engine, log_manager, input_fields, table, db, db_path):
+def insert_new_record(engine, log_manager, input_fields, table, database, db_path):
     cols_info = get_table_info(table, db_path)
     required = [field[1] for field in cols_info if field[5] or field[3] == 'NOT NULL']
     new_record = {}
@@ -234,7 +232,7 @@ def insert_new_record(engine, log_manager, input_fields, table, db, db_path):
         insert_query = f"INSERT INTO {table} ({','.join(cols)}) VALUES ({placeholders})"
         with engine.connect() as conn:
             conn.execute(text(insert_query), new_record)
-            log_manager.create_change(db, table, new_record)
+            log_manager.create_change(database, table, new_record)
 
             col_ids = [field[1] for field in cols_info]
             rows = conn.execute(text(f"SELECT * FROM {table}")).fetchall()

@@ -1,14 +1,11 @@
-import json 
-from src.testing.conftest import EXP_OUTPUTS
+import json
 import tempfile
-import os
-from contextlib import contextmanager
-from src.backend.erd_manager import get_db_path  # Only for type hints, not used directly
+from src.testing.conftest import EXP_OUTPUTS
 
 
 def get_exp_data():
-    with open(EXP_OUTPUTS, "r") as f:
-        data = json.load(f)
+    with open(EXP_OUTPUTS, "r") as file:
+        data = json.load(file)
     return data
 
 def create_tmp_db(monkeypatch, setattr = False):

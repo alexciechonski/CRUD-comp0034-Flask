@@ -1,6 +1,4 @@
-from playwright.sync_api import sync_playwright, Page
-import time
-from src.utils import show_tables
+from playwright.sync_api import Page
 
 def insert_data(page: Page, table_name, file_path):
     page.locator("#insert-table-select").select_option(table_name)
@@ -22,15 +20,15 @@ def delete_table(page: Page, table_name):
 def get_schema_contents(page: Page, table_name):
     # Wait for the table section to be visible
     page.wait_for_selector(".table-section", timeout=5000)
-    
+
     # Find all table sections
     table_sections = page.locator(".table-section").all()
-    
+
     if not table_sections:
         print("No table sections found. Page content:")
         print(page.content())
         raise ValueError("No table sections found on the page")
-    
+
     # Find the section with matching heading
     target_section = None
     found_headings = []
@@ -45,21 +43,21 @@ def get_schema_contents(page: Page, table_name):
         except Exception as e:
             print(f"Error getting heading: {e}")
             continue
-    
+
     if not found_headings:
         print("No headings found. Section HTML:")
         for section in table_sections:
             print(section.inner_html())
         raise ValueError("No table headings found in any section")
-    
+
     if not target_section:
         raise ValueError(f"Table '{table_name}' not found. Available tables: {', '.join(found_headings)}")
-    
+
     try:
         # Get all rows from the table
         rows = target_section.locator(".table-responsive table tbody tr").all()
         schema = []
-        
+
         for row in rows:
             # Get the cells from each row
             cells = row.locator("td").all()
@@ -70,9 +68,9 @@ def get_schema_contents(page: Page, table_name):
                     "constraints": cells[2].inner_text()
                 }
                 schema.append(column_info)
-        
+
         return schema
-        
+
     except Exception as e:
         print(f"Error getting table content: {e}")
         raise
@@ -84,19 +82,19 @@ def get_table_schemas(page: Page):
     """
     # Wait for the table section to be visible
     page.wait_for_selector(".table-section", timeout=5000)
-    
+
     # Get all table sections
     table_sections = page.locator(".table-section").all()
-    
+
     schemas = {}
     for section in table_sections:
         # Get table name from the section
         table_name = section.locator("h3").inner_text()
-        
+
         # Get all column definitions
         columns = section.locator(".column-definition").all()
         schema = []
-        
+
         for column in columns:
             # Extract column name and type
             col_text = column.inner_text()
@@ -105,9 +103,9 @@ def get_table_schemas(page: Page):
                 "name": name,
                 "type": col_type
             })
-            
+
         schemas[table_name] = schema
-    
+
     return schemas
 
 def accept_dialog(dialog):

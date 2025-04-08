@@ -7,96 +7,94 @@ This module provides two classes:
 2. `CRUD`: Provides basic database operations, including table creation, data insertion,
    and table deletion, with integration into a graph database.
 """
-import sqlite3
+import os
+import traceback
 from typing import Any, Dict, List
-from collections import defaultdict
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, inspect, Date
+from sqlalchemy import create_engine, MetaData, Table, inspect
 from sqlalchemy.orm import sessionmaker
 from src.utils import get_db_path
 from src.backend.validation import Validator as v
-from src.backend.models import Base, create_custom_table
+from src.backend.models import create_custom_table
 
 class Visualizer:
     """Class for visualizing database relationships"""
     def __init__(self, session):
         """Initialize the Visualizer with a database session
-        
+
         Args:
             session: SQLAlchemy session for database access
         """
         self._session = session
         self._engine = session.get_bind()
-        
+
     def get_adj_list(self) -> Dict[str, List[List[str]]]:
-        """Get adjacency list representation of database relationships
-        
-        Args:
-            
+        """
+        Get adjacency list representation of database relationships
         Returns:
-            Dict[str, List[List[str]]]: Adjacency list where each key is a table name and 
+            Dict[str, List[List[str]]]: Adjacency list where each key is a table name and
             each value is a list of [target_table, relationship_type] pairs
         """
         inspector = inspect(self._engine)
         adj_list = {}
-        
+
         try:
             # Get all tables in the database
             tables = inspector.get_table_names()
-            
+
             # Initialize empty lists for all tables
             for table in tables:
                 adj_list[table] = []
-            
+
             # For each table, analyze its relationships
             for table in tables:
                 # Get foreign key information
                 fks = inspector.get_foreign_keys(table)
-                
+
                 # Get unique constraints and primary key info
                 unique_constraints = inspector.get_unique_constraints(table)
                 pk_constraint = inspector.get_pk_constraint(table)
                 unique_columns = set()
-                
+
                 # Collect all unique columns
                 for constraint in unique_constraints:
                     unique_columns.update(constraint['column_names'])
                 if pk_constraint:
                     unique_columns.update(pk_constraint['constrained_columns'])
-                
+
                 # For each foreign key, determine the relationship type
                 for fk in fks:
                     referred_table = fk['referred_table']
                     constrained_columns = fk['constrained_columns']
                     referred_columns = fk['referred_columns']
-                    
+
                     # Check if the foreign key columns are part of a unique constraint
                     is_unique = all(col in unique_columns for col in constrained_columns)
-                    
+
                     # Determine relationship type
                     relationship_type = self._determine_relationship_type(
                         inspector, table, referred_table,
                         constrained_columns, referred_columns,
                         is_unique
                     )
-                    
+
                     # Add relationship to adjacency list as [to_node, relationship_type]
                     adj_list[table].append([referred_table, relationship_type])
-                    
+
                 # Sort the list of references by table name for consistency
                 adj_list[table].sort(key=lambda x: x[0])
-            
+
             return adj_list
-            
+
         except Exception as e:
             print(f"Error creating adjacency list: {str(e)}")
             return {}
-            
+
         finally:
             if hasattr(self, '_engine'):
                 self._engine.dispose()
 
     def _determine_relationship_type(
-        self, 
+        self,
         inspector: Any,
         source_table: str,
         target_table: str,
@@ -125,11 +123,11 @@ class Visualizer:
         if len(inspector.get_foreign_keys(source_table)) == 2 and \
            len(source_columns_all) <= len(source_columns) + 1:  # +1 for possible id column
             return 'N:M'
-        
+
         # If the foreign key columns are unique, it's a one-to-one relationship
         if is_unique:
             return '1:1'
-        
+
         # Otherwise, it's a one-to-many relationship
         return '1:N'
 
@@ -149,18 +147,13 @@ class CRUD:
         Args:
             db_name (str): Name of the database to operate on.
         """
-        print(f"\n=== Initializing CRUD ===")
-        print(f"Input database name: '{db_name}'")
-        
         # Ensure database name ends with .db
         if not db_name.endswith('.db'):
             db_name += '.db'
-            print(f"Added .db extension: '{db_name}'")
-            
+
         self.db_name = db_name
         self.engine = None
         self.Session = None
-        print(f"Calling _initialize_engine...")
         self._initialize_engine()
 
     def _initialize_engine(self) -> None:
@@ -169,29 +162,27 @@ class CRUD:
             if self.engine:
                 print("Disposing existing engine...")
                 self.engine.dispose()
-            
+
             db_path = get_db_path(self.db_name)
             print(f"Database path: '{db_path}'")
-            
+
             # Check if database file exists
-            import os
             if not os.path.exists(db_path):
                 print(f"Database file not found!")
                 print(f"Current working directory: {os.getcwd()}")
                 print(f"Directory contents: {os.listdir(os.path.dirname(db_path))}")
                 raise ValueError(f"Database file not found at: {db_path}")
-            
+
             print(f"Creating engine with URI: sqlite:///{db_path}")
             self.engine = create_engine(f'sqlite:///{db_path}')
             self.Session = sessionmaker(bind=self.engine)
-            
+
             # Test connection
             with self.engine.connect() as conn:
                 print("Successfully connected to database")
-                
+
         except Exception as e:
             print(f"Error in _initialize_engine: {str(e)}")
-            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             raise
 
@@ -213,10 +204,10 @@ class CRUD:
             ('time', 'date', 'NOT NULL'),
             ('measured_value', 'float', 'NOT NULL')
         ]
-        
+
         # Create the table model
         table_model = create_custom_table(table_name, columns)
-        
+
         # Create the table in the database
         table_model.__table__.create(self.engine)
 
@@ -231,17 +222,13 @@ class CRUD:
         Raises:
             ValueError: If table is immutable or doesn't exist.
         """
-        print(f"\n=== Removing Table ===")
-        print(f"Database: '{database}'")
-        print(f"Table: '{table_name}'")
-        print(f"Current db_name: '{self.db_name}'")
-        
+
         try:
             # Ensure database name ends with .db
             if not database.endswith('.db'):
                 database += '.db'
                 print(f"Added .db extension to database: '{database}'")
-                
+
             # Update engine if database is different from current one
             if database != self.db_name:
                 print(f"Switching database from '{self.db_name}' to '{database}'")
@@ -253,24 +240,19 @@ class CRUD:
                 raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
 
             # Check if table exists
-            print("Checking if table exists...")
             inspector = inspect(self.engine)
             tables = inspector.get_table_names()
-            print(f"Available tables: {tables}")
-            
+
             if table_name not in tables:
                 raise ValueError(f"Table {table_name} does not exist in database {database}")
 
-            print(f"Attempting to drop table {table_name}...")
             # Drop the table using SQLAlchemy
             metadata = MetaData()
             table = Table(table_name, metadata)
             table.drop(self.engine, checkfirst=True)
-            print(f"Successfully dropped table {table_name} from {database}")
-                
+
         except Exception as e:
             print(f"Error in remove_table: {str(e)}")
-            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             raise
 
@@ -279,4 +261,3 @@ class CRUD:
         if hasattr(self, 'engine') and self.engine:
             print("Disposing engine in destructor")
             self.engine.dispose()
-

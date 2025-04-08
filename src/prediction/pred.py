@@ -9,7 +9,6 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 import pandas as pd
 from src.backend.data_server import DataServer
-from src.utils import get_db_path
 
 class Model:
     """
@@ -48,15 +47,11 @@ class Model:
         """
         server = DataServer('covid.db')
         try:
-            print(f"\n=== Model.prepare ===")
-            print(f"Preparing data for restrictions: {self.restrs}")
-            print(f"Database: {self.db_name}, Table: {self.table_name}")
-            
             # Always get restriction data from covid.db
             restriction_data = server.serve_time_series(self.restrs)
             print(f"Restriction data shape: {len(restriction_data)}")
             print(f"Sample restriction data: {restriction_data[:5]}")
-            
+
             # Get custom data from the specified database
             custom_data = server.serve_second_series(self.db_name, self.table_name)
             print(f"Custom data shape: {len(custom_data)}")
@@ -79,15 +74,15 @@ class Model:
 
             time_series_df['date'] = pd.to_datetime(time_series_df['date'])
             second_series_df['date'] = pd.to_datetime(second_series_df['date'])
-            
+
             print(f"Time series shape: {time_series_df.shape}")
             print(f"Custom series shape: {second_series_df.shape}")
-            
+
             # Merge the datasets based on nearest date match
             merged_df = pd.merge_asof(
                 time_series_df, second_series_df, on='date', direction='nearest'
             ).ffill()
-            
+
             print(f"Merged shape: {merged_df.shape}")
             print(f"Sample merged data:\n{merged_df.head()}")
 
@@ -129,16 +124,11 @@ class Model:
         if data.empty:
             print("Warning: Empty data for correlation calculation")
             return 0.0
-        
+
         x_vals = np.array(data['restr_value'].tolist())
         y_vals = np.array(data['custom_value'].tolist())
-        
-        print(f"Computing correlation between:")
-        print(f"x_vals: {x_vals}")
-        print(f"y_vals: {y_vals}")
-        
+
         correlation = np.corrcoef(x_vals, y_vals)[0, 1]
-        print(f"Correlation coefficient: {correlation}")
         return correlation
 
 if __name__ == "__main__":

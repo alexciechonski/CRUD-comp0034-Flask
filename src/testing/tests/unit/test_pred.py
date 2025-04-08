@@ -1,5 +1,5 @@
-from src.prediction.pred import Model
 import pytest
+from src.prediction.pred import Model
 from src.testing.helpers.unit_helpers import get_exp_data
 
 @pytest.mark.parametrize(
@@ -7,7 +7,7 @@ from src.testing.helpers.unit_helpers import get_exp_data
     [
         ("custom.db", "MHCareCluster"),
         ("deaths.db", "deaths")
-    ] 
+    ]
 )
 def test_prepare(db_name, table):
     model  = Model([], db_name, table)
@@ -19,7 +19,7 @@ def test_prepare(db_name, table):
     [
         ("custom.db", "MHCareCluster"),
         ("deaths.db", "deaths")
-    ] 
+    ]
 )
 def test_train_linear(db_name, table):
     model  = Model([], db_name, table)
@@ -31,7 +31,7 @@ def test_train_linear(db_name, table):
     [
         ("custom.db", "MHCareCluster"),
         ("deaths.db", "deaths")
-    ] 
+    ]
 )
 def test_get_correlation(db_name, table):
     model  = Model([], db_name, table)

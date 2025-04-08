@@ -1,8 +1,8 @@
+import datetime
 import pytest
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from src.backend.models import Base, Date, Restriction, DailyRestriction, Source, SummaryRestriction, create_custom_table
-import datetime
 
 @pytest.fixture
 def in_memory_session():

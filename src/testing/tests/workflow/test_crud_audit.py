@@ -1,8 +1,4 @@
-from playwright.sync_api import sync_playwright, Page, expect
-import pytest
-from src.testing.helpers.crawl_helpers import accept_dialog
-from src.utils import query_db, get_db_path
-import time
+from playwright.sync_api import Page
 
 # Constants for reusability
 IFRAME_SRC = "iframe[src='/table-crud/']"
@@ -43,7 +39,7 @@ def get_last_row(page: Page):
     last_row = iframe.locator(TABLE_ROWS).last
     cells = last_row.locator("td")
     cells.first.wait_for(timeout=5000)
-    cell_values = [cells.nth(i).inner_text() for i in range(cells.count())]    
+    cell_values = [cells.nth(i).inner_text() for i in range(cells.count())]
     return cell_values[2], cell_values[3], cell_values[4]
 
 def check_last_row(page, exp_id, exp_date, exp_val):
@@ -77,7 +73,7 @@ def update_value(page: Page, new_value):
     page.keyboard.press("Control+A")
     page.keyboard.type(new_value)
     page.keyboard.press("Enter")
-    
+
 def test_add(page: Page):
     """Test adding a record"""
     page.goto(CRUD_VIEW_URL)

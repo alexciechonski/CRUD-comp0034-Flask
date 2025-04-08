@@ -6,23 +6,23 @@ to fetch ERD structures, table information, time series data, restriction distri
 timelines, and other relevant data using SQLAlchemy.
 """
 from typing import List, Dict, Tuple
-from sqlalchemy import func, desc, create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from src.backend.models import init_db, Date, Restriction, DailyRestriction, Source, SummaryRestriction
-from src.backend.erd_manager import Visualizer
-import pandas as pd
-from src.utils import get_table_info, get_db_path
+import traceback
+from sqlalchemy import func, create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Table, MetaData
+from src.backend.models import Date, Restriction, DailyRestriction, Source, SummaryRestriction
+from src.backend.erd_manager import Visualizer
+from src.utils import get_table_info, get_db_path
 
 class DataServer:
     """Class for serving data from the database"""
     @staticmethod
     def get_session(db_name):
         """Get a SQLAlchemy session for a database
-        
+
         Args:
             db_name (str): Name of the database to connect to
-            
+
         Returns:
             Session: SQLAlchemy session
         """
@@ -32,7 +32,7 @@ class DataServer:
 
     def __init__(self, db_name):
         """Initialize the DataServer with database paths
-        
+
         Args:
             db_name (str): Name of the database to connect to
         """
@@ -74,11 +74,9 @@ class DataServer:
         Returns:
             list[tuple]: List of tuples containing date and total restrictions applied.
         """
-        print(f"\n=== serve_time_series ===")
-        
         if restrs is None:
             restrs = []
-        
+
         try:
             print("Using covid.db database")
             # Base query joining Date and DailyRestriction
@@ -102,9 +100,9 @@ class DataServer:
 
             # Group by date and order by date
             query = query.group_by(Date.date).order_by(Date.date)
-            
+
             result = query.all()
-            
+
             if not result:
                 print("No results found, returning default value")
                 return [(None, 0)]
@@ -113,13 +111,11 @@ class DataServer:
             processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
             print(f"Processed {len(processed_result)} results")
             return processed_result
-            
+
         except Exception as e:
             print(f"Error in serve_time_series (covid.db): {str(e)}")
-            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             raise
-        
 
     def serve_restr_distr(self, end_date: str = None) -> List[tuple]:
         """
@@ -171,32 +167,24 @@ class DataServer:
         Returns:
             List[tuple]: Processed time series data as (converted_date, measured_value).
         """
-        print(f"\n=== serve_second_series ===")
-        print(f"Called with: db_name={db_name}, table_name={table_name}")
-        
         if not db_name or not table_name:
             print("Missing database name or table name")
             return []
 
         session = None
         try:
-            print(f"Creating new session for database: {db_name}")
             engine = create_engine(f'sqlite:///{get_db_path(db_name)}')
             Session = sessionmaker(bind=engine)
             session = Session()
 
-            print(f"Using database path: {get_db_path(db_name)}")
             metadata = MetaData()
             table_obj = Table(table_name, metadata, autoload_with=session.bind)
-            print(f"Table columns: {[c.name for c in table_obj.columns]}")
-            
+
             result = session.query(
                 table_obj.c.time,
                 table_obj.c.measured_value
             ).order_by(table_obj.c.time).all()
-            
-            print(f"Raw query result: {result}")
-            
+
             if not result:
                 print(f"No data found in table {table_name}")
                 return []
@@ -217,20 +205,19 @@ class DataServer:
                     else:
                         # Handle datetime.date objects
                         iso_date = date_val.strftime('%Y-%m-%d')
-                    
+
                     value = float(value) if value is not None else 0
                     processed_data.append((iso_date, value))
                     print(f"Converted to: date={iso_date}, value={value}")
                 except Exception as e:
                     print(f"Error processing row ({date_val}, {value}): {str(e)}")
                     continue
-            
+
             print(f"Processed data: {processed_data}")
             return sorted(processed_data, key=lambda x: x[0])
-            
+
         except Exception as e:
             print(f"Error in serve_second_series: {str(e)}")
-            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             return []
         finally:
@@ -264,7 +251,7 @@ class DataServer:
             func.min(Date.date),
             func.max(Date.date)
         ).first()
-        
+
         if result and result[0]:
             return result
         return ('', '')

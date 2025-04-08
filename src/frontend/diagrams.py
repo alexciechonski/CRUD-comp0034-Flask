@@ -1,23 +1,27 @@
-from typing import Any, Tuple, Dict, List
 import io
 import base64
 import pandas as pd
-import plotly.graph_objs as go
 import plotly.express as px
+import plotly.io as pio
 import networkx as nx # nx uses graphviz: https://graphviz.org/
 import matplotlib.pyplot as plt
 import matplotlib
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy import text, inspect
 from src.backend.data_server import DataServer
 from src.prediction.pred import Model
-from src.utils import table_not_empty
-from src.utils import get_databases, get_table_info, show_tables, get_db_path, get_graphable_tables, get_resp
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from src.utils import (
+    get_databases,
+    get_table_info,
+    show_tables,
+    get_db_path,
+    get_graphable_tables,
+    get_resp
+    )
 from src.backend.erd_manager import Visualizer
-import plotly.io as pio
 from src.backend.revert_manager import RevertManager
 from src.backend.log.log_manager import LogManager
-from sqlalchemy import text, inspect
 from src.utils import get_primary_keys
 
 matplotlib.use('Agg')

@@ -1,6 +1,5 @@
-from playwright.sync_api import sync_playwright, Page, expect
+from playwright.sync_api import Page, expect
 import pytest
-import time
 
 @pytest.mark.parametrize(
     "table,restrictions,prompt,expected_elements",
@@ -23,23 +22,23 @@ def test_time_series_analysis(page: Page, table, restrictions, prompt, expected_
     """Test the complete time series analysis workflow"""
     # Navigate to the time series page
     page.goto("http://127.0.0.1:5000/time-series")
-    
+
     # Wait for the page to load
     page.wait_for_selector("select[name='table']")
-    
+
     # Select the table
     page.select_option("select[name='table']", table)
-    
+
     # Wait for and select restrictions using the multi-select
     page.wait_for_selector("select[name='restrictions']")
     page.select_option("select[name='restrictions']", restrictions)
-    
+
     # Enter analysis prompt in the textarea
     page.fill("textarea[name='prompt']", prompt)
-    
+
     # Submit the form
     page.click("button.submit-button")
-    
+
     # Wait for analysis to complete and verify results
     for element in expected_elements:
         if element == "time_series_plot":
@@ -57,13 +56,13 @@ def test_empty_form_submission(page: Page):
     """Test form validation when submitting without required fields"""
     # Navigate to the time series page
     page.goto("http://127.0.0.1:5000/time-series")
-    
+
     # Wait for the form to load
     page.wait_for_selector("form")
-    
+
     # Submit the form without filling in any fields
     page.click("button.submit-button")
-    
+
     # Wait for and verify the error message for the required field (table)
     error_div = page.locator("div.alert-danger")
     page.wait_for_selector("div.alert-danger")
@@ -73,15 +72,15 @@ def test_empty_form_submission(page: Page):
 def test_prompt_input(page: Page):
     """Test that the prompt input works correctly"""
     page.goto("http://127.0.0.1:5000/time-series")
-    
+
     # Find the prompt input
     prompt_input = page.locator("textarea[name='prompt']")
     expect(prompt_input).to_be_visible()
-    
+
     # Test input
     test_prompt = "Test analysis prompt"
     prompt_input.fill(test_prompt)
-    
+
     # Get the value and verify it was set correctly
     value = prompt_input.input_value()
     assert value == test_prompt, "Prompt input should contain entered text"

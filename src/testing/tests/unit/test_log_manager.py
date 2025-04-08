@@ -1,11 +1,6 @@
-import os
-import tempfile
 import pytest
-import json
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
 from sqlalchemy.orm import declarative_base
 from src.backend.log.log_manager import LogManager
-import src.backend.log.log_manager as log_module  # to patch get_db_path + LOG_PATH
 
 TEST_DB_NAME = "test.db"
 TEST_TABLE_NAME = "test_table"
@@ -42,7 +37,7 @@ def test_create_change(temp_log_file, in_memory_db, new_data):
         ),
         (
             {"id": 2, "time": "2020-01-02", "measured_value":1000},
-            {"id": 2, "time": "2020-01-02", "measured_value":1} 
+            {"id": 2, "time": "2020-01-02", "measured_value":1}
         )
     ]
 )
