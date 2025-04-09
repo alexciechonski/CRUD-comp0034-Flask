@@ -10,6 +10,7 @@ import traceback
 from sqlalchemy import func, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Table, MetaData
+from sqlalchemy.exc import SQLAlchemyError
 from src.backend.models import Date, Restriction, DailyRestriction, Source, SummaryRestriction
 from src.backend.erd_manager import Visualizer
 from src.utils import get_table_info, get_db_path
@@ -202,13 +203,13 @@ class DataServer:
 
                     value = float(value) if value is not None else 0
                     processed_data.append((iso_date, value))
-                except Exception as e:
+                except ValueError as e:
                     print(f"Error processing row ({date_val}, {value}): {str(e)}")
                     continue
 
             return sorted(processed_data, key=lambda x: x[0])
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             print(f"Error in serve_second_series: {str(e)}")
             print(f"Traceback: {traceback.format_exc()}")
             return []

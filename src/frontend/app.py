@@ -15,6 +15,7 @@ from pathlib import Path
 import traceback
 import tempfile
 import sqlite3
+from sqlite3 import OperationalError
 from flask import request, redirect, flash
 from flask import Flask, render_template, url_for
 import pandas as pd
@@ -74,7 +75,7 @@ def dataset():
             databases=databases,
             erd_html=erd_html
         )
-    except Exception as e:
+    except (FileNotFoundError, OperationalError, AttributeError, TypeError) as e:
         db_names = get_databases()
         databases = [{'label': db, 'value': db} for db in db_names]
         return render_template(
@@ -108,7 +109,7 @@ def time_series():
                                 regression_plot=result['regression_plot'],
                                 analysis_result=result['analysis_result'])
 
-        except Exception as e:
+        except (ValueError, OperationalError) as e:
             return render_template('time_series.html',
                                 form=form,
                                 databases=service.databases,
@@ -150,7 +151,7 @@ def create_database_endpoint():
     except ValueError as val_err:
         flash(str(val_err), 'error')
         return redirect(url_for('dataset'))
-    except Exception as e:
+    except OperationalError as e:
         flash(f'Error creating database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
@@ -179,7 +180,7 @@ def create_table_endpoint():
         flash(f'Table {table_name} created successfully', 'success')
         return redirect(url_for('dataset', database=database))
 
-    except Exception as e:
+    except OperationalError as e:
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
@@ -209,7 +210,8 @@ def delete_table_endpoint():
             log_manager.save_log()
 
             flash(f'Table {table_name} deleted successfully', 'success')
-        except Exception as e:
+        
+        except OperationalError as e:
             print(f"Error in CRUD operations: {str(e)}")
             raise
         finally:
@@ -218,9 +220,7 @@ def delete_table_endpoint():
 
         return redirect(url_for('dataset', database=database))
 
-    except Exception as e:
-        print(f"\nError in delete_table_endpoint: {str(e)}")
-        print(f"Error type: {type(e)}")
+    except OperationalError as e:
         print(f"Traceback: {traceback.format_exc()}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
@@ -249,11 +249,7 @@ def insert_data_endpoint():
             try:
                 df = pd.read_csv(temp_file.name)
 
-            #     if not v.val_schema(df):
-            #         flash('CSV schema does not match the required schema', 'error')
-            #         return redirect(url_for('dataset', database=database))
-
-            except Exception as e:
+            except (ValueError, FileNotFoundError) as e:
                 flash(f'Error reading CSV file: {str(e)}', 'error')
                 return redirect(url_for('dataset', database=database))
 
@@ -284,7 +280,7 @@ def insert_data_endpoint():
                     try:
                         cursor.execute(query, values)
                         rows_inserted += 1
-                    except Exception as e:
+                    except OperationalError as e:
                         print(f"Error inserting row {values}: {str(e)}")
                         raise
 
@@ -293,14 +289,14 @@ def insert_data_endpoint():
                 flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
                 return redirect(url_for('dataset', database=database))
 
-        except Exception as e:
+        except OperationalError as e:
             flash(f'Error inserting data: {str(e)}', 'error')
             return redirect(url_for('dataset', database=database))
 
         finally:
             os.unlink(temp_file.name)
 
-    except Exception as e:
+    except ValueError as e:
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
@@ -327,7 +323,7 @@ def delete_database_endpoint():
 
         return redirect(url_for('dataset'))
 
-    except Exception as e:
+    except OperationalError as e:
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
@@ -358,14 +354,14 @@ def revert_change():
         reverter.revert(change_data)
         return redirect(url_for('audit_log', _external=True))
 
-    except Exception as e:
+    except ValueError as e:
         print(f"Error type: {type(e)}")
         return redirect(url_for('audit_log'))
 
     finally:
         try:
             reverter.cleanup()
-        except Exception as err:
+        except OperationalError as err:
             print(err)
 
 if __name__ == '__main__':

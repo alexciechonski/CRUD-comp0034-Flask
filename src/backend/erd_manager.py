@@ -12,6 +12,7 @@ import traceback
 from typing import Any, Dict, List
 from sqlalchemy import create_engine, MetaData, Table, inspect
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 from src.utils import get_db_path
 from src.backend.validation import Validator as v
 from src.backend.models import create_custom_table
@@ -85,7 +86,7 @@ class Visualizer:
 
             return adj_list
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             print(f"Error creating adjacency list: {str(e)}")
             return {}
 

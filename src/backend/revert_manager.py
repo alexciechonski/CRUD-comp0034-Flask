@@ -8,6 +8,7 @@ import json
 import os
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 from src.utils import get_db_path
 from src.config import LOG_PATH
 
@@ -154,7 +155,7 @@ class RevertManager:
             session.commit()
             return True
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             session.rollback()
             print(f"Error restoring database state: {str(e)}")
             return False
