@@ -109,7 +109,6 @@ def time_series():
                                 analysis_result=result['analysis_result'])
 
         except Exception as e:
-            print(f"Error in time series analysis: {str(e)}")
             return render_template('time_series.html',
                                 form=form,
                                 databases=service.databases,
@@ -277,7 +276,6 @@ def insert_data_endpoint():
                 columns_str = ','.join(columns)
 
                 query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-                print(f"Insert query: {query}")
 
                 cursor = conn.cursor()
                 rows_inserted = 0
@@ -286,19 +284,16 @@ def insert_data_endpoint():
                     try:
                         cursor.execute(query, values)
                         rows_inserted += 1
-                        print(f"Inserted row: {values}")
                     except Exception as e:
                         print(f"Error inserting row {values}: {str(e)}")
                         raise
 
                 conn.commit()
-                print(f"Committed {rows_inserted} rows to database")
 
                 flash(f'Successfully inserted {rows_inserted} records into {table_name}', 'success')
                 return redirect(url_for('dataset', database=database))
 
         except Exception as e:
-            print(f"Error during database operation: {str(e)}")
             flash(f'Error inserting data: {str(e)}', 'error')
             return redirect(url_for('dataset', database=database))
 
@@ -306,7 +301,6 @@ def insert_data_endpoint():
             os.unlink(temp_file.name)
 
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
@@ -314,15 +308,12 @@ def insert_data_endpoint():
 def delete_database_endpoint():
     try:
         database = request.form.get('database', '')
-        print(f"Attempting to delete database: {database}")
 
         if not database:
-            print("No database name provided")
             flash('No database selected for deletion', 'error')
             return redirect(url_for('dataset'))
 
         if not v.val_delete_database(database):
-            print(f"Attempted to delete non-deletable database: {database}")
             flash('This database cannot be deleted as it is protected', 'error')
             return redirect(url_for('dataset'))
 
@@ -337,7 +328,6 @@ def delete_database_endpoint():
         return redirect(url_for('dataset'))
 
     except Exception as e:
-        print(f"Error in delete_database_endpoint: {str(e)}")
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
@@ -363,14 +353,12 @@ def revert_change():
         change_data = reverter.find_change()
 
         if not change_data:
-            print("No matching change found in log")
             return redirect(url_for('audit_log'))
 
         reverter.revert(change_data)
         return redirect(url_for('audit_log', _external=True))
 
     except Exception as e:
-        print(f"\n=== Error in revert_change: {str(e)} ===")
         print(f"Error type: {type(e)}")
         return redirect(url_for('audit_log'))
 

@@ -78,7 +78,6 @@ class DataServer:
             restrs = []
 
         try:
-            print("Using covid.db database")
             # Base query joining Date and DailyRestriction
             query = self._db_session.query(
                 Date.date,
@@ -90,7 +89,6 @@ class DataServer:
 
             # Add restriction filter if restrictions are specified
             if restrs:
-                print(f"Filtering for restrictions: {restrs}")
                 query = query.join(
                     Restriction,
                     DailyRestriction.restriction_id == Restriction.restriction_id
@@ -109,7 +107,6 @@ class DataServer:
 
             # Convert datetime.date objects to ISO format strings
             processed_result = [(date.strftime('%Y-%m-%d'), count) for date, count in result]
-            print(f"Processed {len(processed_result)} results")
             return processed_result
 
         except Exception as e:
@@ -168,7 +165,6 @@ class DataServer:
             List[tuple]: Processed time series data as (converted_date, measured_value).
         """
         if not db_name or not table_name:
-            print("Missing database name or table name")
             return []
 
         session = None
@@ -186,13 +182,11 @@ class DataServer:
             ).order_by(table_obj.c.time).all()
 
             if not result:
-                print(f"No data found in table {table_name}")
                 return []
 
             processed_data = []
             for date_val, value in result:
                 try:
-                    print(f"Processing row: date={date_val}, value={value}")
                     # Handle different date formats
                     if isinstance(date_val, str):
                         if '/' in date_val:
@@ -208,22 +202,20 @@ class DataServer:
 
                     value = float(value) if value is not None else 0
                     processed_data.append((iso_date, value))
-                    print(f"Converted to: date={iso_date}, value={value}")
                 except Exception as e:
                     print(f"Error processing row ({date_val}, {value}): {str(e)}")
                     continue
 
-            print(f"Processed data: {processed_data}")
             return sorted(processed_data, key=lambda x: x[0])
 
         except Exception as e:
             print(f"Error in serve_second_series: {str(e)}")
             print(f"Traceback: {traceback.format_exc()}")
             return []
+
         finally:
             # Only close the session if we created it
             if db_name not in ['covid.db', 'custom.db'] and session:
-                print(f"Closing session for database: {db_name}")
                 session.close()
 
     def get_restrictions(self) -> List[str]:
@@ -258,11 +250,7 @@ class DataServer:
 
     def __del__(self):
         """Clean up database connections"""
-        print("\n=== Cleaning up DataServer ===")
         if hasattr(self, '_db_session'):
-            print("Closing _db_session")
             self._db_session.close()
         if hasattr(self, '_db_engine'):
-            print("Disposing _db_engine")
             self._db_engine.dispose()
-        print("DataServer cleanup complete")

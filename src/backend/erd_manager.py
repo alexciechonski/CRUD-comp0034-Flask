@@ -160,20 +160,15 @@ class CRUD:
         """Initialize SQLAlchemy engine and session factory."""
         try:
             if self.engine:
-                print("Disposing existing engine...")
                 self.engine.dispose()
 
             db_path = get_db_path(self.db_name)
-            print(f"Database path: '{db_path}'")
 
             # Check if database file exists
             if not os.path.exists(db_path):
                 print(f"Database file not found!")
-                print(f"Current working directory: {os.getcwd()}")
-                print(f"Directory contents: {os.listdir(os.path.dirname(db_path))}")
                 raise ValueError(f"Database file not found at: {db_path}")
 
-            print(f"Creating engine with URI: sqlite:///{db_path}")
             self.engine = create_engine(f'sqlite:///{db_path}')
             self.Session = sessionmaker(bind=self.engine)
 
@@ -227,15 +222,12 @@ class CRUD:
             # Ensure database name ends with .db
             if not database.endswith('.db'):
                 database += '.db'
-                print(f"Added .db extension to database: '{database}'")
 
             # Update engine if database is different from current one
             if database != self.db_name:
-                print(f"Switching database from '{self.db_name}' to '{database}'")
                 self.db_name = database
                 self._initialize_engine()
 
-            print("Validating table deletion...")
             if not v.val_delete_table(database, table_name):
                 raise ValueError(f"Table {table_name} cannot be deleted as it is immutable")
 
@@ -259,5 +251,4 @@ class CRUD:
     def __del__(self):
         """Clean up database connections."""
         if hasattr(self, 'engine') and self.engine:
-            print("Disposing engine in destructor")
             self.engine.dispose()

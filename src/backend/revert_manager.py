@@ -81,7 +81,6 @@ class RevertManager:
             state_file = os.path.join(self.revert_dir, f'{self.database}_state_backup.json')
             with open(state_file, 'w') as file:
                 json.dump(self._state_backup, file, indent=2)
-            print(f"Saved state to {state_file}")
 
         except Exception as e:
             print(f"Error saving state: {str(e)}")
@@ -100,7 +99,6 @@ class RevertManager:
             with open(state_file, 'r') as file:
                 self._state_backup = json.load(file)
 
-            print(f"Loaded state from {state_file}")
 
         except Exception as e:
             print(f"Error loading state: {str(e)}")
@@ -154,7 +152,6 @@ class RevertManager:
 
             # Commit the transaction
             session.commit()
-            print(f"Successfully restored database {self.database} to previous state")
             return True
 
         except Exception as e:
