@@ -13,6 +13,9 @@ from src.forms.end_date_form import RestrictionForm
 from .models import Date, Restriction, DailyRestriction
 from .data_server import DataServer
 
+ROUTE_RESTR_DISTR = '/restriction-distribution'
+
+
 bp = Blueprint('restriction_distribution', __name__)
 
 # Create engine and session factory
@@ -27,7 +30,7 @@ def format_restriction_name(name):
     """Format restriction name for display."""
     return name.replace('_', ' ').title()
 
-@bp.route('/restriction-distribution', methods=['GET', 'POST'])
+@bp.route(ROUTE_RESTR_DISTR, methods=['GET', 'POST'])
 def restriction_distribution():
     form = RestrictionForm()
 

@@ -34,6 +34,18 @@ from src.backend.log.log_manager import LogManager
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
+ROUTE_CREATE_DB = '/api/create-database'
+ROUTE_DELETE_DB = '/api/delete-database'
+ROUTE_DATASET = '/dataset'
+ROUTE_TIME_SERIES = '/time-series'
+ROUTE_TIMELINE = '/timeline'
+ROUTE_INSERT_DATA = '/api/insert-data'
+ROUTE_CRUD_VIEW = '/crud-view'
+ROUTE_AUDIT_LOG = '/audit-log'
+ROUTE_REVERT_CHANGE = '/revert-change'
+ROUTE_CREATE_TABLE = '/api/create-table'
+ROUTE_DELETE_TABLE = '/api/delete-table'
+
 app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
@@ -57,7 +69,7 @@ def get_data_server():
 def index():
     return render_template('index.html')
 
-@app.route('/dataset')
+@app.route(ROUTE_DATASET)
 def dataset():
     selected_db = request.args.get('database', 'covid.db')
 
@@ -85,7 +97,7 @@ def dataset():
             databases=databases
         )
 
-@app.route('/time-series', methods=['GET', 'POST'])
+@app.route(ROUTE_TIME_SERIES, methods=['GET', 'POST'])
 def time_series():
     selected_db = request.args.get('database', 'covid.db')
     service = TimeSeries(selected_db)
@@ -122,11 +134,11 @@ def time_series():
                             selected_db=selected_db)
 
 
-@app.route('/timeline')
+@app.route(ROUTE_TIMELINE)
 def timeline():
     return render_template('timeline.html')
 
-@app.route('/api/create-database', methods=['POST'])
+@app.route(ROUTE_CREATE_DB, methods=['POST'])
 def create_database_endpoint():
     try:
         database_name = request.form.get('database_name')
@@ -155,7 +167,7 @@ def create_database_endpoint():
         flash(f'Error creating database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
-@app.route('/api/create-table', methods=['POST'])
+@app.route(ROUTE_CREATE_TABLE, methods=['POST'])
 def create_table_endpoint():
     try:
         database = request.form.get('database')
@@ -184,7 +196,7 @@ def create_table_endpoint():
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
-@app.route('/api/delete-table', methods=['POST'])
+@app.route(ROUTE_DELETE_TABLE, methods=['POST'])
 def delete_table_endpoint():
     try:
         database = request.form.get('database')
@@ -214,6 +226,7 @@ def delete_table_endpoint():
         except OperationalError as e:
             print(f"Error in CRUD operations: {str(e)}")
             raise
+        
         finally:
             if hasattr(crud, 'engine') and crud.engine:
                 crud.engine.dispose()
@@ -225,7 +238,7 @@ def delete_table_endpoint():
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
-@app.route('/api/insert-data', methods=['POST'])
+@app.route(ROUTE_INSERT_DATA, methods=['POST'])
 def insert_data_endpoint():
     try:
         if 'csv_file' not in request.files:
@@ -300,7 +313,7 @@ def insert_data_endpoint():
         flash(str(e), 'error')
         return redirect(url_for('dataset', database=database))
 
-@app.route('/api/delete-database', methods=['POST'])
+@app.route(ROUTE_DELETE_DB, methods=['POST'])
 def delete_database_endpoint():
     try:
         database = request.form.get('database', '')
@@ -327,18 +340,18 @@ def delete_database_endpoint():
         flash(f'Error deleting database: {str(e)}', 'error')
         return redirect(url_for('dataset'))
 
-@app.route('/crud-view')
+@app.route(ROUTE_CRUD_VIEW)
 def table_crud():
     """Render the Table CRUD page with the embedded Dash app."""
     return render_template('table_crud.html')
 
-@app.route('/audit-log')
+@app.route(ROUTE_AUDIT_LOG)
 def audit_log():
     log_manager = LogManager()
     changes_df = log_manager.to_tables()
     return render_template('audit_log.html', changes_df=changes_df)
 
-@app.route('/revert-change', methods=['POST'])
+@app.route(ROUTE_REVERT_CHANGE, methods=['POST'])
 def revert_change():
     try:
         database = request.form.get('database')
