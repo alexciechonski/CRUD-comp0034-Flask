@@ -12,13 +12,13 @@
         <h1 class="centered-item">COVID-19 Insights</h1>
         <nav>
             <ul>
-                <li><a href="{{ url_for('index') }}">Home</a></li>
-                <li><a href="{{ url_for('dataset') }}">Dataset</a></li>
-                <li><a href="{{ url_for('table_crud') }}">Table CRUD</a></li>
-                <li><a href="{{ url_for('time_series') }}">Time Series</a></li>
-                <li><a href="{{ url_for('restriction_distribution.restriction_distribution') }}">Restriction Distribution</a></li>
-                <li><a href="{{ url_for('timeline') }}">Timeline</a></li>
-                <li><a href="{{ url_for('audit_log') }}">Audit Log</a></li>
+                <li><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li><a href="{{ url_for('main.dataset') }}">Dataset</a></li>
+                <li><a href="{{ url_for('main.table_crud') }}">Table CRUD</a></li>
+                <li><a href="{{ url_for('main.time_series') }}">Time Series</a></li>
+                <li><a href="{{ url_for('main.restriction_distribution') }}">Restriction Distribution</a></li>
+                <li><a href="{{ url_for('main.timeline') }}">Timeline</a></li>
+                <li><a href="{{ url_for('main.audit_log') }}">Audit Log</a></li>
             </ul>
         </nav>
     </header>

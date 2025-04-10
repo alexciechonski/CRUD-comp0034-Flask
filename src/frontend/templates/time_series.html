@@ -8,7 +8,7 @@
     <p>Analyze the relationship between COVID-19 restrictions and custom data over time.</p>
     
     <div class="analysis-container">
-        <form method="POST" action="{{ url_for('time_series') }}">
+        <form method="POST" action="{{ url_for('main.time_series') }}">
             {{ form.csrf_token }}
             
             <div class="select-group">

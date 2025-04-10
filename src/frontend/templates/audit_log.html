@@ -31,7 +31,7 @@
                         </table>
                     </div>
                     <div class="text-end mt-3">
-                        <form action="{{ url_for('revert_change') }}" method="POST" style="display: inline;">
+                        <form action="{{ url_for('main.revert_change') }}" method="POST" style="display: inline;">
                             <input type="hidden" name="database" value="{{ row['database'] }}">
                             <input type="hidden" name="table" value="{{ row['table'] }}">
                             <input type="hidden" name="change_type" value="{{ row['change_type'] }}">

@@ -9,7 +9,7 @@
     
     <div class="distribution-container">
         <div class="controls-section">
-            <form method="GET" action="{{ url_for('restriction_distribution.restriction_distribution') }}" class="date-picker">
+            <form method="GET" action="{{ url_for('main.restriction_distribution') }}" class="date-picker">
                 <label for="endDate">Show restrictions up to:</label>
                 <input type="date" id="endDate" name="end_date" class="date-input" 
                        min="2020-01-01" max="2022-12-31" value="{{ end_date }}">
