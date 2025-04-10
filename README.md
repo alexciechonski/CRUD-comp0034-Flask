@@ -94,8 +94,8 @@ comp0034-cw-alexciechonski/
 │   │   │   │   ├── test_erd_manager.py
 │   │   │   │   ├── test_log_manager.py
 │   │   │   │   ├── test_models.py
+│   │   │   │   ├── test_pred.py
 │   │   │   │   ├── test_revert_manager.py
-│   │   │   │   ├── test_routes.py
 │   │   │   │   ├── test_utils.py
 │   │   │   │   └── test_validation.py
 │   │   │   └── workflow
@@ -181,6 +181,11 @@ The setup for this project consists of 4 steps:
     pip install -e .
     ```
 
+8. Start the app
+    ```
+    python src/frontend/app.py
+    ```
+
 # Dataset #
 
 The original dataset used in this project is sourced from https://data.london.gov.uk/dataset/covid-19-restrictions-timeseries. It is licensed under the UK Open Government Licence, which can be found here https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/.
@@ -201,7 +206,4 @@ To run them use:
 pytest --cov=src src/testing/tests/
 ```
 The results of the tests can be seen in the actions tab.
-
-# Linting #
-PyLint has been used for lining, ensuring the code meets the PEP8 Python style standards
 
