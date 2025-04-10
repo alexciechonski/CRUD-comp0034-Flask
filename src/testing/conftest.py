@@ -46,23 +46,6 @@ def test_validator():
     return v()
 
 @pytest.fixture
-def client():
-    app = Flask(__name__,
-                template_folder='templates',
-                static_folder='static')
-
-    app.config['SECRET_KEY'] = 'test-key'
-    app.config['WTF_CSRF_ENABLED'] = False
-
-    # Register blueprints and setup
-    app.register_blueprint(bp)
-    create_dash_app(app)  # if you’re using a Dash integration
-
-    with app.test_client() as client:
-        with app.app_context():
-            yield client
-
-@pytest.fixture
 def temp_log_file(monkeypatch):
     with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as tmp:
         tmp.write("[]")  # write an empty JSON array to initialize the log
