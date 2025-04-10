@@ -50,10 +50,8 @@ class RevertManager:
             state = {}
 
             for table_name, table in metadata.tables.items():
-                # Get all data from the table
                 result = session.execute(table.select()).fetchall()
 
-                # Store the data
                 state[table_name] = []
                 for row in result:
                     row_dict = {}
@@ -67,7 +65,6 @@ class RevertManager:
 
             self._state_backup = state
 
-            # Save state to file
             self._save_state()
 
         finally:
@@ -122,14 +119,11 @@ class RevertManager:
 
         session = self.Session()
         try:
-            # Get all tables in the database
             metadata = MetaData()
             metadata.reflect(bind=self.engine)
 
-            # Begin transaction
             session.begin()
 
-            # For each table in the backup
             for table_name, rows in self._state_backup.items():
                 if table_name not in metadata.tables:
                     print(f"Warning: Table {table_name} not found in database, skipping")
@@ -145,13 +139,11 @@ class RevertManager:
 
                 # Insert backup data
                 for row in rows:
-                    # Filter out columns that don't exist in the current table
                     filtered_row = {k: v for k, v in row.items() if k in current_columns}
                     if filtered_row:  # Only insert if there are valid columns
                         insert_stmt = table.insert().values(**filtered_row)
                         session.execute(insert_stmt)
 
-            # Commit the transaction
             session.commit()
             return True
 

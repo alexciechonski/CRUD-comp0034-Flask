@@ -35,3 +35,15 @@ def test_audit_log(client):
     response = client.get('/audit-log')
     assert response.status_code == 200
     assert b'Audit Log' in response.data
+
+def test_restr_distr(client):
+    response = client.get('/restriction-distribution?end_date=2021-06-15')
+    assert response.status_code == 200
+    assert b"Global Restriction Patterns" in response.data
+    assert b"Most Common Restriction" in response.data
+    assert b"As of Date" in response.data
+
+    # # Test with invalid date (should use default)
+    response = client.get('/restriction-distribution?end_date=2020-01-15')
+    assert response.status_code == 200
+    assert b"No data available for the selected date" in response.data

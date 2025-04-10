@@ -80,21 +80,14 @@ def get_table_schemas(page: Page):
     Gets all table schemas from the dataset page.
     Returns a dictionary mapping table names to their schemas.
     """
-    # Wait for the table section to be visible
     page.wait_for_selector(".table-section", timeout=5000)
-
-    # Get all table sections
     table_sections = page.locator(".table-section").all()
 
     schemas = {}
     for section in table_sections:
-        # Get table name from the section
         table_name = section.locator("h3").inner_text()
-
-        # Get all column definitions
         columns = section.locator(".column-definition").all()
         schema = []
-
         for column in columns:
             # Extract column name and type
             col_text = column.inner_text()

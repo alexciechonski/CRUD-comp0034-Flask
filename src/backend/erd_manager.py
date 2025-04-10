@@ -117,19 +117,14 @@ class Visualizer:
         Returns:
             str: Relationship type ('1:1', '1:N', or 'N:M')
         """
-        # Check for many-to-many relationship
-        # This is a heuristic: if a table has exactly two foreign keys and no other columns
-        # (except perhaps an id), it's likely a junction table
         source_columns_all = [col['name'] for col in inspector.get_columns(source_table)]
         if len(inspector.get_foreign_keys(source_table)) == 2 and \
            len(source_columns_all) <= len(source_columns) + 1:  # +1 for possible id column
             return 'N:M'
 
-        # If the foreign key columns are unique, it's a one-to-one relationship
         if is_unique:
             return '1:1'
 
-        # Otherwise, it's a one-to-many relationship
         return '1:N'
 
 class CRUD:
@@ -195,16 +190,11 @@ class CRUD:
         if not v.val_create_table(self.db_name, table_name):
             raise ValueError(f"Table {table_name} already exists")
 
-        # Create a basic table model with id, time, and measured_value columns
         columns = [
             ('time', 'date', 'NOT NULL'),
             ('measured_value', 'float', 'NOT NULL')
         ]
-
-        # Create the table model
         table_model = create_custom_table(table_name, columns)
-
-        # Create the table in the database
         table_model.__table__.create(self.engine)
 
     def remove_table(self, database: str, table_name: str) -> None:

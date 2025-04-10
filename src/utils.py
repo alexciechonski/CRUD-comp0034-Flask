@@ -179,31 +179,23 @@ def create_database(db_name: str) -> bool:
         ValueError: If db_name doesn't end with .db or database already exists
     """
 
-    # Validate database name
     if not db_name.endswith('.db'):
         raise ValueError("Database name must end with .db")
 
-    # Construct the full path
     db_path = Path(BASE_PATH) / db_name
 
-    # Check if database already exists
     if db_path.exists():
         raise ValueError(f"Database {db_name} already exists at {db_path}")
 
     try:
         # Create the data directory if it doesn't exist
         db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Create an empty database file
         engine = create_engine(f'sqlite:///{db_path}')
-        # Just connect and disconnect to create the empty file
         engine.connect().close()
-
         return True
 
     except Exception as e:
         print(f"Error creating database: {str(e)}")
-        # Clean up if file was created but there was an error
         if db_path.exists():
             db_path.unlink()
         return False
@@ -226,27 +218,22 @@ def delete_database(db_name: str) -> bool:
         ValueError: If db_name is covid.db or database doesn't exist
     """
 
-    # Don't allow deletion of covid.db
     if db_name == 'covid.db':
         print("Attempted to delete covid.db")
         raise ValueError("Cannot delete the main COVID-19 database")
 
-    # Construct the full path
     db_path = Path(BASE_PATH) / db_name
     print(f"Full database path: {db_path}")
     print(f"Database exists: {db_path.exists()}")
 
-    # Check if database exists
     if not db_path.exists():
         print(f"Database not found at {db_path}")
         raise ValueError(f"Database {db_name} does not exist at {db_path}")
 
     try:
-        # Delete the database file
         print(f"Attempting to delete file at {db_path}")
         db_path.unlink()
         print(f"File deleted successfully. Still exists: {db_path.exists()}")
-
         return True
 
     except Exception as e:
