@@ -36,4 +36,4 @@ def test_train_linear(db_name, table):
 def test_get_correlation(db_name, table):
     model  = Model([], db_name, table)
     exp = get_exp_data()
-    assert model.get_correlation() == exp['correlation_value'][table]
+    assert model.get_correlation() == pytest.approx(exp['correlation_value'][table], rel=1e-12)
