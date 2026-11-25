@@ -23,7 +23,7 @@ app = Flask(__name__,
             template_folder='templates',
             static_folder='static')
 
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32)
 
 # Initialize Dash app
 dash_app = create_dash_app(app)
